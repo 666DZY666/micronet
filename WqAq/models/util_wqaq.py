@@ -20,7 +20,7 @@ def uniform_quantize(k):
     @staticmethod
     def backward(ctx, grad_output):
       grad_input = grad_output.clone()
-      return grad_input
+      return grad_input                                         #也可用:saturate_ste + torch.clamp(x, -1.0, +1.0)
 
   return qfn().apply
 
@@ -36,7 +36,7 @@ class weight_quantize_fn(nn.Module):
       weight_q = x
     elif self.w_bit == 1:
       E = torch.mean(torch.abs(x)).detach()
-      weight_q = self.uniform_q(x / E) * E                      #也可以用:torch.clamp(x, -1.0, +1.0)
+      weight_q = self.uniform_q(x / E) * E                      #也可用:torch.clamp(x, -1.0, +1.0) + saturate_ste
     else:
       weight = torch.tanh(x)
       weight = weight / 2 / torch.max(torch.abs(weight)) + 0.5  #归一化-[0,1]
@@ -54,7 +54,7 @@ class activation_quantize_fn(nn.Module):
     if self.a_bit == 32:
       activation_q = x
     else:
-      activation_q = self.uniform_q(torch.clamp(x, 0, 1))
+      activation_q = self.uniform_q(torch.clamp(x * 0.1, 0, 1)) #先进行缩放（* 0.1），以减小截断误差
       # print(np.unique(activation_q.detach().numpy()))
     return activation_q
 
