@@ -54,7 +54,7 @@ class activation_quantize_fn(nn.Module):
     if self.a_bit == 32:
       activation_q = x
     else:
-      activation_q = self.uniform_q(torch.clamp(x * 0.1, 0, 1)) #先进行缩放（* 0.1），以减小截断误差
+      activation_q = self.uniform_q(torch.clamp(x * 0.1, 0, 1)) #特征A截断前先进行缩放（* 0.1），以减小截断误差
       # print(np.unique(activation_q.detach().numpy()))
     return activation_q
 
