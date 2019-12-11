@@ -18,16 +18,32 @@
 ### 量化
 #### W（FP32/三/二值）、A（FP32/三/二值）
 - WbAb
-- WbA32
-- WtAb
-- WtA32
 ```
 cd WbWtAb
 python main.py --W 2 --A 2
 ```
-### 2、剪枝
-### 3、剪枝 —> 量化
-### 4、分组+剪枝 —> 量化
+- WbA32
+```
+cd WbWtAb
+python main.py --W 2 --A 32
+```
+- WtAb
+```
+cd WbWtAb
+python main.py --W 3 --A 2
+```
+- WtA32
+```
+cd WbWtAb
+python main.py --W 3 --A 32
+```
+####待补充。。。
+### 剪枝
+####待补充。。。
+### 剪枝 —> 量化
+####待补充。。。
+### 分组+剪枝 —> 量化
+####待补充。。。
 
 ## 可尝试
 - 1、渐进式量化：FP32—>8—>4—>三/二值
