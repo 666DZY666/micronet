@@ -67,7 +67,7 @@ class Tnn_Bin_Op():
                 # ************** W * α —— +-1 * α**************
                 self.target_modules[index].data = self.target_modules[index].data.sign().mul(m.expand(s))
             elif self.W == 3:
-                #**********************W三值*************************
+                #****************************************W三值*****************************************
                 for i in range(0, s[0]):
                     sum = torch.sum(torch.abs(self.target_modules[index].data[i])).item()
                     threshold = (sum / n) * 0.7
