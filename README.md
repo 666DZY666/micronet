@@ -12,7 +12,7 @@
 - 5、batch normalization的融合及融合前后model对比测试：普通融合（BN层参数 —> conv的权重w和偏置b）、针对特征A二值的融合（BN层参数 —> conv的偏置b)
 
 ## 代码结构
-![img1](https://github.com/666DZY666/model-compression/blob/master/readme_imgs/code_sturcture.jpg)
+![img1](https://github.com/666DZY666/model-compression/tree/master/readme_imgs/code_structure.jpg)
 
 ## 使用（注意剪枝率和量化率平衡）
 - 1、量化
