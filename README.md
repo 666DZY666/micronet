@@ -15,10 +15,11 @@
 ![img1](https://github.com/666DZY666/model-compression/blob/master/readme_imgs/code_structure.jpg)
 
 ## 使用（注意剪枝率和量化率平衡）
-- 1、量化
-- 2、剪枝
-- 3、剪枝 —> 量化
-- 4、分组+剪枝 —> 量化
+### 量化
+#### W
+### 2、剪枝
+### 3、剪枝 —> 量化
+### 4、分组+剪枝 —> 量化
 
 ## 可尝试
 - 1、渐进式量化：FP32—>8—>4—>三/二值
