@@ -103,7 +103,7 @@ python main.py --refine models_save/nin_preprune.pth
 
 ### 剪枝 —> 量化（注意剪枝率和量化率平衡）
 剪枝完成后,加载保存的模型参数在其基础上再做量化
-#### 剪枝 —> 量化（8/4/2 bits）（剪枝率偏小、量化率偏大）
+#### 剪枝 —> 量化（8/4/2 bits）（剪枝率偏大、量化率偏小）
 ```
 cd WqAq
 ```
@@ -117,7 +117,7 @@ python main.py --Wbits 8 --Abits 8 --refine ../prune/models_save/nin_refine.pth
 python main.py --Wbits 8 --Abits 8 --refine ../prune/models_save/nin_gc_refine.pth
 ```
 - 其他bits情况类比
-#### 剪枝 —> 量化（三/二值）（剪枝率偏大、量化率偏小）
+#### 剪枝 —> 量化（三/二值）（剪枝率偏小、量化率偏大）
 ```
 cd WbWtAb
 ```
