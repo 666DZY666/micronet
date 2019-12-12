@@ -61,6 +61,7 @@ python main.py --Wbits 4 --Abits 4
 - 其他bits情况类比
 
 ### 剪枝
+稀疏训练 ——> 剪枝 ——> 微调
 ```
 cd prune
 ```
@@ -82,18 +83,18 @@ python main.py -sr --s 0.001
 --percent 剪枝率, --normal_regular 正常、规整剪枝标志及规整剪枝基数(如设置为N,则剪枝后模型每层filter个数即为N的倍数), --model 稀疏训练后的model路径, --save 剪枝后保存的model路径（路径默认已给出, 可据实际情况更改）
 - 正常剪枝
 ```
-python normal_regular_prune.py --percent 0.5
+python normal_regular_prune.py --percent 0.5 --model models_save/nin_preprune.pth --save models_save/nin_prune.pth
 ```
 - 规整剪枝
 ```
-python normal_regular_prune.py --percent 0.5 --normal_regular 8
+python normal_regular_prune.py --percent 0.5 --normal_regular 8 --model models_save/nin_preprune.pth --save models_save/nin_prune.pth
 ```
 ```
-python normal_regular_prune.py --percent 0.5 --normal_regular 16
+python normal_regular_prune.py --percent 0.5 --normal_regular 16 --model models_save/nin_preprune.pth --save models_save/nin_prune.pth
 ```
 - 分组卷积结构剪枝
 ```
-python gc_prune.py --percent 0.4
+python gc_prune.py --percent 0.4 --model models_save/nin_gc_preprune.pth
 ```
 #### 微调
 --refine 剪枝后的model路径（在其基础上做微调）
