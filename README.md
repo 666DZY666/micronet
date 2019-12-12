@@ -74,7 +74,7 @@ python main.py -sr --s 0.0001
 python main.py -sr --s 0.001
 ```
 #### 剪枝
---percent 剪枝率, --normal_regular 正常、规整剪枝标志及规整剪枝剩余firter个数倍数的基数, --model 稀疏训练后的model路径, --save 剪枝后保存的model路径（路径默认已给出, 可据实际情况更改）
+--percent 剪枝率, --normal_regular 正常、规整剪枝标志及规整剪枝基数(如设置为N,则剪枝后模型每层fieterl个数即为N的倍数), --model 稀疏训练后的model路径, --save 剪枝后保存的model路径（路径默认已给出, 可据实际情况更改）
 - 正常剪枝
 ```
 python normal_regular_prune.py --percent 0.5
