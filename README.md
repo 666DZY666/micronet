@@ -103,7 +103,7 @@ python main.py --refine models_save/nin_preprune.pth
 ### 分组+剪枝 —> 量化（注意剪枝率和量化率平衡）
 #### 待补充。。。
 
-### batch normalization融合及融合前后测试
+### BN融合及融合前后model对比测试
 #### 待补充。。。
 
 ## 可尝试
