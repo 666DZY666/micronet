@@ -17,24 +17,24 @@
 ## 使用
 ### 量化
 #### W（FP32/三/二值）、A（FP32/三/二值）
-- WbAb
+
 ```
 cd WbWtAb
+```
+- WbAb
+```
 python main.py --W 2 --A 2
 ```
 - WbA32
 ```
-cd WbWtAb
 python main.py --W 2 --A 32
 ```
 - WtAb
 ```
-cd WbWtAb
 python main.py --W 3 --A 2
 ```
 - WtA32
 ```
-cd WbWtAb
 python main.py --W 3 --A 32
 ```
 #### 待补充。。。
