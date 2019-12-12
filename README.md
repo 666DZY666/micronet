@@ -1,8 +1,10 @@
 # model-compression
 "目前在深度学习领域分类两个派别，一派为学院派，研究强大、复杂的模型网络和实验方法，为了追求更高的性能；另一派为工程派，旨在将算法更稳定、高效的落地在硬件平台上，效率是其追求的目标。复杂的模型固然具有更好的性能，但是高额的存储空间、计算资源消耗是使其难以有效的应用在各硬件平台上的重要原因。所以，卷积神经网络日益增长的深度和尺寸为深度学习在移动端的部署带来了巨大的挑战，深度学习模型压缩与加速成为了学术界和工业界都重点关注的研究领域之一"
 
+
 ## 项目简介 
 基于pytorch实现模型压缩（1、量化：8/4/2 bits(dorefa)、三值/二值(twn/bnn/xnor-net)；2、剪枝：正常、规整、针对分组卷积结构的通道剪枝；3、分组卷积结构；4、针对特征A二值的BN融合）
+
 
 ## 目前提供
 - 1、普通卷积和分组卷积结构
@@ -11,8 +13,10 @@
 - 4、多种剪枝方式：正常剪枝、规整剪枝（比如model可剪枝为每层剩余filter个数为N(8,16等)的倍数）、针对分组卷积结构的剪枝（剪枝后仍保证分组卷积结构）
 - 5、batch normalization的融合及融合前后model对比测试：普通融合（BN层参数 —> conv的权重w和偏置b）、针对特征A二值的融合（BN层参数 —> conv的偏置b)
 
+
 ## 代码结构
 ![img1](https://github.com/666DZY666/model-compression/blob/master/readme_imgs/code_structure.jpg)
+
 
 ## 使用
 ### 量化
@@ -54,7 +58,7 @@ python main.py --Wbits 4 --Abits 8
 ```
 python main.py --Wbits 4 --Abits 4
 ```
-- 其他情况类比
+- 其他bits情况类比
 
 ### 剪枝
 ```
@@ -98,20 +102,57 @@ python main.py --refine models_save/nin_preprune.pth
 ```
 
 ### 剪枝 —> 量化（注意剪枝率和量化率平衡）
-#### 待补充。。。
+剪枝完成后,加载保存的模型参数在其基础上再做量化
+#### 剪枝 —> 量化（8/4/2 bits）（剪枝率偏小、量化率偏大）
+```
+cd WqAq
+```
+- W8A8
+- nin(正常卷积结构)
+```
+python main.py --Wbits 8 --Abits 8 --refine ../prune/models_save/nin_refine.pth
+```
+- nin_gc(含分组卷积结构)
+```
+python main.py --Wbits 8 --Abits 8 --refine ../prune/models_save/nin_gc_refine.pth
+```
+- 其他bits情况类比
+#### 剪枝 —> 量化（三/二值）（剪枝率偏大、量化率偏小）
+```
+cd WbWtAb
+```
+- WbAb
+- nin(正常卷积结构)
+```
+python main.py --W 2 --A 2 --refine ../prune/models_save/nin_refine.pth
+```
+- nin_gc(含分组卷积结构)
+```
+python main.py --W 2 --A 2 --refine ../prune/models_save/nin_gc_refine.pth
+```
+- 其他取值情况类比
 
-### 分组+剪枝 —> 量化（注意剪枝率和量化率平衡）
-#### 待补充。。。
+### BN融合
+```
+cd WbWtAb/bn_merge
+```
+#### 融合并保存融合前后model
+```
+python bn_merge.py
+```
+#### 融合前后model对比测试
+```
+python bn_merge_test_model.py
+```
 
-### BN融合及融合前后model对比测试
-#### 待补充。。。
 
 ## 可尝试
 - 1、渐进式量化：FP32—>8—>4—>三/二值
 - 2、对冗余度更高的模型做压缩
 
+
 ## 后续补充
-- 1、使用示例及说明
+- 1、使用示例细节说明
 - 2、模型压缩前后详细数据对比
 - 3、参考论文及工程
 - 4、imagenet测试（目前cifar10）
