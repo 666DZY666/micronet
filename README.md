@@ -17,7 +17,7 @@
 ## 使用
 ### 量化
 #### W（FP32/三/二值）、A（FP32/三/二值）
---W、--A, 权重W和特征A量化取值
+--W --A, 权重W和特征A量化取值
 ```
 cd WbWtAb
 ```
@@ -38,7 +38,7 @@ python main.py --W 3 --A 2
 python main.py --W 3 --A 32
 ```
 #### W（FP32/8/4/2 bits）、A（FP32/8/4/2 bits）
---Wbits、--Abits, 权重W和特征A量化位数
+--Wbits --Abits, 权重W和特征A量化位数
 ```
 cd WqAq
 ```
