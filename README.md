@@ -99,7 +99,7 @@ python gc_prune.py --percent 0.4 --model models_save/nin_gc_preprune.pth
 #### 微调
 --refine 剪枝后的model路径（在其基础上做微调）
 ```
-python main.py --refine models_save/nin_preprune.pth
+python main.py --refine models_save/nin_prune.pth
 ```
 
 ### 剪枝 —> 量化（注意剪枝率和量化率平衡）
