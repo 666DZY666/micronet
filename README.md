@@ -17,6 +17,7 @@
 ## 使用
 ### 量化
 #### W（FP32/三/二值）、A（FP32/三/二值）
+--W、--A, 权重W和特征A量化取值
 ```
 cd WbWtAb
 ```
@@ -37,6 +38,7 @@ python main.py --W 3 --A 2
 python main.py --W 3 --A 32
 ```
 #### W（FP32/8/4/2 bits）、A（FP32/8/4/2 bits）
+--Wbits、--Abits, 权重W和特征A量化位数
 ```
 cd WqAq
 ```
@@ -54,10 +56,50 @@ python main.py --Wbits 4 --Abits 4
 ```
 - 其他情况类比
 ### 剪枝
-#### 待补充。。。
+```
+cd prune
+```
+#### 正常训练
+```
+python main.py
+```
+#### 稀疏训练
+-sr 稀疏标志, --s 稀疏率(需根据dataset、model情况具体调整)
+- nin(正常卷积结构)
+```
+python main.py -sr --s 0.0001
+```
+- nin_gc(含分组卷积结构)
+```
+python main.py -sr --s 0.001
+```
+#### 剪枝
+--percent 剪枝率, --normal_regular 正常、规整剪枝标志及规整剪枝剩余firter个数倍数的基数, --model 稀疏训练后的model路径, --save 剪枝后保存的model路径（路径默认已给出, 可据实际情况更改）
+- 正常剪枝
+```
+python normal_regular_prune.py --percent 0.5
+```
+- 规整剪枝
+```
+python normal_regular_prune.py --percent 0.5 --normal_regular 8
+```
+```
+python normal_regular_prune.py --percent 0.5 --normal_regular 16
+```
+- 分组卷积结构剪枝
+```
+python gc_prune.py --percent 0.4
+```
+#### 微调
+--refine 剪枝后的model路径（在其基础上做微调）
+```
+python main.py --refine models_save/nin_preprune.pth
+```
 ### 剪枝 —> 量化（注意剪枝率和量化率平衡）
 #### 待补充。。。
 ### 分组+剪枝 —> 量化（注意剪枝率和量化率平衡）
+#### 待补充。。。
+### batch normalization融合及融合前后测试
 #### 待补充。。。
 
 ## 可尝试
