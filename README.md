@@ -55,6 +55,7 @@ python main.py --Wbits 4 --Abits 8
 python main.py --Wbits 4 --Abits 4
 ```
 - 其他情况类比
+
 ### 剪枝
 ```
 cd prune
@@ -95,10 +96,13 @@ python gc_prune.py --percent 0.4
 ```
 python main.py --refine models_save/nin_preprune.pth
 ```
+
 ### 剪枝 —> 量化（注意剪枝率和量化率平衡）
 #### 待补充。。。
+
 ### 分组+剪枝 —> 量化（注意剪枝率和量化率平衡）
 #### 待补充。。。
+
 ### batch normalization融合及融合前后测试
 #### 待补充。。。
 
