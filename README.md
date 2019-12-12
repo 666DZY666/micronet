@@ -17,7 +17,6 @@
 ## 使用
 ### 量化
 #### W（FP32/三/二值）、A（FP32/三/二值）
-
 ```
 cd WbWtAb
 ```
@@ -37,7 +36,23 @@ python main.py --W 3 --A 2
 ```
 python main.py --W 3 --A 32
 ```
-#### 待补充。。。
+#### W（FP32/8/4/2 bits）、A（FP32/8/4/2 bits）
+```
+cd WqAq
+```
+- W8A8
+```
+python main.py --Wbits 8 --Abits 8
+```
+- W4A8
+```
+python main.py --Wbits 4 --Abits 8
+```
+- W4A4
+```
+python main.py --Wbits 4 --Abits 4
+```
+- 其他情况类比
 ### 剪枝
 #### 待补充。。。
 ### 剪枝 —> 量化（注意剪枝率和量化率平衡）
