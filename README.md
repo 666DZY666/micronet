@@ -17,6 +17,11 @@
 ## 代码结构
 ![img1](https://github.com/666DZY666/model-compression/blob/master/readme_imgs/code_structure.jpg)
 
+## 环境要求
+- python >= 3.5
+- torch >= 1.1.0
+- torchvison >= 0.3.0
+- numpy
 
 ## 使用
 ### 量化
