@@ -19,14 +19,17 @@ class DummyModule(nn.Module):
 def fuse(conv, bn):
     global i
     i = i + 1
-    # *******************conv参数********************
-    w = conv.weight
-    b = conv.bias
     # ********************BN参数*********************
     mean = bn.running_mean
     var_sqrt = torch.sqrt(bn.running_var + bn.eps)
     gamma = bn.weight
     beta = bn.bias
+    # *******************conv参数********************
+    w = conv.weight
+    if conv.bias is not None:
+        b = conv.bias
+    else:
+        b = mean.new_zeros(mean.shape)
 
     if(i >= 2 and i <= 7):
         b = b - mean + beta * var_sqrt
