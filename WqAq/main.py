@@ -109,7 +109,7 @@ if __name__=='__main__':
     parser.add_argument('--num_workers', type=int, default=2)
     parser.add_argument('--epochs', type=int, default=300, metavar='N',
             help='number of epochs to train')
-    # W/A-bits
+    # W/A — bits
     parser.add_argument('--Wbits', type=int, default=8)
     parser.add_argument('--Abits', type=int, default=8)
     

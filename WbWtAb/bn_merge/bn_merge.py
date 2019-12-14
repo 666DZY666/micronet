@@ -5,6 +5,7 @@ import sys
 import numpy as np
 import nin_gc
 from layers import bn
+import argparse
 
 #torch.set_printoptions(precision=8, edgeitems=sys.maxsize, linewidth=200, sci_mode=False)
 
@@ -73,6 +74,14 @@ def fuse_model(m):
     print("Fused time: ", time.time() - s)
     return m
 
+#**********************参数定义**********************
+parser = argparse.ArgumentParser()
+# W —— 三值/二值(据训练时W量化(三/二值)情况而定)
+parser.add_argument('--W', type=int, default=2,
+            help='Wb:2, Wt:3')
+args = parser.parse_args()
+print('==> Options:',args)
+
 i = 0
 print("************* 参数量化 + BN_fuse **************")
 #**********************W全精度表示************************
@@ -86,15 +95,39 @@ model_para_array = np.array(model.state_dict())
 np.savetxt('models_save/model.txt', [model_array], fmt = '%s', delimiter=',')
 np.savetxt('models_save/model_para.txt', [model_para_array], fmt = '%s', delimiter=',')
 
-#********************** W量化表示（据训练时W量化情况而定）*************************
-for m in model.modules():
-    if isinstance(m, nn.Conv2d):
-        i = i + 1
-        if (i >= 2 and i <= 8):
-            n = m.weight.data[0].nelement()
-            alpha = m.weight.data.norm(1, 3, keepdim=True)\
-                    .sum(2, keepdim=True).sum(1, keepdim=True).div(n)
-            m.weight.data = m.weight.data.sign() * alpha
+#********************** W量化表示(据训练时W量化(三/二值)情况而定)*************************
+if args.W == 2 or args.W == 3:
+    for m in model.modules():
+        if isinstance(m, nn.Conv2d):
+            i = i + 1
+            if (i >= 2 and i <= 8):
+                n = m.weight.data[0].nelement()
+                s = m.weight.data.size()
+                if args.W == 2:
+                    #****************************************W二值*****************************************
+                    alpha = m.weight.data.norm(1, 3, keepdim=True)\
+                            .sum(2, keepdim=True).sum(1, keepdim=True).div(n)
+                    # ************** W —— +-1 **************
+                    m.weight.data = m.weight.data.sign()
+                    #***************** W * α **********************
+                    m.weight.data = m.weight.data * alpha
+                elif args.W == 3:
+                    #****************************************W三值****************************************
+                    for j in range(0, s[0]):
+                            sum = torch.sum(torch.abs(m.weight.data[j])).item()
+                            threshold = (sum / n) * 0.7
+                            #threshold = 0.7 * self.target_modules[index].data[i].norm(1).div(n).item()
+                            #threshold = 0.7 * torch.mean(torch.abs(self.target_modules[index].data[i])).item()
+                            #****************α****************
+                            a_abs = m.weight.data[j].abs().clone()
+                            mask = a_abs.gt(threshold)
+                            a_abs_th = a_abs[mask].clone()
+                            alpha = torch.mean(a_abs_th)
+                            #print(threshold, alpha)
+                            # ************** W —— +-1、0 **************
+                            m.weight.data[j] = torch.sign(torch.add(torch.sign(torch.add(m.weight.data[j], threshold)),torch.sign(torch.add(m.weight.data[j], -threshold))))
+                            #*************** W * α ************************
+                            m.weight.data[j] = m.weight.data[j] * alpha
 i = 0
 torch.save(model, 'models_save/quan_model.pth')
 torch.save(model.state_dict(), 'models_save/quan_model_para.pth')

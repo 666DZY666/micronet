@@ -153,7 +153,7 @@ if __name__=='__main__':
     # epochs
     parser.add_argument('--epochs', type=int, default=300, metavar='N',
             help='number of epochs to train')
-    # W、A —— 三值/二值、二值/FP
+    # W/A — FP/三值/二值
     parser.add_argument('--W', type=int, default=2,
             help='Wb:2, Wt:3')
     parser.add_argument('--A', type=int, default=2,
