@@ -94,6 +94,7 @@ python normal_regular_prune.py --percent 0.5 --model models_save/nin_preprune.pt
 ```
 python normal_regular_prune.py --percent 0.5 --normal_regular 8 --model models_save/nin_preprune.pth --save models_save/nin_prune.pth
 ```
+或
 ```
 python normal_regular_prune.py --percent 0.5 --normal_regular 16 --model models_save/nin_preprune.pth --save models_save/nin_prune.pth
 ```
@@ -142,9 +143,14 @@ python main.py --W 2 --A 2 --refine ../prune/models_save/nin_gc_refine.pth
 ```
 cd WbWtAb/bn_merge
 ```
+--W 权重W量化取值(据训练时W量化(FP/三值/二值)情况而定)
 #### 融合并保存融合前后model
 ```
-python bn_merge.py
+python bn_merge.py --W 2
+```
+或
+```
+python bn_merge.py --W 3
 ```
 #### 融合前后model对比测试
 ```
