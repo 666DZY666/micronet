@@ -105,11 +105,12 @@ if args.W == 2 or args.W == 3:
                 s = m.weight.data.size()
                 if args.W == 2:
                     #****************************************W二值*****************************************
+                    # ****************α****************
                     alpha = m.weight.data.norm(1, 3, keepdim=True)\
                             .sum(2, keepdim=True).sum(1, keepdim=True).div(n)
-                    # ************** W —— +-1 **************
+                    # **************** W —— +-1 ****************
                     m.weight.data = m.weight.data.sign()
-                    #***************** W * α **********************
+                    # **************** W * α ****************
                     m.weight.data = m.weight.data * alpha
                 elif args.W == 3:
                     #****************************************W三值****************************************
@@ -118,15 +119,15 @@ if args.W == 2 or args.W == 3:
                             threshold = (sum / n) * 0.7
                             #threshold = 0.7 * self.target_modules[index].data[i].norm(1).div(n).item()
                             #threshold = 0.7 * torch.mean(torch.abs(self.target_modules[index].data[i])).item()
-                            #****************α****************
+                            # ****************α****************
                             a_abs = m.weight.data[j].abs().clone()
                             mask = a_abs.gt(threshold)
                             a_abs_th = a_abs[mask].clone()
                             alpha = torch.mean(a_abs_th)
                             #print(threshold, alpha)
-                            # ************** W —— +-1、0 **************
+                            # **************** W —— +-1、0 ****************
                             m.weight.data[j] = torch.sign(torch.add(torch.sign(torch.add(m.weight.data[j], threshold)),torch.sign(torch.add(m.weight.data[j], -threshold))))
-                            #*************** W * α ************************
+                            # **************** W * α ****************
                             m.weight.data[j] = m.weight.data[j] * alpha
 i = 0
 torch.save(model, 'models_save/quan_model.pth')

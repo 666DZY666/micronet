@@ -60,12 +60,12 @@ class Tnn_Bin_Op():
             if self.W == 2:
                 #****************************************W二值*****************************************
                 #****************α****************
-                m = self.target_modules[index].data.norm(1, 3, keepdim=True)\
+                alpha = self.target_modules[index].data.norm(1, 3, keepdim=True)\
                         .sum(2, keepdim=True).sum(1, keepdim=True).div(n)
                 # ************** W —— +-1 **************
-                #self.target_modules[index].data = self.target_modules[index].data.sign()
-                # ************** W * α —— +-1 * α**************
-                self.target_modules[index].data = self.target_modules[index].data.sign().mul(m.expand(s))
+                self.target_modules[index].data = self.target_modules[index].data.sign()
+                # ************** W * α **************
+                self.target_modules[index].data = self.target_modules[index].data * alpha
             elif self.W == 3:
                 #****************************************W三值*****************************************
                 for i in range(0, s[0]):
