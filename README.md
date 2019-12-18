@@ -24,7 +24,7 @@
 ## 环境要求
 
 - python >= 3.5
-- torch >= 1.1.0
+- torch == 1.1.0
 - torchvison >= 0.3.0
 - numpy
 
