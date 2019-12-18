@@ -1,3 +1,4 @@
+#coding=utf-8
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -13,15 +14,28 @@ from torch.autograd import Variable
 import torchvision
 import torchvision.transforms as transforms
 from models import nin
+import thop
+from thop import profile
+
 #from models import nin_gc
 
+# 随机种子——训练结果可复现
 def setup_seed(seed):
-    torch.manual_seed(seed)                    
-    #torch.cuda.manual_seed(seed)               
-    torch.cuda.manual_seed_all(seed)           
-    np.random.seed(seed)                       
+    # 为CPU设置种子用于生成随机数,以使得结果是确定的
+    torch.manual_seed(seed)
+    #torch.cuda.manual_seed(seed)
+    # 为GPU设置种子用于生成随机数,以使得结果是确定的
+    torch.cuda.manual_seed_all(seed)
+    # 为numpy设置种子用于生成随机数,以使得结果是确定的
+    np.random.seed(seed)
+    # 将会让程序在开始时花费一点额外时间，为整个网络的每个卷积层
+    # 搜索最适合它的卷积实现算法，进而实现网络的加速。适用场景是
+    # 网络结构固定（不是动态变化的），网络的输入形状（包括 batch size，
+    # 图片大小，输入的通道）是不变的，其实也就是一般情况下都比较适用。
+    # 反之，如果卷积层的设置一直变化，将会导致程序不停地做优化，反而会耗费更多的时间
     torch.backends.cudnn.deterministic = True
 
+# 模型保存
 def save_state(model, best_acc):
     print('==> Saving model ...')
     state = {
@@ -39,10 +53,13 @@ def save_state(model, best_acc):
     #torch.save(state, 'models_save/nin_gc_preprune.pth')
     #torch.save({'cfg': cfg, 'best_acc': best_acc, 'state_dict': state['state_dict']}, 'models_save/nin_refine.pth')
     #torch.save({'cfg': cfg, 'best_acc': best_acc, 'state_dict': state['state_dict']}, 'models_save/nin_gc_refine.pth')
+
 #***********************稀疏训练（对BN层γ进行约束）**************************
 def updateBN():
     for m in model.modules():
+        #  isinstance() 函数来判断一个对象是否是一个已知的类型
         if isinstance(m, nn.BatchNorm2d):
+            #  hasattr() 函数用于判断对象是否包含对应的属性
             if hasattr(m.weight, 'data'):
                 m.weight.grad.data.add_(args.s*torch.sign(m.weight.data)) #L1正则
 
@@ -50,6 +67,10 @@ def train(epoch):
     model.train()
     for batch_idx, (data, target) in enumerate(trainloader):       
         data, target = Variable(data.cuda()), Variable(target.cuda())
+        #print(data.size())
+        # data shape: [50, 3, 32, 32]
+        #print(target.size())
+        # target shape: [50]
         output = model(data)
         loss = criterion(output, target)
         
@@ -103,19 +124,29 @@ def adjust_learning_rate(optimizer, epoch):
 
 if __name__=='__main__':
     # prepare the options
+    # 使用argparse 的第一步是创建一个 ArgumentParser对象
     parser = argparse.ArgumentParser()
+    # 只有cpu可用的时候设置为true
     parser.add_argument('--cpu', action='store_true',
             help='set if only CPU is available')
+    # 数据集路径
     parser.add_argument('--data', action='store', default='../data',
             help='dataset path')
+    # 初始学习率
     parser.add_argument('--lr', action='store', default=0.01,
             help='the intial learning rate')
+    # 权重惩罚项
     parser.add_argument('--wd', action='store', default=1e-7,
             help='nin_gc:0, nin:1e-5')
+    # 添加模型从哪一轮开始继续训练
+    parser.add_argument('--start_iter', default=0, type=int, help='the iter to start train the model')
+    # 模型是否从之前保存的模型继续训练？
     parser.add_argument('--resume', default='', type=str, metavar='PATH',
             help='the path to the resume model')
+    # 剪枝后的模型的保存路径
     parser.add_argument('--refine', default='', type=str, metavar='PATH',
             help='the path to the refine(prune) model')
+    # 测试模型
     parser.add_argument('--evaluate', action='store_true',
             help='evaluate the model')
     # sr(稀疏标志)
@@ -124,14 +155,19 @@ if __name__=='__main__':
     # s(稀疏率)
     parser.add_argument('--s', type=float, default=0.0001,
             help='nin:0.0001, nin_gc:0.001')
+    # 训练时的batch_size
     parser.add_argument('--train_batch_size', type=int, default=50)
-    parser.add_argument('--eval_batch_size', type=int, default=256)
+    # 测试时的batch_size
+    parser.add_argument('--eval_batch_size', type=int, default=50)
+    # 线程数
     parser.add_argument('--num_workers', type=int, default=2)
-    parser.add_argument('--epochs', type=int, default=300, metavar='N',
+    # 训练的epoch数
+    parser.add_argument('--epochs', type=int, default=50, metavar='N',
             help='number of epochs to train')
     args = parser.parse_args()
     print('==> Options:',args)
 
+    # 设置随机数种子，结果可以复现
     setup_seed(1)
 
     print('==> Preparing data..')
@@ -151,7 +187,7 @@ if __name__=='__main__':
     testset = torchvision.datasets.CIFAR10(root = args.data, train = False, download = True, transform = transform_test)
     testloader = torch.utils.data.DataLoader(testset, batch_size=args.eval_batch_size, shuffle=False, num_workers=2)
 
-    # define classes
+    # 定义类别数组
     classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
     if args.refine:
@@ -189,8 +225,16 @@ if __name__=='__main__':
 
     if not args.cpu:
         model.cuda()
-        model = torch.nn.DataParallel(model, device_ids=range(torch.cuda.device_count()))
+        #model = torch.nn.DataParallel(model, device_ids=range(torch.cuda.device_count()))
+    print('***********************************Model**************************************')
     print(model)
+    input = torch.randn(1, 3, 32, 32)
+    # flops, params = profile(model, inputs=(input,))
+    # print('***********************************GFLOPs*************************************')
+    # print(flops / 1024 / 1024 /1024)
+    # print('***********************************Para(M)************************************')
+    # print(params / 1024 / 1024)
+    # print('***********************************End****************************************')
 
     base_lr = float(args.lr)
     param_dict = dict(model.named_parameters())
@@ -205,8 +249,11 @@ if __name__=='__main__':
     if args.evaluate:
         test()
         exit(0)
-
-    for epoch in range(1, args.epochs):
+    # 学习率调整到start_iter这一轮的学习率
+    for epoch in range(args.start_iter+1):
+        adjust_learning_rate(optimizer, epoch)
+    # 训练args.epochs这么多个epoch
+    for epoch in range(args.start_iter, args.epochs):
         adjust_learning_rate(optimizer, epoch)
         train(epoch)
         test()

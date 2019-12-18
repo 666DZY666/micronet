@@ -1,3 +1,5 @@
+#codint=utf-8
+
 import torch
 import torch.nn as nn
 from torch.nn.parameter import Parameter
@@ -5,7 +7,9 @@ from torch.nn import functional as F
 from torch.nn import init 
 from torch._jit_internal import weak_module, weak_script_method
 
+#
 class BatchNorm2d_bin(nn.Module):
+    # 变化无常的常量。。。
     __constants__ = ['track_running_stats', 'momentum', 'eps', 'weight', 'bias',
                      'running_mean', 'running_var', 'num_batches_tracked']
     def __init__(self, num_features, eps=1e-5, momentum=0.1, affine=True,

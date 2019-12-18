@@ -1,3 +1,4 @@
+#coding=utf-8
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -20,10 +21,18 @@ from models import nin_gc
 
 # 随机种子——训练结果可复现
 def setup_seed(seed):
+    # 为CPU设置种子用于生成随机数,以使得结果是确定的
     torch.manual_seed(seed)                    
-    #torch.cuda.manual_seed(seed)              
+    #torch.cuda.manual_seed(seed)
+    # 为GPU设置种子用于生成随机数,以使得结果是确定的
     torch.cuda.manual_seed_all(seed)           
-    np.random.seed(seed)                       
+    # 为numpy设置种子用于生成随机数,以使得结果是确定的
+    np.random.seed(seed)
+    # 将会让程序在开始时花费一点额外时间，为整个网络的每个卷积层
+    # 搜索最适合它的卷积实现算法，进而实现网络的加速。适用场景是
+    # 网络结构固定（不是动态变化的），网络的输入形状（包括 batch size，
+    # 图片大小，输入的通道）是不变的，其实也就是一般情况下都比较适用。
+    # 反之，如果卷积层的设置一直变化，将会导致程序不停地做优化，反而会耗费更多的时间
     torch.backends.cudnn.deterministic = True
 
 # 模型保存
@@ -126,31 +135,42 @@ def adjust_learning_rate(optimizer, epoch):
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
     # cpu、gpu
+    # 只有cpu可用的时候设置为true
     parser.add_argument('--cpu', action='store_true',
             help='set if only CPU is available')
     # dataset
+    # 数据所在的路径
     parser.add_argument('--data', action='store', default='../data',
             help='dataset path')
     # lr
+    # 学习率，默认为0.01
     parser.add_argument('--lr', action='store', default=0.01,
             help='the intial learning rate')
     # weight_dacay
+    # 权重惩罚项，默认为0，即不惩罚
     parser.add_argument('--wd', action='store', default=0,
             help='nin_gc:0, nin:1e-5')
     # resume
+    # 模型是否从之前保存的模型继续训练？
     parser.add_argument('--resume', default='', type=str, metavar='PATH',
             help='the path to the resume model')
     # refine
+    # 模型剪枝
     parser.add_argument('--refine', default='', type=str, metavar='PATH',
             help='the path to the refine(prune) model')
     # evaluate
+    # 模型执行前向推理
     parser.add_argument('--evaluate', action='store_true',
             help='evaluate the model')
     # batch_size、num_workers
+    # 训练的batch_size
     parser.add_argument('--train_batch_size', type=int, default=50)
+    # 前向推理时候的batch_size
     parser.add_argument('--eval_batch_size', type=int, default=256)
+    # 程序执行的线程数，默认为2
     parser.add_argument('--num_workers', type=int, default=2)
     # epochs
+    # 训练时候的训练轮次
     parser.add_argument('--epochs', type=int, default=300, metavar='N',
             help='number of epochs to train')
     # W/A — FP/三值/二值
@@ -169,12 +189,15 @@ if __name__=='__main__':
     # 训练集：随机裁剪 + 水平翻转 + 归一化
     transform_train = transforms.Compose([
         transforms.RandomCrop(32, padding=4),
+        # 随机水平翻转
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
+        # R,G,B每层的归一化用到的均值和方差
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
     # 测试集：归一化
     transform_test = transforms.Compose([
         transforms.ToTensor(),
+        # R,G,B每层的归一化用到的均值和方差
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
 
     # 数据加载
@@ -191,7 +214,9 @@ if __name__=='__main__':
     if args.refine:
         print('******Refine model******')
         #checkpoint = torch.load('../prune/models_save/nin_refine.pth')
+        # 加载模型
         checkpoint = torch.load(args.refine)
+
         model = nin_gc.Net(cfg=checkpoint['cfg'], A=args.A)
         #model = nin.Net(cfg=checkpoint['cfg'], A=args.A)
         model.load_state_dict(checkpoint['state_dict'])

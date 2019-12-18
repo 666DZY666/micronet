@@ -1,26 +1,39 @@
+#coding=utf-8
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
+# 导入自定义的bn层
 from layers import bn
 
 # *********************A（特征）量化（二值)***********************
+# 手动扩展op。
 class BinActive(torch.autograd.Function):
 
     def forward(self, input):
+        # 用 self 把该存的存起来，留着 backward的时候用
         self.save_for_backward(input)
+        # 输入尺寸
         size = input.size()
+        # 求所有权值的绝对值的均值
         mean = torch.mean(input.abs(), 1, keepdim=True)
+        # 记录输入的符号
         input = input.sign()
         # ********************A二值——1、0*********************
         #input = torch.clamp(input, min=0)
         #print(input)
+        # 返回input作为输出，即二值网络只用权值的符号来模拟原始权重
         return input, mean
 
     def backward(self, grad_output, grad_output_mean):
+        # 在开头的地方将保存的 tensor 给 unpack 了
         input, = self.saved_tensors
         #*******************ste*********************
         grad_input = grad_output.clone()
         #****************saturate_ste***************
+        # torch.ge(input, other, out=None)表示对比每一个input和other是否有如下关系
+        # input≥otherinput≥other，input和other均为tensor，输出为一个二值tensor。
+        # torch.le表示<=关系
+        # 这里的目的是把梯度限制在[-1,1]之间
         grad_input[input.ge(1)] = 0
         grad_input[input.le(-1)] = 0
         '''
@@ -31,6 +44,7 @@ class BinActive(torch.autograd.Function):
         #print(grad)
         grad_input = grad_output * grad
         '''
+        # 返回梯度
         return grad_input
 
 # *********************量化(三值、二值)卷积*********************

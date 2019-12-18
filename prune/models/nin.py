@@ -1,7 +1,10 @@
+#coding=utf-8
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
 
+# FP_Conv2d代表float32作为特征值和权重的数据类型进行计算的卷积层
+# conv+bn+relu的经典组件，注意BatchNorm2d直接使用了torch.nn模块中的
 class FP_Conv2d(nn.Module):
     def __init__(self, input_channels, output_channels,
             kernel_size=-1, stride=-1, padding=-1, dropout=0, groups=1, channel_shuffle=0, shuffle_groups=1, last=0, first=0):
@@ -25,7 +28,7 @@ class FP_Conv2d(nn.Module):
         x = self.bn(x)
         x = self.relu(x)
         return x
-
+# 定义标准网络结构
 class Net(nn.Module):
     def __init__(self, cfg = None):
         super(Net, self).__init__()

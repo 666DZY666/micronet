@@ -244,6 +244,69 @@ python bn_merge_test_model.py
 |   剪枝+量化(W三值/A二值)    | 86.13% |  ***   |   ***   |   0.19   | 91.81% | 4.75% | W三值不含缩放因子,适配一些无法做缩放因子运算的硬件 |
 | 分组+剪枝+量化(W三值/A二值) | 86.13% |  ***   |   ***   |   0.19   | 92.91% | 4.88% | W三值不含缩放因子,适配一些无法做缩放因子运算的硬件 |
 
+## 模型压缩数据对比(BBuf自测版)
+|            类型             | Epoch |Acc   | GFLOPs | Para(M) | Size(MB) | 压缩率 | 损失  |                        备注                        |
+| :-------------------------: |:---:|:----: | :----: | :-----: | :------: | :----: | :---: | :------------------------------------------------: |
+|        原模型（nin）        | 50|88.03% |  0.21  |  0.92   |   3.9   |  ***   |  ***  |                       全精度                       |
+|  采用分组卷积结构(nin_gc)   | 50| |    |     |      |  |  |                       全精度                       |
+|            剪枝             | 50| |    |     |      | |  |                       全精度                       |
+|        量化(W/A二值)        | 50| |     |      |      |  |  |                  W二值含缩放因子                   |
+|      量化(W三值/A二值)      | 50| |     |      |      | | | W三值不含缩放因子,适配一些无法做缩放因子运算的硬件 |
+|   剪枝+量化(W三值/A二值)    | 50| |     |      |      |  | | W三值不含缩放因子,适配一些无法做缩放因子运算的硬件 |
+| 分组+剪枝+量化(W三值/A二值) | 50| |     |      |     |  | | W三值不含缩放因子,适配一些无法做缩放因子运算的硬件 |
+
+## 网络结构对比
+### 原始网络
+```buildoutcfg
+Net(
+  (tnn_bin): Sequential(
+    (0): Conv2d(3, 192, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2))
+    (1): BatchNorm2d(192, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (2): FP_Conv2d(
+      (conv): Conv2d(192, 160, kernel_size=(1, 1), stride=(1, 1))
+      (bn): BatchNorm2d(160, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace=True)
+    )
+    (3): FP_Conv2d(
+      (conv): Conv2d(160, 96, kernel_size=(1, 1), stride=(1, 1))
+      (bn): BatchNorm2d(96, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace=True)
+    )
+    (4): MaxPool2d(kernel_size=3, stride=2, padding=1, dilation=1, ceil_mode=False)
+    (5): FP_Conv2d(
+      (conv): Conv2d(96, 192, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2))
+      (bn): BatchNorm2d(192, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace=True)
+    )
+    (6): FP_Conv2d(
+      (conv): Conv2d(192, 192, kernel_size=(1, 1), stride=(1, 1))
+      (bn): BatchNorm2d(192, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace=True)
+    )
+    (7): FP_Conv2d(
+      (conv): Conv2d(192, 192, kernel_size=(1, 1), stride=(1, 1))
+      (bn): BatchNorm2d(192, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace=True)
+    )
+    (8): AvgPool2d(kernel_size=3, stride=2, padding=1)
+    (9): FP_Conv2d(
+      (conv): Conv2d(192, 192, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (bn): BatchNorm2d(192, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace=True)
+    )
+    (10): FP_Conv2d(
+      (conv): Conv2d(192, 192, kernel_size=(1, 1), stride=(1, 1))
+      (bn): BatchNorm2d(192, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace=True)
+    )
+    (11): Conv2d(192, 10, kernel_size=(1, 1), stride=(1, 1))
+    (12): BatchNorm2d(10, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (13): ReLU(inplace=True)
+    (14): AvgPool2d(kernel_size=8, stride=1, padding=0)
+  )
+)
+```
+
 ## 后续补充
 
 - 1、使用示例部分细节说明
