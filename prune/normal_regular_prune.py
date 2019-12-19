@@ -1,3 +1,4 @@
+#coding=utf-8
 import os
 import argparse
 import torch
@@ -9,8 +10,10 @@ from models import nin
 import numpy as np
 
 parser = argparse.ArgumentParser()
+# 数据集路径
 parser.add_argument('--data', action='store', default='../data',
                     help='dataset path')
+# 使用cpu设置为true
 parser.add_argument('--cpu', action='store_true',
                     help='disables CUDA training')
 # percent(剪枝率)
@@ -48,6 +51,7 @@ print('旧模型: ', model)
 total = 0
 i = 0
 for m in model.modules():
+        # 如果是BN层统计一下通道
         if isinstance(m, nn.BatchNorm2d):
             if i < layers - 1:
                 i += 1
@@ -64,10 +68,12 @@ for m in model.modules():
             size = m.weight.data.shape[0]
             bn[index:(index+size)] = m.weight.data.abs().clone()
             index += size
+# 按照权值大小排序
 y, j = torch.sort(bn)
 thre_index = int(total * args.percent)
 if thre_index == total:
     thre_index = total - 1
+# 确定要剪枝的阈值
 thre_0 = y[thre_index]
 
 #********************************预剪枝*********************************
@@ -82,9 +88,10 @@ for k, m in enumerate(model.modules()):
             i += 1
 
             weight_copy = m.weight.data.clone()
+            # 要保留的通道
             mask = weight_copy.abs().gt(thre_0).float()
             remain_channels = torch.sum(mask)
-
+            # 如果全部剪掉的话就提示应该调小剪枝程度了
             if remain_channels == 0:
                 print('\r\n!please turn down the prune_ratio!\r\n')
                 remain_channels = 1
@@ -109,6 +116,7 @@ for k, m in enumerate(model.modules()):
                     y, j = torch.sort(weight_copy.abs())
                     thre_1 = y[-remain_channels]
                     mask = weight_copy.abs().ge(thre_1).float()
+            # 剪枝掉的通道数个数
             pruned = pruned + mask.shape[0] - torch.sum(mask)
             m.weight.data.mul_(mask)
             m.bias.data.mul_(mask)
@@ -122,6 +130,7 @@ print('\r\n!预剪枝完成!')
 print('total_pruned_ratio: ', pruned_ratio)
 #********************************预剪枝后model测试*********************************
 def test():
+    # 加载测试数据
     test_loader = torch.utils.data.DataLoader(
         datasets.CIFAR10(root = args.data, train=False, transform=transforms.Compose([
             transforms.ToTensor(),
@@ -129,7 +138,7 @@ def test():
         batch_size = 64, shuffle=False, num_workers=1)
     model.eval()
     correct = 0
-    
+
     for data, target in test_loader:
         if not args.cpu:
             data, target = data.cuda(), target.cuda()
