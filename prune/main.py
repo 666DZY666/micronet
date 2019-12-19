@@ -16,8 +16,8 @@ import torchvision.transforms as transforms
 from models import nin
 import thop
 from thop import profile
-
-#from models import nin_gc
+from models import nin_gc
+from models import standard_dw
 
 # 随机种子——训练结果可复现
 def setup_seed(seed):
@@ -47,7 +47,7 @@ def save_state(model, best_acc):
         if 'module' in key:
             state['state_dict'][key.replace('module.', '')] = \
                     state['state_dict'].pop(key)
-    torch.save(state, 'models_save/nin.pth')
+    torch.save(state, args.save_path)
     #torch.save(state, 'models_save/nin_gc.pth')
     #torch.save(state, 'models_save/nin_preprune.pth')
     #torch.save(state, 'models_save/nin_gc_preprune.pth')
@@ -129,6 +129,10 @@ if __name__=='__main__':
     # 只有cpu可用的时候设置为true
     parser.add_argument('--cpu', action='store_true',
             help='set if only CPU is available')
+    # 设置网络用原始标准CNN，还是DepthWise CNN
+    parser.add_argument('--type', default='0', type=int, help='use depthwise model')
+    # 设置模型保存路径
+    parser.add_argument('--save_path', default='models_save/nin.pth', type=str, help='mode save path')
     # 数据集路径
     parser.add_argument('--data', action='store', default='../data',
             help='dataset path')
@@ -201,7 +205,12 @@ if __name__=='__main__':
     else:
         print('******Initializing model******')
         model = nin.Net()
-        #model = nin_gc.Net()
+        if args.type == 0:
+            model = nin.Net()
+        elif args.type == 1:
+            model = nin_gc.Net()
+        elif args.type == 2:
+            model = standard_dw.Net()
         '''
         cfg = []   #gc_prune —— cfg
         model = nin_gc.Net(cfg=cfg)
@@ -228,13 +237,13 @@ if __name__=='__main__':
         #model = torch.nn.DataParallel(model, device_ids=range(torch.cuda.device_count()))
     print('***********************************Model**************************************')
     print(model)
-    input = torch.randn(1, 3, 32, 32)
-    # flops, params = profile(model, inputs=(input,))
-    # print('***********************************GFLOPs*************************************')
-    # print(flops / 1024 / 1024 /1024)
-    # print('***********************************Para(M)************************************')
-    # print(params / 1024 / 1024)
-    # print('***********************************End****************************************')
+    #input = torch.randn(1, 3, 32, 32)
+    #flops, params = profile(model, inputs=(input,))
+    #print('***********************************GFLOPs*************************************')
+    #print(flops / 1024 / 1024 /1024)
+    #print('***********************************Para(M)************************************')
+    #print(params / 1024 / 1024)
+    #print('***********************************End****************************************')
 
     base_lr = float(args.lr)
     param_dict = dict(model.named_parameters())
