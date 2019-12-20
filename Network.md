@@ -158,3 +158,61 @@ Net(
 )
 ```
 
+
+
+## 原模型常规剪枝(比例为0.5)
+
+```c++
+Net(
+  (tnn_bin): Sequential(
+    (0): Conv2d(3, 47, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2))
+    (1): BatchNorm2d(47, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (2): FP_Conv2d(
+      (conv): Conv2d(47, 93, kernel_size=(1, 1), stride=(1, 1))
+      (bn): BatchNorm2d(93, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace)
+    )
+    (3): FP_Conv2d(
+      (conv): Conv2d(93, 47, kernel_size=(1, 1), stride=(1, 1))
+      (bn): BatchNorm2d(47, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace)
+    )
+    (4): MaxPool2d(kernel_size=3, stride=2, padding=1, dilation=1, ceil_mode=False)
+    (5): FP_Conv2d(
+      (conv): Conv2d(47, 122, kernel_size=(5, 5), stride=(1, 1), padding=(2, 2))
+      (bn): BatchNorm2d(122, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace)
+    )
+    (6): FP_Conv2d(
+      (conv): Conv2d(122, 116, kernel_size=(1, 1), stride=(1, 1))
+      (bn): BatchNorm2d(116, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace)
+    )
+    (7): FP_Conv2d(
+      (conv): Conv2d(116, 90, kernel_size=(1, 1), stride=(1, 1))
+      (bn): BatchNorm2d(90, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace)
+    )
+    (8): AvgPool2d(kernel_size=3, stride=2, padding=1)
+    (9): FP_Conv2d(
+      (conv): Conv2d(90, 105, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+      (bn): BatchNorm2d(105, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace)
+    )
+    (10): FP_Conv2d(
+      (conv): Conv2d(105, 83, kernel_size=(1, 1), stride=(1, 1))
+      (bn): BatchNorm2d(83, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+      (relu): ReLU(inplace)
+    )
+    (11): Conv2d(83, 10, kernel_size=(1, 1), stride=(1, 1))
+    (12): BatchNorm2d(10, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (13): ReLU(inplace)
+    (14): AvgPool2d(kernel_size=8, stride=1, padding=0)
+  )
+)
+```
+
+
+
+## 原模型常规剪枝(比例为0.5)+规整剪枝(通道数为8)
+
