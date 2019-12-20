@@ -31,7 +31,9 @@ def test():
     correct_bn_merge = 0
 
     for data, target in testloader:
-        data, target = Variable(data.cuda()), Variable(target.cuda())
+        if not args.cpu:
+            data, target = data.cuda(), target.cuda()
+        data, target = Variable(data), Variable(target)
                                     
         output = model(data)
         output_bn_merge = model_bn_merge(data)
@@ -62,7 +64,7 @@ if __name__=='__main__':
             help='set if only CPU is available')
     parser.add_argument('--data', action='store', default='../../data',
             help='dataset path')
-    parser.add_argument('--eval_batch_size', type=int, default=256)
+    parser.add_argument('--eval_batch_size', type=int, default=128)
     parser.add_argument('--num_workers', type=int, default=2)
     parser.add_argument('--epochs', type=int, default=300, metavar='N',
             help='number of epochs to train (default: 160)')
@@ -94,5 +96,6 @@ if __name__=='__main__':
 
     criterion = nn.CrossEntropyLoss()
     
+    print("*********bn_merge_test_model start*********")
     for epoch in range(1, args.epochs):
         test()

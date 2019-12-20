@@ -17,6 +17,7 @@ import util_w_t_b
 from models import nin_gc
 #from models import nin
 #from models import nin_bn_conv
+import os
 
 # 随机种子——训练结果可复现
 def setup_seed(seed):
@@ -52,7 +53,9 @@ def train(epoch):
             Tnn_Bin_Op.tnn_bin()
         
         # 前向传播
-        data, target = Variable(data.cuda()), Variable(target.cuda())
+        if not args.cpu:
+            data, target = data.cuda(), target.cuda()
+        data, target = Variable(data), Variable(target)
         output = model(data)
         loss = criterion(output, target)
 
@@ -87,7 +90,9 @@ def test():
         Tnn_Bin_Op.tnn_bin()
 
     for data, target in testloader:
-        data, target = Variable(data.cuda()), Variable(target.cuda())
+        if not args.cpu:
+            data, target = data.cuda(), target.cuda()
+        data, target = Variable(data), Variable(target)
         # 前向传播
         output = model(data)
         test_loss += criterion(output, target).data.item()
@@ -128,6 +133,9 @@ if __name__=='__main__':
     # cpu、gpu
     parser.add_argument('--cpu', action='store_true',
             help='set if only CPU is available')
+    # gpu_id
+    parser.add_argument('--gpu_id', action='store', default='',
+            help='gpu_id')
     # dataset
     parser.add_argument('--data', action='store', default='../data',
             help='dataset path')
@@ -161,7 +169,10 @@ if __name__=='__main__':
 
     args = parser.parse_args()
     print('==> Options:',args)
-
+    
+    if args.gpu_id:
+        os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
+    
     setup_seed(1)#随机种子——训练结果可复现
 
     print('==> Preparing data..')

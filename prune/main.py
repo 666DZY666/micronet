@@ -14,6 +14,7 @@ import torchvision
 import torchvision.transforms as transforms
 from models import nin
 #from models import nin_gc
+import os
 
 def setup_seed(seed):
     torch.manual_seed(seed)                    
@@ -48,8 +49,11 @@ def updateBN():
 
 def train(epoch):
     model.train()
+
     for batch_idx, (data, target) in enumerate(trainloader):       
-        data, target = Variable(data.cuda()), Variable(target.cuda())
+        if not args.cpu:
+            data, target = data.cuda(), target.cuda()
+        data, target = Variable(data), Variable(target)
         output = model(data)
         loss = criterion(output, target)
         
@@ -74,9 +78,11 @@ def test():
     model.eval()
     test_loss = 0
     correct = 0
+
     for data, target in testloader:
-        data, target = Variable(data.cuda()), Variable(target.cuda())
-                                    
+        if not args.cpu:
+            data, target = data.cuda(), target.cuda()
+        data, target = Variable(data), Variable(target)             
         output = model(data)
         test_loss += criterion(output, target).data.item()
         pred = output.data.max(1, keepdim=True)[1]
@@ -106,6 +112,9 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--cpu', action='store_true',
             help='set if only CPU is available')
+    # gpu_id
+    parser.add_argument('--gpu_id', action='store', default='',
+            help='gpu_id')
     parser.add_argument('--data', action='store', default='../data',
             help='dataset path')
     parser.add_argument('--lr', action='store', default=0.01,
@@ -131,6 +140,9 @@ if __name__=='__main__':
             help='number of epochs to train')
     args = parser.parse_args()
     print('==> Options:',args)
+
+    if args.gpu_id:
+        os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
 
     setup_seed(1)
 
