@@ -163,13 +163,13 @@ if __name__=='__main__':
             help='number of epochs to train')
     # W/A — FP/三值/二值
     parser.add_argument('--W', type=int, default=2,
-            help='Wb:2, Wt:3')
+            help='Wb:2, Wt:3, Wfp:32')
     parser.add_argument('--A', type=int, default=2,
             help='Ab:2, Afp:32')
 
     args = parser.parse_args()
     print('==> Options:',args)
-    
+
     if args.gpu_id:
         os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
     

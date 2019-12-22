@@ -32,7 +32,7 @@
 
 ### 量化
 
-#### W（FP32/三/二值）、A（FP32/三/二值）
+#### W（FP32/三/二值）、A（FP32/二值）
 
 --W --A, 权重W和特征A量化取值
 
@@ -229,6 +229,44 @@ python bn_merge.py --W 3
 ```
 python bn_merge_test_model.py
 ```
+
+### 设备选取
+
+现支持cpu、gpu(多卡、单卡)
+
+--cpu 使用cpu，--gpu_id 选择gpu
+
+- cpu
+
+```
+python main.py --cpu
+```
+
+- gpu单卡
+
+```
+python main.py --gpu_id 0
+```
+
+或
+
+```
+python main.py --gpu_id 1
+```
+
+- gpu多卡
+
+```
+python main.py --gpu_id 0,1
+```
+
+或
+
+```
+python main.py --gpu_id 0,1,2
+```
+
+默认：使用服务器全卡
 
 ## 模型压缩数据对比（示例）
 
