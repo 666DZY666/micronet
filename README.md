@@ -88,7 +88,6 @@ python main.py --Wbits 4 --Abits 8
 
 ```
 python main.py --Wbits 4 --Abits 4
-
 ```
 
 - 其他bits情况类比
@@ -99,14 +98,12 @@ python main.py --Wbits 4 --Abits 4
 
 ```
 cd prune
-
 ```
 
 #### 正常训练
 
 ```
 python main.py
-
 ```
 
 #### 稀疏训练
@@ -117,14 +114,12 @@ python main.py
 
 ```
 python main.py -sr --s 0.0001
-
 ```
 
 - nin_gc(含分组卷积结构)
 
 ```
 python main.py -sr --s 0.001
-
 ```
 
 #### 剪枝
@@ -135,28 +130,24 @@ python main.py -sr --s 0.001
 
 ```
 python normal_regular_prune.py --percent 0.5 --model models_save/nin_preprune.pth --save models_save/nin_prune.pth
-
 ```
 
 - 规整剪枝
 
 ```
 python normal_regular_prune.py --percent 0.5 --normal_regular 8 --model models_save/nin_preprune.pth --save models_save/nin_prune.pth
-
 ```
 
 或
 
 ```
 python normal_regular_prune.py --percent 0.5 --normal_regular 16 --model models_save/nin_preprune.pth --save models_save/nin_prune.pth
-
 ```
 
 - 分组卷积结构剪枝
 
 ```
 python gc_prune.py --percent 0.4 --model models_save/nin_gc_preprune.pth
-
 ```
 
 #### 微调
@@ -165,7 +156,6 @@ python gc_prune.py --percent 0.4 --model models_save/nin_gc_preprune.pth
 
 ```
 python main.py --refine models_save/nin_prune.pth
-
 ```
 
 ### 剪枝 —> 量化（注意剪枝率和量化率平衡）
@@ -176,7 +166,6 @@ python main.py --refine models_save/nin_prune.pth
 
 ```
 cd WqAq
-
 ```
 
 - W8A8
@@ -184,14 +173,12 @@ cd WqAq
 
 ```
 python main.py --Wbits 8 --Abits 8 --refine ../prune/models_save/nin_refine.pth
-
 ```
 
 - nin_gc(含分组卷积结构)
 
 ```
 python main.py --Wbits 8 --Abits 8 --refine ../prune/models_save/nin_gc_refine.pth
-
 ```
 
 - 其他bits情况类比
@@ -200,7 +187,6 @@ python main.py --Wbits 8 --Abits 8 --refine ../prune/models_save/nin_gc_refine.p
 
 ```
 cd WbWtAb
-
 ```
 
 - WbAb
@@ -208,14 +194,12 @@ cd WbWtAb
 
 ```
 python main.py --W 2 --A 2 --refine ../prune/models_save/nin_refine.pth
-
 ```
 
 - nin_gc(含分组卷积结构)
 
 ```
 python main.py --W 2 --A 2 --refine ../prune/models_save/nin_gc_refine.pth
-
 ```
 
 - 其他取值情况类比
@@ -224,7 +208,6 @@ python main.py --W 2 --A 2 --refine ../prune/models_save/nin_gc_refine.pth
 
 ```
 cd WbWtAb/bn_merge
-
 ```
 
 --W 权重W量化取值(据训练时W量化(FP/三值/二值)情况而定)
@@ -233,21 +216,18 @@ cd WbWtAb/bn_merge
 
 ```
 python bn_merge.py --W 2
-
 ```
 
 或
 
 ```
 python bn_merge.py --W 3
-
 ```
 
 #### 融合前后model对比测试
 
 ```
 python bn_merge_test_model.py
-
 ```
 
 ### 设备选取
@@ -260,35 +240,30 @@ python bn_merge_test_model.py
 
 ```
 python main.py --cpu
-
 ```
 
 - gpu单卡
 
 ```
 python main.py --gpu_id 0
-
 ```
 
 或
 
 ```
 python main.py --gpu_id 1
-
 ```
 
 - gpu多卡
 
 ```
 python main.py --gpu_id 0,1
-
 ```
 
 或
 
 ```
 python main.py --gpu_id 0,1,2
-
 ```
 
 默认：使用服务器全卡
