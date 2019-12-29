@@ -64,12 +64,18 @@ python main.py --W 3 --A 2
 python main.py --W 3 --A 32
 ```
 
-#### W（FP32/8/4/2 bits）、A（FP32/8/4/2 bits）
+#### W（FP32/16/8/4/2 bits）、A（FP32/16/8/4/2 bits）
 
 --Wbits --Abits, 权重W和特征A量化位数
 
 ```
 cd WqAq
+```
+
+- W16A16
+
+```
+python main.py --Wbits 16 --Abits 16
 ```
 
 - W8A8
