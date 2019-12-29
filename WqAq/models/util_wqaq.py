@@ -27,7 +27,7 @@ def uniform_quantize(k):
 class weight_quantize_fn(nn.Module):
   def __init__(self, w_bit):
     super(weight_quantize_fn, self).__init__()
-    assert w_bit <= 8 or w_bit == 32
+    #assert w_bit <= 8 or w_bit == 32
     self.w_bit = w_bit
     self.uniform_q = uniform_quantize(k=w_bit)
 
@@ -46,7 +46,7 @@ class weight_quantize_fn(nn.Module):
 class activation_quantize_fn(nn.Module):
   def __init__(self, a_bit):
     super(activation_quantize_fn, self).__init__()
-    assert a_bit <= 8 or a_bit == 32
+    #assert a_bit <= 8 or a_bit == 32
     self.a_bit = a_bit
     self.uniform_q = uniform_quantize(k=a_bit)
 

@@ -282,10 +282,41 @@ python main.py --gpu_id 0,1,2
 |   剪枝+量化(W三值/A二值)    | 86.13% |  ***   |   ***   |   0.19   | 91.81% | 4.75% | W三值不含缩放因子,适配一些无法做缩放因子运算的硬件 |
 | 分组+剪枝+量化(W三值/A二值) | 86.13% |  ***   |   ***   |   0.19   | 92.91% | 4.88% | W三值不含缩放因子,适配一些无法做缩放因子运算的硬件 |
 
+## 相关论文
+
+### 量化
+
+#### 二值
+
+- [BinarizedNeuralNetworks: TrainingNeuralNetworkswithWeightsand ActivationsConstrainedto +1 or−1](https://arxiv.org/abs/1602.02830)
+
+- [XNOR-Net:ImageNetClassiﬁcationUsingBinary ConvolutionalNeuralNetworks](https://arxiv.org/abs/1603.05279)
+
+- [AN EMPIRICAL STUDY OF BINARY NEURAL NETWORKS’ OPTIMISATION](https://openreview.net/forum?id=rJfUCoR5KX)
+
+- [A Review of Binarized Neural Networks](https://www.semanticscholar.org/paper/A-Review-of-Binarized-Neural-Networks-Simons-Lee/0332fdf00d7ff988c5b66c47afd49431eafa6cd1)
+
+#### 三值
+
+- [Ternary weight networks](https://arxiv.org/abs/1605.04711)
+
+#### 任意位数
+
+- [DOREFA-NET: TRAINING LOW BITWIDTH CONVOLUTIONAL NEURAL NETWORKS WITH LOW BITWIDTH
+  GRADIENTS](https://arxiv.org/abs/1606.06160)
+
+### 剪枝
+
+- [Learning Efficient Convolutional Networks through Network Slimming](https://arxiv.org/abs/1708.06519)
+- [RETHINKING THE VALUE OF NETWORK PRUNING](https://arxiv.org/abs/1810.05270)
+
+### 针对专用芯片的模型压缩
+
+- [Convolutional Networks for Fast, Energy-Efficient Neuromorphic Computing](https://arxiv.org/abs/1603.08270)
+
 ## 后续补充
 
 - 1、使用示例部分细节说明
-- 2、参考论文及工程
 - 3、imagenet测试
 
 ## 后续扩充
