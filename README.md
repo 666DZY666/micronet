@@ -105,7 +105,7 @@ python main.py --Wbits 4 --Abits 4
 
 ### 剪枝
 
-<!--稀疏训练 ——> 剪枝 ——> 微调-->
+*稀疏训练  —>  剪枝  —>  微调*
 
 ```
 cd prune
@@ -171,7 +171,7 @@ python main.py --refine models_save/nin_prune.pth
 
 ### 剪枝 —> 量化（注意剪枝率和量化率平衡）
 
-<!--剪枝完成后，加载保存的模型参数在其基础上再做量化-->
+*剪枝完成后，加载保存的模型参数在其基础上再做量化*
 
 #### 剪枝 —> 量化（16/8/4/2 bits）（剪枝率偏大、量化率偏小）
 
@@ -179,7 +179,8 @@ python main.py --refine models_save/nin_prune.pth
 cd WqAq
 ```
 
-- W8A8
+##### W8A8
+
 - nin(正常卷积结构)
 
 ```
@@ -192,7 +193,7 @@ python main.py --Wbits 8 --Abits 8 --refine ../prune/models_save/nin_refine.pth
 python main.py --Wbits 8 --Abits 8 --refine ../prune/models_save/nin_gc_refine.pth
 ```
 
-- 其他bits情况类比
+##### 其他bits情况类比
 
 #### 剪枝 —> 量化（三/二值）（剪枝率偏小、量化率偏大）
 
@@ -200,7 +201,8 @@ python main.py --Wbits 8 --Abits 8 --refine ../prune/models_save/nin_gc_refine.p
 cd WbWtAb
 ```
 
-- WbAb
+##### WbAb
+
 - nin(正常卷积结构)
 
 ```
@@ -213,7 +215,7 @@ python main.py --W 2 --A 2 --refine ../prune/models_save/nin_refine.pth
 python main.py --W 2 --A 2 --refine ../prune/models_save/nin_gc_refine.pth
 ```
 
-- 其他取值情况类比
+##### 其他取值情况类比
 
 ### BN融合
 
@@ -243,7 +245,7 @@ python bn_merge_test_model.py
 
 ### 设备选取
 
-<!--现支持cpu、gpu(多卡、单卡)-->
+*现支持cpu、gpu(单卡、多卡)*
 
 --cpu 使用cpu，--gpu_id 选择gpu
 
@@ -277,11 +279,11 @@ python main.py --gpu_id 0,1
 python main.py --gpu_id 0,1,2
 ```
 
-<!--默认：使用服务器全卡-->
+*默认：使用服务器全卡*
 
 ## 模型压缩数据对比（示例）
 
-<!--以下为cifar10测试，可在更冗余模型、更大数据集上尝试其他组合压缩方式-->
+*以下为cifar10测试，可在更冗余模型、更大数据集上尝试其他组合压缩方式*
 
 |            类型             |  Acc   | GFLOPs | Para(M) | Size(MB) | 压缩率 | 损失  |                        备注                        |
 | :-------------------------: | :----: | :----: | :-----: | :------: | :----: | :---: | :------------------------------------------------: |
