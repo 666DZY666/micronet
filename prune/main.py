@@ -110,7 +110,7 @@ def test():
     
     test_loss /= len(testloader.dataset)
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)'.format(
-        test_loss * 256., correct, len(testloader.dataset),
+        test_loss * 50., correct, len(testloader.dataset),
         100. * float(correct) / len(testloader.dataset)))
     print('Best Accuracy: {:.2f}%\n'.format(best_acc))
     return
