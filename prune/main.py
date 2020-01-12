@@ -14,11 +14,15 @@ from torch.autograd import Variable
 import torchvision
 import torchvision.transforms as transforms
 from models import nin
+from visdom import Visdom
 import thop
+import time
 from thop import profile
 from models import nin_gc
 from models import standard_dw
+viz = Visdom()
 
+line = viz.line(np.arange(10))
 # 随机种子——训练结果可复现
 def setup_seed(seed):
     # 为CPU设置种子用于生成随机数,以使得结果是确定的
@@ -73,7 +77,7 @@ def train(epoch):
         # target shape: [50]
         output = model(data)
         loss = criterion(output, target)
-        
+        pred = output.data.max(1, keepdim=True)[1]
         optimizer.zero_grad()
         loss.backward()
         
@@ -88,6 +92,9 @@ def train(epoch):
                 epoch, batch_idx * len(data), len(trainloader.dataset),
                 100. * batch_idx / len(trainloader), loss.data.item(),
                 optimizer.param_groups[0]['lr']))
+            # 可视化部分
+            time_p.append(time.time() - start_time)
+            tr_acc.append()
     return
 
 def test():
@@ -237,13 +244,13 @@ if __name__=='__main__':
         #model = torch.nn.DataParallel(model, device_ids=range(torch.cuda.device_count()))
     print('***********************************Model**************************************')
     print(model)
-    #input = torch.randn(1, 3, 32, 32)
-    #flops, params = profile(model, inputs=(input,))
-    #print('***********************************GFLOPs*************************************')
-    #print(flops / 1024 / 1024 /1024)
-    #print('***********************************Para(M)************************************')
-    #print(params / 1024 / 1024)
-    #print('***********************************End****************************************')
+    input = torch.randn(1, 3, 32, 32)
+    flops, params = profile(model, inputs=(input,))
+    print('***********************************GFLOPs*************************************')
+    print(flops / 1024 / 1024 /1024)
+    print('***********************************Para(M)************************************')
+    print(params / 1024 / 1024)
+    print('***********************************End****************************************')
 
     base_lr = float(args.lr)
     param_dict = dict(model.named_parameters())
@@ -261,8 +268,61 @@ if __name__=='__main__':
     # 学习率调整到start_iter这一轮的学习率
     for epoch in range(args.start_iter+1):
         adjust_learning_rate(optimizer, epoch)
+    # 起始时间设置
+    start_time = time.time()
+    # 可视化所需数据点
+    time_p, tr_acc, ts_acc, loss_p = [], [], [], []
+    # 创建可视化数据视窗
+    text = viz.text("<h1>convolution Nueral Network</h1>")
     # 训练args.epochs这么多个epoch
     for epoch in range(args.start_iter, args.epochs):
         adjust_learning_rate(optimizer, epoch)
-        train(epoch)
-        test()
+        #train(epoch)
+        #test()
+        model.train()
+        sum_loss, sum_acc, sum_step = 0., 0., 0.
+        for batch_idx, (data, target) in enumerate(trainloader):
+            data, target = Variable(data.cuda()), Variable(target.cuda())
+            # print(data.size())
+            # data shape: [50, 3, 32, 32]
+            # print(target.size())
+            # target shape: [50]
+            output = model(data)
+            loss = criterion(output, target)
+            sum_loss += loss.item()*len(target)
+            pred = torch.max(output, 1)[1]
+            sum_acc += sum(pred==target).item()
+            sum_step += target.size(0)
+            optimizer.zero_grad()
+            loss.backward()
+
+            # ***********************稀疏训练（对BN层γ进行约束）**************************
+            if args.sr:
+                updateBN()
+
+            optimizer.step()
+
+            if batch_idx % 100 == 0:
+                for data, target in testloader:
+                    data, target = Variable(data.cuda()), Variable(target.cuda())
+
+                test_output = model(data)
+                pred = torch.max(test_output, 1)[1]
+                rightnum = sum(pred == target).item()
+                acc = rightnum / float(target.size(0))
+                print("epoch: [{}/{}] | Loss: {:.4f} | TR_acc: {:.4f} | TS_acc: {:.4f} | Time: {:.1f}".
+                      format(epoch + 1, args.epochs,
+                                    sum_loss/(sum_step), sum_acc/(sum_step), acc, time.time()-start_time))
+                # 可视化部分
+                time_p.append(time.time() - start_time)
+                tr_acc.append(sum_acc / sum_step)
+                ts_acc.append(acc)
+                loss_p.append(sum_loss / sum_step)
+                viz.line(X=np.column_stack((np.array(time_p), np.array(time_p), np.array(time_p))),
+                         Y=np.column_stack((np.array(loss_p), np.array(tr_acc), np.array(ts_acc))), win=line,
+                         opts=dict(legend=["Loss", "TRAIN_acc", "TEST_acc"]))
+                # visdom text 支持html语句
+                viz.text(
+                    "<p style='color:red'>epoch:{}</p><br><p style='color:blue'>Loss:{:.4f}</p><br>" "<p style='color:BlueViolet'>TRAIN_acc:{:.4f}</p><br><p style='color:orange'>TEST_acc:{:.4f}</p><br>" "<p style='color:green'>Time:{:.2f}</p>".format(
+                        epoch, sum_loss / sum_step, sum_acc / sum_step, acc, time.time() - start_time), win=text)
+                sum_loss, sum_acc, sum_step = 0., 0., 0.
