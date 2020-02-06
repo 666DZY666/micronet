@@ -40,7 +40,7 @@ def save_state(model, best_acc):
     #torch.save(state, 'models_save/nin_gc_preprune.pth')
     #torch.save({'cfg': cfg, 'best_acc': best_acc, 'state_dict': state['state_dict']}, 'models_save/nin_refine.pth')
     #torch.save({'cfg': cfg, 'best_acc': best_acc, 'state_dict': state['state_dict']}, 'models_save/nin_gc_refine.pth')
-
+    
 #***********************稀疏训练（对BN层γ进行约束）**************************
 def updateBN():
     for m in model.modules():
