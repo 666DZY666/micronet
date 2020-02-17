@@ -24,17 +24,17 @@ class BinActive(torch.autograd.Function):
         self.save_for_backward(input)
         size = input.size()
         mean = torch.mean(input.abs(), 1, keepdim=True)
-        input = input.sign()
+        output = input.sign()
         # ********************A二值——1、0*********************
         #input = torch.clamp(input, min=0)
         #print(input)
-        return input, mean
+        return output, mean
 
     def backward(self, grad_output, grad_output_mean):
         input, = self.saved_tensors
         #*******************ste*********************
         grad_input = grad_output.clone()
-        #****************saturate_ste****************
+        #****************saturate_ste***************
         grad_input[input.ge(1)] = 0
         grad_input[input.le(-1)] = 0
         '''

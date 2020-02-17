@@ -2,20 +2,24 @@ import torch.nn as nn
 import torch
 import torch.nn.functional as F
 
+# *********************A（特征）量化（二值)***********************
 class BinActive(torch.autograd.Function):
- 
+
     def forward(self, input):
         self.save_for_backward(input)
         size = input.size()
         mean = torch.mean(input.abs(), 1, keepdim=True)
-        input = input.sign()
-        return input, mean
+        output = input.sign()
+        # ********************A二值——1、0*********************
+        #input = torch.clamp(input, min=0)
+        #print(input)
+        return output, mean
 
     def backward(self, grad_output, grad_output_mean):
         input, = self.saved_tensors
         #*******************ste*********************
         grad_input = grad_output.clone()
-        #****************saturate_ste****************
+        #****************saturate_ste***************
         grad_input[input.ge(1)] = 0
         grad_input[input.le(-1)] = 0
         '''

@@ -52,39 +52,39 @@ class Tnn_Bin_Op():
         for index in range(self.num_of_params):
             self.saved_params[index].copy_(self.target_modules[index].data)
 
-    # **************************W量化（三值或二值）******************************
+    # ************************** W量化（三值或二值）******************************
     def tnn_bin_ConvParams(self):
-        for index in range(self.num_of_params):
-            n = self.target_modules[index].data[0].nelement()
-            s = self.target_modules[index].data.size()
-            if self.W == 2:
-                #****************************************W二值*****************************************
-                #****************α****************
-                alpha = self.target_modules[index].data.norm(1, 3, keepdim=True)\
-                        .sum(2, keepdim=True).sum(1, keepdim=True).div(n)
-                # ************** W —— +-1 **************
-                self.target_modules[index].data = self.target_modules[index].data.sign()
-                # ************** W * α **************
-                self.target_modules[index].data = self.target_modules[index].data * alpha
-            elif self.W == 3:
-                #****************************************W三值*****************************************
-                for i in range(0, s[0]):
-                    sum = torch.sum(torch.abs(self.target_modules[index].data[i])).item()
-                    threshold = (sum / n) * 0.7
-                    #threshold = 0.7 * self.target_modules[index].data[i].norm(1).div(n).item()
-                    #threshold = 0.7 * torch.mean(torch.abs(self.target_modules[index].data[i])).item()
-                    #****************α****************
-                    a_abs = self.target_modules[index].data[i].abs().clone()
-                    mask = a_abs.gt(threshold)
-                    a_abs_th = a_abs[mask].clone()
-                    alpha = torch.mean(a_abs_th)
-                    #print(threshold, alpha)
+        if self.W == 2 or self.W == 3:
+            for index in range(self.num_of_params):
+                # **************** channel级 - E(|W|) ****************
+                E = torch.mean(torch.abs(self.target_modules[index].data), (3, 2, 1), keepdim=True)
+                # **************************************** W二值 *****************************************
+                if self.W == 2:                
+                    # **************** α(缩放因子) ****************
+                    alpha = E
+                    # ************** W —— +-1 **************
+                    self.target_modules[index].data = self.target_modules[index].data.sign()
+                    # ************** W * α **************
+                    self.target_modules[index].data = self.target_modules[index].data * alpha
+                elif self.W == 3:
+                    # **************************************** W三值 *****************************************
+                    # **************** 阈值 ****************
+                    threshold = E * 0.7
+                    # **************** α(缩放因子) ****************
+                    a_abs = self.target_modules[index].data.abs().clone()
+                    mask_le = a_abs.le(threshold)
+                    mask_gt = a_abs.gt(threshold)
+                    a_abs[mask_le] = 0
+                    a_abs_th = a_abs.clone()
+                    a_abs_th_sum = torch.sum(a_abs_th, (3, 2, 1), keepdim=True)
+                    mask_gt_sum = torch.sum(mask_gt, (3, 2, 1), keepdim=True).float()
+                    alpha = a_abs_th_sum / mask_gt_sum
                     # ************** W —— +-1、0 **************
-                    self.target_modules[index].data[i] = torch.sign(torch.add(torch.sign(torch.add(self.target_modules[index].data[i], threshold)),torch.sign(torch.add(self.target_modules[index].data[i], -threshold))))
-                    #*************** W * α ************************
-                    self.target_modules[index].data[i] = self.target_modules[index].data[i] * alpha
-            #print(self.target_modules[index].data)
-            
+                    self.target_modules[index].data = torch.sign(torch.add(torch.sign(torch.add(self.target_modules[index].data, threshold)),torch.sign(torch.add(self.target_modules[index].data, -threshold))))
+                    # *************** W * α ************************
+                    self.target_modules[index].data = self.target_modules[index].data * alpha
+                #print(self.target_modules[index].data)
+
     # 恢复浮点W
     def restore(self):
         for index in range(self.num_of_params):
