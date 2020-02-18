@@ -7,6 +7,7 @@ import nin_gc
 from layers import bn
 import argparse
 
+# ******************** 是否保存模型完整参数 ********************
 #torch.set_printoptions(precision=8, edgeitems=sys.maxsize, linewidth=200, sci_mode=False)
 
 class DummyModule(nn.Module):
@@ -19,23 +20,35 @@ class DummyModule(nn.Module):
 def fuse(conv, bn):
     global i
     i = i + 1
-    # ********************BN参数*********************
+    # ******************** BN参数 *********************
     mean = bn.running_mean
     var_sqrt = torch.sqrt(bn.running_var + bn.eps)
     gamma = bn.weight
     beta = bn.bias
-    # *******************conv参数********************
+    # ******************* conv参数 ********************
     w = conv.weight
+    w_fold = w.clone()
     if conv.bias is not None:
         b = conv.bias
     else:
         b = mean.new_zeros(mean.shape)
+    b_fold = b.clone()
 
-    if(i >= 2 and i <= 7):
-        b = b - mean + beta * var_sqrt
+    # ******************* 针对特征(A)二值的BN融合 *******************
+    if(i <= 7):
+        mask_positive = gamma.data.gt(0)
+        mask_negetive = gamma.data.lt(0)
+
+        w_fold[mask_positive] = w[mask_positive]
+        b_fold[mask_positive] = b[mask_positive] - mean[mask_positive] + beta[mask_positive] * (var_sqrt[mask_positive] / gamma[mask_positive])
+
+        w_fold[mask_negetive] = w[mask_negetive] * -1
+        b_fold[mask_negetive] = mean[mask_negetive] - b[mask_negetive] - beta[mask_negetive] * (var_sqrt[mask_negetive] / gamma[mask_negetive])
+    # ******************* 普通BN融合 *******************
     else:
-        w = w * (gamma / var_sqrt).reshape([conv.out_channels, 1, 1, 1])
-        b = (b - mean)/var_sqrt * gamma + beta
+        w_fold = w * (gamma / var_sqrt).reshape([conv.out_channels, 1, 1, 1])
+        b_fold = (b - mean) * (gamma / var_sqrt) + beta
+    
     fused_conv = nn.Conv2d(conv.in_channels,
                          conv.out_channels,
                          conv.kernel_size,
@@ -43,8 +56,8 @@ def fuse(conv, bn):
                          conv.padding,
                          groups=conv.groups,
                          bias=True)
-    fused_conv.weight = nn.Parameter(w)
-    fused_conv.bias = nn.Parameter(b)
+    fused_conv.weight = nn.Parameter(w_fold)
+    fused_conv.bias = nn.Parameter(b_fold)
     return fused_conv
 
 def fuse_module(m):
@@ -77,7 +90,7 @@ def fuse_model(m):
     print("Fused time: ", time.time() - s)
     return m
 
-#**********************参数定义**********************
+# ********************** 可选配置参数 **********************
 parser = argparse.ArgumentParser()
 # W —— 三值/二值(据训练时W量化(三/二值)情况而定)
 parser.add_argument('--W', type=int, default=2,
@@ -87,7 +100,7 @@ print('==> Options:',args)
 
 i = 0
 print("************* 参数量化 + BN_fuse **************")
-#**********************W全精度表示************************
+# ********************** W全精度表示 ************************
 model = nin_gc.Net()
 #print(model)
 model.load_state_dict(torch.load("../models_save/nin_gc_bn_gama.pth")['state_dict'])
@@ -98,40 +111,40 @@ model_para_array = np.array(model.state_dict())
 np.savetxt('models_save/model.txt', [model_array], fmt = '%s', delimiter=',')
 np.savetxt('models_save/model_para.txt', [model_para_array], fmt = '%s', delimiter=',')
 
-#********************** W量化表示(据训练时W量化(三/二值)情况而定)*************************
+# ********************** W量化表示(据训练时W量化(三/二值)情况而定) *************************
 if args.W == 2 or args.W == 3:
     for m in model.modules():
         if isinstance(m, nn.Conv2d):
             i = i + 1
             if (i >= 2 and i <= 8):
-                n = m.weight.data[0].nelement()
-                s = m.weight.data.size()
+                # **************** channel级 - E(|W|) ****************
+                E = torch.mean(torch.abs(m.weight.data), (3, 2, 1), keepdim=True)
+                # **************************************** W二值 *****************************************
                 if args.W == 2:
-                    #****************************************W二值*****************************************
-                    # ****************α****************
-                    alpha = m.weight.data.norm(1, 3, keepdim=True)\
-                            .sum(2, keepdim=True).sum(1, keepdim=True).div(n)
-                    # **************** W —— +-1 ****************
+                    # **************** α(缩放因子) ****************
+                    alpha = E
+                    # ************** W —— +-1 **************
                     m.weight.data = m.weight.data.sign()
-                    # **************** W * α ****************
+                    # ************** W * α **************
                     m.weight.data = m.weight.data * alpha
+                # **************************************** W三值 *****************************************
                 elif args.W == 3:
-                    #****************************************W三值****************************************
-                    for j in range(0, s[0]):
-                            sum = torch.sum(torch.abs(m.weight.data[j])).item()
-                            threshold = (sum / n) * 0.7
-                            #threshold = 0.7 * self.target_modules[index].data[i].norm(1).div(n).item()
-                            #threshold = 0.7 * torch.mean(torch.abs(self.target_modules[index].data[i])).item()
-                            # ****************α****************
-                            a_abs = m.weight.data[j].abs().clone()
-                            mask = a_abs.gt(threshold)
-                            a_abs_th = a_abs[mask].clone()
-                            alpha = torch.mean(a_abs_th)
-                            #print(threshold, alpha)
-                            # **************** W —— +-1、0 ****************
-                            m.weight.data[j] = torch.sign(torch.add(torch.sign(torch.add(m.weight.data[j], threshold)),torch.sign(torch.add(m.weight.data[j], -threshold))))
-                            # **************** W * α ****************
-                            m.weight.data[j] = m.weight.data[j] * alpha
+                    # **************** 阈值 ****************
+                    threshold = E * 0.7
+                    # **************** α(缩放因子) ****************
+                    a_abs = m.weight.data.abs().clone()
+                    mask_le = a_abs.le(threshold)
+                    mask_gt = a_abs.gt(threshold)
+                    a_abs[mask_le] = 0
+                    a_abs_th = a_abs.clone()
+                    a_abs_th_sum = torch.sum(a_abs_th, (3, 2, 1), keepdim=True)
+                    mask_gt_sum = torch.sum(mask_gt, (3, 2, 1), keepdim=True).float()
+                    alpha = a_abs_th_sum / mask_gt_sum
+                    # ************** W —— +-1、0 **************
+                    m.weight.data = torch.sign(torch.add(torch.sign(torch.add(m.weight.data, threshold)),torch.sign(torch.add(m.weight.data, -threshold))))
+                    # *************** W * α ************************
+                    m.weight.data = m.weight.data * alpha
+
 i = 0
 torch.save(model, 'models_save/quan_model.pth')
 torch.save(model.state_dict(), 'models_save/quan_model_para.pth')
@@ -140,7 +153,7 @@ model_para_array = np.array(model.state_dict())
 np.savetxt('models_save/quan_model.txt', [model_array], fmt = '%s', delimiter=',')
 np.savetxt('models_save/quan_model_para.txt', [model_para_array], fmt = '%s', delimiter=',')
 
-#********************* BN融合 **********************
+# ********************* BN融合 **********************
 model.eval()
 model_fused = fuse_model(model)
 torch.save(model_fused, 'models_save/quan_bn_merge_model.pth')
@@ -150,7 +163,7 @@ model_para_array = np.array(model_fused.state_dict())
 np.savetxt('models_save/quan_bn_merge_model.txt', [model_array], fmt = '%s', delimiter=',')
 np.savetxt('models_save/quan_bn_merge_model_para.txt', [model_para_array], fmt = '%s', delimiter=',')
 
-#***********************转换测试*************************
+# *********************** 转换测试 *************************
 model = torch.load('models_save/quan_model.pth')
 model.eval()
 model_fused = torch.load('models_save/quan_bn_merge_model.pth')

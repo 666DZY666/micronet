@@ -62,6 +62,8 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--cpu', action='store_true',
             help='set if only CPU is available')
+    parser.add_argument('--gpu_id', action='store', default='',
+            help='gpu_id')
     parser.add_argument('--data', action='store', default='../../data',
             help='dataset path')
     parser.add_argument('--eval_batch_size', type=int, default=128)
@@ -70,6 +72,9 @@ if __name__=='__main__':
             help='number of epochs to train (default: 160)')
     args = parser.parse_args()
     print('==> Options:',args)
+
+    if args.gpu_id:
+        os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
 
     print('==> Preparing data..')
     transform_train = transforms.Compose([
@@ -93,6 +98,8 @@ if __name__=='__main__':
     if not args.cpu:
         model.cuda()
         model_bn_merge.cuda()
+        model = torch.nn.DataParallel(model, device_ids=range(torch.cuda.device_count()))
+        model_bn_merge = torch.nn.DataParallel(model_bn_merge, device_ids=range(torch.cuda.device_count()))
 
     criterion = nn.CrossEntropyLoss()
     
