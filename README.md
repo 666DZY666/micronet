@@ -28,23 +28,24 @@
 
 
 ## 项目进展
-- 2019.12.4，初次提交
-- 12.8，任意位数特征(A)量化前先进行缩放(* 0.1)，然后再截断，以减小截断误差
-- 12.11，增加项目代码结构图
+- **2019.12.4**，初次提交
+- **12.8**，任意位数特征(A)量化前先进行缩放(* 0.1)，然后再截断，以减小截断误差
+- **12.11**，增加项目代码结构图
 - 12.12，完善使用示例
 - 12.14，增加:1、BN融合量化情况(W三值/二值)可选，即训练量化时选择W三/二值，这里则对应选择；2、BN融合时对卷积核(conv)不带偏置(bias)的处理
-- 12.17，增加模型压缩前后数据对比(示例)
+- **12.17**，增加模型压缩前后数据对比(示例)
 - 12.20，增加设备可选(cpu、gpu(单卡、多卡))
-- 12.27，补充相关论文
+- **12.27**，补充相关论文
 - 12.29，取消任意位数量化8bits以内的限制，即现在可以量化至10bits、16bits等
-- 2020.2.17，1、精简W三值/二值量化代码；2、加速W三值量化训练
-- 2.18，优化针对特征(A)二值的BN融合:去除对BN层gamma参数的限制，即现在BN可正常训练
-- 2.24，再次优化三/二值量化代码组织结构，增强可移植性，旧版确实不太好移植。目前移植方法：将想要量化的卷积用./WbWtAb/models/util_w_t_b_conv.py中的Conv2d_Q替换即可，可参照该路径下nin_gc.py中的使用方法
+- **2020.2.17**，1、精简W三值/二值量化代码；2、加速W三值量化训练
+- **2.18**，优化针对特征(A)二值的BN融合:去除对BN层gamma参数的限制，即现在此情况下融合时BN可正常训练
+- **2.24**，再次优化三/二值量化代码组织结构，增强可移植性，旧版确实不太好移植。目前移植方法：将想要量化的卷积用./WbWtAb/models/util_w_t_b_conv.py中的Conv2d_Q替换即可，可参照该路径下nin_gc.py中的使用方法
+- **3.1**，新增：1、google任意位数(bits)量化方法；2、任意位数量化的BN融合
 
 ## 环境要求
 
 - python >= 3.5
-- torch == 1.1.0
+- torch >= 1.1.0
 - torchvison >= 0.3.0
 - numpy
 
@@ -335,8 +336,9 @@ python main.py --gpu_id 0,1,2
 
 #### 任意位数
 
-- [DOREFA-NET: TRAINING LOW BITWIDTH CONVOLUTIONAL NEURAL NETWORKS WITH LOW BITWIDTH
-  GRADIENTS](https://arxiv.org/abs/1606.06160)
+- [DoReFa-Net: Training Low Bitwidth Convolutional Neural Networks with Low Bitwidth Gradients](https://arxiv.org/abs/1606.06160)
+- [Quantization and Training of Neural Networks for Efficient Integer-Arithmetic-Only Inference](https://arxiv.org/abs/1712.05877)
+- [Quantizing deep convolutional networks for efficient inference: A whitepaper](https://arxiv.org/abs/1806.08342)
 
 ### 剪枝
 
@@ -350,12 +352,11 @@ python main.py --gpu_id 0,1,2
 
 ## 后续补充
 
-- 1、使用示例部分细节说明
-- 3、imagenet测试
-
+- 相关使用示例、实验数据、细节说明
+  
 
 ## 后续扩充
 
-- 1、Nvidia、Google的INT8量化方案
+- 1、Nvidia训练后量化方法
 - 2、对常用检测模型做压缩
 - 3、部署（1、针对4bits/三值/二值等的量化卷积；2、终端DL框架（如MNN，NCNN，TensorRT等））

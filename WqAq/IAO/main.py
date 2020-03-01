@@ -37,6 +37,16 @@ def save_state(model, best_acc):
     torch.save(state, 'models_save/nin_gc.pth')
     #torch.save(state, 'models_save/nin.pth')
 
+def adjust_learning_rate(optimizer, epoch):
+    if args.bn_fold == 1:
+        update_list = [8, 10, 25]
+    else:
+        update_list = [15, 17, 20]
+    if epoch in update_list:
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = param_group['lr'] * 0.1
+    return
+
 def train(epoch):
     model.train()
 
@@ -48,7 +58,7 @@ def train(epoch):
         loss = criterion(output, target)
         
         optimizer.zero_grad()
-        loss.backward()  
+        loss.backward()
         optimizer.step() 
 
         if batch_idx % 100 == 0:
@@ -86,13 +96,6 @@ def test():
     print('Best Accuracy: {:.2f}%\n'.format(best_acc))
     return
 
-def adjust_learning_rate(optimizer, epoch):
-    update_list = [80, 130, 180, 230, 280]
-    if epoch in update_list:
-        for param_group in optimizer.param_groups:
-            param_group['lr'] = param_group['lr'] * 0.1
-    return
-
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--cpu', action='store_true',
@@ -100,7 +103,7 @@ if __name__=='__main__':
     # gpu_id
     parser.add_argument('--gpu_id', action='store', default='',
             help='gpu_id')
-    parser.add_argument('--data', action='store', default='../data',
+    parser.add_argument('--data', action='store', default='../../data',
             help='dataset path')
     parser.add_argument('--lr', action='store', default=0.01,
             help='the intial learning rate')
@@ -112,15 +115,22 @@ if __name__=='__main__':
             help='the path to the refine(prune) model')
     parser.add_argument('--evaluate', action='store_true',
             help='evaluate the model')
-    parser.add_argument('--train_batch_size', type=int, default=50)
+    parser.add_argument('--train_batch_size', type=int, default=512)
     parser.add_argument('--eval_batch_size', type=int, default=256)
     parser.add_argument('--num_workers', type=int, default=2)
-    parser.add_argument('--epochs', type=int, default=300, metavar='N',
+    parser.add_argument('--start_epochs', type=int, default=1, metavar='N',
+            help='number of epochs to train')
+    parser.add_argument('--end_epochs', type=int, default=30, metavar='N',
             help='number of epochs to train')
     # W/A — bits
     parser.add_argument('--Wbits', type=int, default=8)
     parser.add_argument('--Abits', type=int, default=8)
-    
+    # bn融合标志位
+    parser.add_argument('--bn_fold', type=int, default=0,
+            help='bn_fold:1')
+    # 量化方法选择
+    parser.add_argument('--q_type', type=int, default=1,
+            help='quantization type:0-symmetric,1-asymmetric')
     args = parser.parse_args()
     print('==> Options:',args)
 
@@ -151,25 +161,26 @@ if __name__=='__main__':
         print('******Refine model******')
         #checkpoint = torch.load('../prune/models_save/nin_refine.pth')
         checkpoint = torch.load(args.refine)
-        model = nin_gc.Net(cfg=checkpoint['cfg'], wbits=args.Wbits, abits=args.Abits)
-        #model = nin.Net(cfg=checkpoint['cfg'], wbits=args.Wbits, abits=args.Abits)
+        model = nin_gc.Net(cfg=checkpoint['cfg'], abits=args.Abits, wbits=args.Wbits, bn_fold=args.bn_fold, q_type=args.q_type)
+        #model = nin.Net(cfg=checkpoint['cfg'], abits=args.Abits, wbits=args.Wbits, bn_fold=args.bn_fold, q_type=args.q_type)
         model.load_state_dict(checkpoint['state_dict'])
         best_acc = 0
     else:
         print('******Initializing model******')
-        model = nin_gc.Net(wbits=args.Wbits, abits=args.Abits)
-        #model = nin.Net(wbits=args.Wbits, abits=args.Abits)
+        model = nin_gc.Net(abits=args.Abits, wbits=args.Wbits, bn_fold=args.bn_fold, q_type=args.q_type)
+        #model = nin.Net(abits=args.Abits, wbits=args.Wbits, bn_fold=args.bn_fold, q_type=args.q_type)
         best_acc = 0
         for m in model.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.xavier_uniform_(m.weight.data)
-                m.bias.data.zero_()
+                if m.bias is not None:
+                    m.bias.data.zero_()
             elif isinstance(m, nn.Linear):
                 m.weight.data.normal_(0, 0.01)
                 m.bias.data.zero_()
     if args.resume:
         print('******Reume model******')
-        #pretrained_model = torch.load('models_save/nin_gc.pth')
+        #pretrained_model = torch.load('models_save/nin_gc_bn_fold.pth')
         pretrained_model = torch.load(args.resume)
         best_acc = pretrained_model['best_acc']
         model.load_state_dict(pretrained_model['state_dict'])
@@ -192,7 +203,7 @@ if __name__=='__main__':
         test()
         exit(0)
 
-    for epoch in range(1, args.epochs):
+    for epoch in range(args.start_epochs, args.end_epochs):
         adjust_learning_rate(optimizer, epoch)
         train(epoch)
         test()
