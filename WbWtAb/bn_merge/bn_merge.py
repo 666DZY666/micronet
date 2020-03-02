@@ -65,8 +65,7 @@ def fuse_module(m):
     c = None
     cn = None
     for name, child in children:
-        #if isinstance(child, nn.BatchNorm2d):
-        if isinstance(child, bn.BatchNorm2d_bin):
+        if isinstance(child, nn.BatchNorm2d):
             bc = fuse(c, child)
             m._modules[cn] = bc
             m._modules[name] = DummyModule()
