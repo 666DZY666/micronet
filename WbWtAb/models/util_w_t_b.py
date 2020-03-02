@@ -6,11 +6,13 @@ from torch.autograd import Function
 # ********************* 二值(+-1) ***********************
 class Binary(Function):
 
+    @staticmethod
     def forward(self, input):
         self.save_for_backward(input)
         output = torch.sign(input)
         return output
 
+    @staticmethod
     def backward(self, grad_output):
         input, = self.saved_tensors
         #*******************ste*********************
@@ -30,6 +32,7 @@ class Binary(Function):
 # ********************* 三值(+-1、0) ***********************
 class Ternary(Function):
 
+    @staticmethod
     def forward(self, input):
         # **************** channel级 - E(|W|) ****************
         E = torch.mean(torch.abs(input), (3, 2, 1), keepdim=True)
@@ -39,6 +42,7 @@ class Ternary(Function):
         output = torch.sign(torch.add(torch.sign(torch.add(input, threshold)),torch.sign(torch.add(input, -threshold))))
         return output, threshold
 
+    @staticmethod
     def backward(self, grad_output, grad_threshold):
         #*******************ste*********************
         grad_input = grad_output.clone()
@@ -47,18 +51,22 @@ class Ternary(Function):
 # ********************* A(特征)量化(二值) ***********************
 class activation_bin(nn.Module):
   def __init__(self, A):
-    super(activation_bin, self).__init__()
+    super().__init__()
     self.A = A
     self.relu = nn.ReLU(inplace=True)
 
-  def forward(self, a):
+  def binary(self, input):
+    output = Binary.apply(input)
+    return output
+
+  def forward(self, input):
     if self.A == 2:
-      a = Binary()(a)
+      output = self.binary(input)
       # ******************** A —— 1、0 *********************
       #a = torch.clamp(a, min=0)
     else:
-      a = self.relu(a)
-    return a
+      output = self.relu(input)
+    return output
 # ********************* W(模型参数)量化(三/二值) ***********************
 def meancenter_clampConvParams(w):
     mean = torch.mean(w, 1, keepdim=True)
@@ -67,39 +75,47 @@ def meancenter_clampConvParams(w):
     return w
 class weight_tnn_bin(nn.Module):
   def __init__(self, W):
-    super(weight_tnn_bin, self).__init__()
+    super().__init__()
     self.W = W
 
-  def forward(self, w):
+  def binary(self, input):
+    output = Binary.apply(input)
+    return output
+
+  def ternary(self, input):
+    output = Ternary.apply(input)
+    return output
+
+  def forward(self, input):
     if self.W == 2 or self.W == 3:
         # **************************************** W二值 *****************************************
         if self.W == 2:
-            w = meancenter_clampConvParams(w)# W中心化+截断
+            output = meancenter_clampConvParams(input)# W中心化+截断
             # **************** channel级 - E(|W|) ****************
-            E = torch.mean(torch.abs(w), (3, 2, 1), keepdim=True)
+            E = torch.mean(torch.abs(output), (3, 2, 1), keepdim=True)
             # **************** α(缩放因子) ****************
             alpha = E
             # ************** W —— +-1 **************
-            w = Binary()(w)
+            output = self.binary(output)
             # ************** W * α **************
-            w = w * alpha # 若不需要α(缩放因子)，注释掉即可
+            output = output * alpha # 若不需要α(缩放因子)，注释掉即可
             # **************************************** W三值 *****************************************
         elif self.W == 3:
-            w_fp = w.clone()
+            output_fp = input.clone()
             # ************** W —— +-1、0 **************
-            w, threshold = Ternary()(w)
+            output, threshold = self.ternary(input)
             # **************** α(缩放因子) ****************
-            a_abs = torch.abs(w_fp)
-            mask_le = a_abs.le(threshold)
-            mask_gt = a_abs.gt(threshold)
-            a_abs[mask_le] = 0
-            a_abs_th = a_abs.clone()
-            a_abs_th_sum = torch.sum(a_abs_th, (3, 2, 1), keepdim=True)
+            output_abs = torch.abs(output_fp)
+            mask_le = output_abs.le(threshold)
+            mask_gt = output_abs.gt(threshold)
+            output_abs[mask_le] = 0
+            output_abs_th = output_abs.clone()
+            output_abs_th_sum = torch.sum(output_abs_th, (3, 2, 1), keepdim=True)
             mask_gt_sum = torch.sum(mask_gt, (3, 2, 1), keepdim=True).float()
-            alpha = a_abs_th_sum / mask_gt_sum # α(缩放因子)
+            alpha = output_abs_th_sum / mask_gt_sum # α(缩放因子)
             # *************** W * α ****************
-            w = w * alpha # 若不需要α(缩放因子)，注释掉即可
-    return w
+            output = output * alpha # 若不需要α(缩放因子)，注释掉即可
+    return output
 
 # ********************* 量化卷积（同时量化A/W，并做卷积） ***********************
 class Conv2d_Q(nn.Conv2d):
@@ -116,7 +132,7 @@ class Conv2d_Q(nn.Conv2d):
         A=2,
         W=2
       ):
-        super(Conv2d_Q, self).__init__(
+        super().__init__(
             in_channels=in_channels,
             out_channels=out_channels,
             kernel_size=kernel_size,

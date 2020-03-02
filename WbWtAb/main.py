@@ -12,8 +12,6 @@ import torch.optim as optim
 from torch.autograd import Variable
 import torchvision
 import torchvision.transforms as transforms
-#import util_w_t_b
-#import util_w_t_gap
 from models import nin_gc
 #from models import nin
 #from models import nin_bn_conv
@@ -42,6 +40,15 @@ def save_state(model, best_acc):
     torch.save(state, 'models_save/nin_gc.pth')
     #torch.save(state, 'models_save/nin.pth')
     #torch.save(state, 'models_save/nin_gc_bn_gama.pth')
+
+# 训练lr调整
+def adjust_learning_rate(optimizer, epoch):
+    update_list = [80, 130, 180, 230, 280]    # Wb
+    #update_list = [70, 110, 150, 190, 230]    # Wt
+    if epoch in update_list:
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = param_group['lr'] * 0.1
+    return
 
 # 模型训练
 def train(epoch):
@@ -127,15 +134,6 @@ def test():
 
     # 显示测试集最优准确率
     print('Best Accuracy: {:.2f}%\n'.format(best_acc))
-    return
-
-# 训练lr调整
-def adjust_learning_rate(optimizer, epoch):
-    update_list = [80, 130, 180, 230, 280]    # Wb
-    #update_list = [70, 110, 150, 190, 230]    # Wt
-    if epoch in update_list:
-        for param_group in optimizer.param_groups:
-            param_group['lr'] = param_group['lr'] * 0.1
     return
 
 if __name__=='__main__':
