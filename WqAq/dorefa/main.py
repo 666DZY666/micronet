@@ -37,6 +37,13 @@ def save_state(model, best_acc):
     torch.save(state, 'models_save/nin_gc.pth')
     #torch.save(state, 'models_save/nin.pth')
 
+def adjust_learning_rate(optimizer, epoch):
+    update_list = [80, 130, 180, 230, 280]
+    if epoch in update_list:
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = param_group['lr'] * 0.1
+    return
+
 def train(epoch):
     model.train()
 
@@ -86,13 +93,6 @@ def test():
     print('Best Accuracy: {:.2f}%\n'.format(best_acc))
     return
 
-def adjust_learning_rate(optimizer, epoch):
-    update_list = [80, 130, 180, 230, 280]
-    if epoch in update_list:
-        for param_group in optimizer.param_groups:
-            param_group['lr'] = param_group['lr'] * 0.1
-    return
-
 if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--cpu', action='store_true',
@@ -120,7 +120,6 @@ if __name__=='__main__':
     # W/A — bits
     parser.add_argument('--Wbits', type=int, default=8)
     parser.add_argument('--Abits', type=int, default=8)
-    
     args = parser.parse_args()
     print('==> Options:',args)
 
@@ -151,14 +150,14 @@ if __name__=='__main__':
         print('******Refine model******')
         #checkpoint = torch.load('../prune/models_save/nin_refine.pth')
         checkpoint = torch.load(args.refine)
-        model = nin_gc.Net(cfg=checkpoint['cfg'], wbits=args.Wbits, abits=args.Abits)
-        #model = nin.Net(cfg=checkpoint['cfg'], wbits=args.Wbits, abits=args.Abits)
+        model = nin_gc.Net(cfg=checkpoint['cfg'], abits=args.Abits, wbits=args.Wbits)
+        #model = nin.Net(cfg=checkpoint['cfg'], abits=args.Abits, wbits=args.Wbits)
         model.load_state_dict(checkpoint['state_dict'])
         best_acc = 0
     else:
         print('******Initializing model******')
-        model = nin_gc.Net(wbits=args.Wbits, abits=args.Abits)
-        #model = nin.Net(wbits=args.Wbits, abits=args.Abits)
+        model = nin_gc.Net(abits=args.Abits, wbits=args.Wbits)
+        #model = nin.Net(abits=args.Abits, wbits=args.Wbits)
         best_acc = 0
         for m in model.modules():
             if isinstance(m, nn.Conv2d):
