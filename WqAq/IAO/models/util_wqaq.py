@@ -16,13 +16,13 @@ class RangeTracker(nn.Module):
         raise NotImplementedError
 
     @torch.no_grad()
-    def forward(self, inputs):
+    def forward(self, input):
         if self.q_level == 'L':    # A,min_max_shape=(1, 1, 1, 1),layer级
-            min_val = torch.min(inputs)
-            max_val = torch.max(inputs)
+            min_val = torch.min(input)
+            max_val = torch.max(input)
         elif self.q_level == 'C':  # W,min_max_shape=(N, 1, 1, 1),channel级
-            min_val = torch.min(torch.min(torch.min(inputs, 3, keepdim=True)[0], 2, keepdim=True)[0], 1, keepdim=True)[0]
-            max_val = torch.max(torch.max(torch.max(inputs, 3, keepdim=True)[0], 2, keepdim=True)[0], 1, keepdim=True)[0]
+            min_val = torch.min(torch.min(torch.min(input, 3, keepdim=True)[0], 2, keepdim=True)[0], 1, keepdim=True)[0]
+            max_val = torch.max(torch.max(torch.max(input, 3, keepdim=True)[0], 2, keepdim=True)[0], 1, keepdim=True)[0]
             
         self.update_range(min_val, max_val)
 class GlobalRangeTracker(RangeTracker):  # W,min_max_shape=(N, 1, 1, 1),channel级,取本次和之前相比的min_max —— (N, C, W, H)
@@ -83,38 +83,38 @@ class Quantizer(nn.Module):
         raise NotImplementedError
 
     # 量化
-    def quantize(self, inputs):
-        outputs = inputs * self.scale - self.zero_point
-        return outputs
+    def quantize(self, input):
+        output = input * self.scale - self.zero_point
+        return output
 
-    def round(self, inputs):
-        outputs = Round.apply(inputs)
-        return outputs
+    def round(self, input):
+        output = Round.apply(input)
+        return output
 
     # 截断
-    def clamp(self, inputs):
-        outputs = torch.clamp(inputs, self.min_val, self.max_val)
-        return outputs
+    def clamp(self, input):
+        output = torch.clamp(input, self.min_val, self.max_val)
+        return output
 
     # 反量化
-    def dequantize(self, inputs):
-        outputs = (inputs + self.zero_point) / self.scale
-        return outputs
+    def dequantize(self, input):
+        output = (input + self.zero_point) / self.scale
+        return output
 
-    def forward(self, inputs):
+    def forward(self, input):
         if self.bits == 32:
-            outputs = inputs
+            output = input
         elif self.bits == 1:
             print('！Binary quantization is not supported ！')
             assert self.bits != 1
         else:
-            self.range_tracker(inputs)
+            self.range_tracker(input)
             self.update_params()
-            outputs = self.quantize(inputs)   # 量化
-            outputs = self.round(outputs)
-            outputs = self.clamp(outputs)     # 截断
-            outputs = self.dequantize(outputs)# 反量化
-        return outputs
+            output = self.quantize(input)   # 量化
+            output = self.round(output)
+            output = self.clamp(output)     # 截断
+            output = self.dequantize(output)# 反量化
+        return output
 class SignedQuantizer(Quantizer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -185,7 +185,7 @@ class Conv2d_Q(nn.Conv2d):
         q_input = input
         q_weight = self.weight_quantizer(self.weight) 
         # 量化卷积
-        outputs = F.conv2d(
+        output = F.conv2d(
             input=q_input,
             weight=q_weight,
             bias=self.bias,
@@ -194,7 +194,7 @@ class Conv2d_Q(nn.Conv2d):
             dilation=self.dilation,
             groups=self.groups
         )
-        return outputs
+        return output
 
 def reshape_to_activation(input):
   return input.reshape(1, -1, 1, 1)
@@ -221,7 +221,7 @@ class BNFold_Conv2d_Q(Conv2d_Q):
         q_type=1,
         first_layer=0,
     ):
-        super(BNFold_Conv2d_Q, self).__init__(
+        super().__init__(
             in_channels=in_channels,
             out_channels=out_channels,
             kernel_size=kernel_size,
@@ -254,7 +254,7 @@ class BNFold_Conv2d_Q(Conv2d_Q):
         # 训练态
         if self.training:
             # 先做普通卷积得到A，以取得BN参数
-            outputs = F.conv2d(
+            output = F.conv2d(
                 input=input,
                 weight=self.weight,
                 bias=self.bias,
@@ -265,8 +265,8 @@ class BNFold_Conv2d_Q(Conv2d_Q):
             )
             # 更新BN统计参数（batch和running）
             dims = [dim for dim in range(4) if dim != 1]
-            batch_mean = torch.mean(outputs, dim=dims)
-            batch_var = torch.var(outputs, dim=dims)
+            batch_mean = torch.mean(output, dim=dims)
+            batch_var = torch.var(output, dim=dims)
             with torch.no_grad():
                 if self.first_bn == 0:
                     self.first_bn.add_(1)
