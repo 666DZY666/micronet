@@ -112,7 +112,7 @@ class Conv2d_Q(nn.Conv2d):
             groups=self.groups
         )
     return output
-
+# ********************* 量化全连接（同时量化A/W，并做全连接） ***********************
 class Linear_Q(nn.Linear):
   def __init__(self, in_features, out_features, bias=True, a_bits=2, w_bits=2):
     super().__init__(in_features=in_features, out_features=out_features, bias=bias)
