@@ -19,16 +19,14 @@ def channel_shuffle(x, groups):
 class Tnn_Bin_Conv2d(nn.Module):
     # 参数：groups-卷积分组数、channel_shuffle-通道混合标志、shuffle_groups-通道混合数（本层需与上一层分组数保持一致)、last_relu-最后一层卷积输入的激活
     def __init__(self, input_channels, output_channels,
-            kernel_size=-1, stride=-1, padding=-1, dropout=0, groups=1, channel_shuffle=0, shuffle_groups=1, last_relu=0, A=2, W=2):
+            kernel_size=-1, stride=-1, padding=-1, groups=1, channel_shuffle=0, shuffle_groups=1, last_relu=0, A=2, W=2):
         super(Tnn_Bin_Conv2d, self).__init__()
         self.A = A
         self.W = W
-        self.dropout_ratio = dropout
         self.channel_shuffle_flag = channel_shuffle
         self.shuffle_groups = shuffle_groups
         self.last_relu = last_relu
-        if self.dropout_ratio != 0:
-            self.dropout = nn.Dropout(dropout)
+
         # ********************* 量化(三/二值)卷积 *********************
         self.tnn_bin_conv = Conv2d_Q(input_channels, output_channels,
                 kernel_size=kernel_size, stride=stride, padding=padding, groups=groups, A=A, W=W)
@@ -38,8 +36,6 @@ class Tnn_Bin_Conv2d(nn.Module):
     def forward(self, x):
         if self.channel_shuffle_flag:
             x = channel_shuffle(x, groups=self.shuffle_groups)
-        if self.dropout_ratio != 0:
-            x = self.dropout(x)
         x = self.tnn_bin_conv(x)
         x = self.bn(x)
         if self.last_relu:
@@ -74,5 +70,5 @@ class Net(nn.Module):
     # 模型运行
     def forward(self, x):
         x = self.tnn_bin(x)
-        x = x.view(x.size(0), 10)
+        x = x.view(x.size(0), -1)
         return x

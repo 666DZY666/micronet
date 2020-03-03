@@ -39,7 +39,6 @@ def save_state(model, best_acc):
                     state['state_dict'].pop(key)
     torch.save(state, 'models_save/nin_gc.pth')
     #torch.save(state, 'models_save/nin.pth')
-    #torch.save(state, 'models_save/nin_gc_bn_gama.pth')
 
 # 训练lr调整
 def adjust_learning_rate(optimizer, epoch):
@@ -55,13 +54,6 @@ def train(epoch):
     model.train()
 
     for batch_idx, (data, target) in enumerate(trainloader):
-
-        '''
-        # W量化（三值或二值）
-        if args.W == 2 or args.W == 3:
-            Tnn_Bin_Op.tnn_bin()
-        '''
-
         # 前向传播
         if not args.cpu:
             data, target = data.cuda(), target.cuda()
@@ -72,14 +64,6 @@ def train(epoch):
         # 反向传播
         optimizer.zero_grad()
         loss.backward() # 求梯度
-
-        '''
-        if args.W == 2 or args.W == 3:
-            #Tnn_Bin_Op.restore() # 恢复浮点W
-            if args.W == 2:
-                Tnn_Bin_Op.updateBinaryGradWeight()# α（缩放因子） ——> grad
-        '''
-        
         optimizer.step() # 参数更新
 
         # 显示训练集loss(/100个batch)
@@ -97,12 +81,6 @@ def test():
     test_loss = 0
     correct = 0
 
-    '''
-    # W量化（三值或二值）
-    if args.W == 2 or args.W == 3:
-        Tnn_Bin_Op.tnn_bin()
-    '''
-
     for data, target in testloader:
         if not args.cpu:
             data, target = data.cuda(), target.cuda()
@@ -112,12 +90,6 @@ def test():
         test_loss += criterion(output, target).data.item()
         pred = output.data.max(1, keepdim=True)[1]
         correct += pred.eq(target.data.view_as(pred)).cpu().sum()
-    
-    '''
-    if args.W == 2 or args.W == 3:
-        Tnn_Bin_Op.restore()# 恢复浮点W
-    '''
-    
     # 测试准确率
     acc = 100. * float(correct) / len(testloader.dataset)
 
@@ -212,14 +184,14 @@ if __name__=='__main__':
         #checkpoint = torch.load('../prune/models_save/nin_refine.pth')
         checkpoint = torch.load(args.refine)
         model = nin_gc.Net(cfg=checkpoint['cfg'], A=args.A, W=args.W)
-        #model = nin.Net(cfg=checkpoint['cfg'], A=args.A)
+        #model = nin.Net(cfg=checkpoint['cfg'], A=args.A, W=args.W)
         model.load_state_dict(checkpoint['state_dict'])
         best_acc = 0
     else:
         print('******Initializing model******')
         # ******************** 在model的量化卷积中同时量化A(特征)和W(模型参数) ************************
         model = nin_gc.Net(A=args.A, W=args.W)
-        #model = nin.Net(A=args.A)
+        #model = nin.Net(A=args.A, W=args.W)
         #model = nin_bn_conv.Net()
         best_acc = 0
         for m in model.modules():
@@ -254,13 +226,6 @@ if __name__=='__main__':
     criterion = nn.CrossEntropyLoss()
     # 优化器
     optimizer = optim.Adam(params, lr=base_lr, weight_decay=args.wd)
-    
-    '''
-    # 量化（三值或二值）实例化
-    if args.W == 2 or args.W == 3:
-        Tnn_Bin_Op = util_w_t_b.Tnn_Bin_Op(model, W=args.W)
-        #Tnn_Bin_Op = util_w_t_gap.Tnn_Bin_Op(model)
-    '''
 
     # 测试模型
     if args.evaluate:

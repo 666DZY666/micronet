@@ -5,7 +5,7 @@ from .util_wqaq import Conv2d_Q
 
 class DorefaConv2d(nn.Module):
     def __init__(self, input_channels, output_channels,
-            kernel_size=-1, stride=-1, padding=-1, last_relu=0, groups=1, abits=8, wbits=8, first_layer=0):
+            kernel_size=-1, stride=-1, padding=-1, groups=1, last_relu=0, abits=8, wbits=8, first_layer=0):
         super(DorefaConv2d, self).__init__()
         self.last_relu = last_relu
         self.first_layer = first_layer
