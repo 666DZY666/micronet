@@ -79,6 +79,7 @@ def test():
     global best_acc
     model.eval()
     test_loss = 0
+    average_test_loss = 0
     correct = 0
 
     for data, target in testloader:
@@ -97,11 +98,11 @@ def test():
     if acc > best_acc:
         best_acc = acc
         save_state(model, best_acc)
-    test_loss /= len(testloader.dataset)
+    average_test_loss = test_loss / (len(testloader.dataset) / args.eval_batch_size)
 
     # 显示测试集损失、准确率
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)'.format(
-        test_loss * 256., correct, len(testloader.dataset),
+        average_test_loss, correct, len(testloader.dataset),
         100. * float(correct) / len(testloader.dataset)))
 
     # 显示测试集最优准确率
