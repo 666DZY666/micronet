@@ -17,7 +17,7 @@ def channel_shuffle(x, groups):
 
 # *********************量化(三值、二值)卷积*********************
 class Tnn_Bin_Conv2d(nn.Module):
-    # 参数：groups-卷积分组数、channel_shuffle-通道混合标志、shuffle_groups-通道混合数（本层需与上一层分组数保持一致）、last|activation_mp|activation_nor|last_bin —— 模型结构调整标志位
+    # 参数：groups-卷积分组数、channel_shuffle-通道混合标志、shuffle_groups-通道混合数（本层需与上一层分组数保持一致）、last_bin-尾层卷积输入二值
     def __init__(self, input_channels, output_channels,
             kernel_size=-1, stride=-1, padding=-1, groups=1, channel_shuffle=0, shuffle_groups=1, last_bin=0):
         super(Tnn_Bin_Conv2d, self).__init__()

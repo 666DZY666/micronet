@@ -3,7 +3,7 @@ from util_wt_bab import Conv2d_Q
 
 # *********************量化(三值、二值)卷积*********************
 class Tnn_Bin_Conv2d(nn.Module):
-    # 参数：last_relu-最后一层卷积输入的激活
+    # 参数：last_relu-尾层卷积输入激活
     def __init__(self, input_channels, output_channels,
             kernel_size=-1, stride=-1, padding=-1, groups=1, last_relu=0, A=2, W=2):
         super(Tnn_Bin_Conv2d, self).__init__()

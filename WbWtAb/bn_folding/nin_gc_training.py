@@ -17,7 +17,7 @@ def channel_shuffle(x, groups):
 
 # ********************* 量化(三/二值)模块 ************************
 class Tnn_Bin_Conv2d(nn.Module):
-    # 参数：groups-卷积分组数、channel_shuffle-通道混合标志、shuffle_groups-通道混合数（本层需与上一层分组数保持一致)、last_relu-最后一层卷积输入的激活
+    # 参数：groups-卷积分组数、channel_shuffle-通道混合标志、shuffle_groups-通道混合数（本层需与上一层分组数保持一致)、last_relu｜last_bin-尾层卷积输入是否二值(二值:last_relu=0,last_bin=1)
     def __init__(self, input_channels, output_channels,
             kernel_size=-1, stride=-1, padding=-1, groups=1, channel_shuffle=0, shuffle_groups=1, A=2, W=2, last_relu=0, last_bin=0):
         super(Tnn_Bin_Conv2d, self).__init__()
