@@ -122,7 +122,7 @@ if __name__=='__main__':
 
     criterion = nn.CrossEntropyLoss()
     
-    print("********* bn_folding_test_model start *********")
+    print("********* bn_folding_model_test start *********")
     # 融合前后模型对比测试,输出acc和FPS,由结果可知:BN融合成功,实现无损加速
     for epoch in range(1, args.epochs):
         test_quan_model()            # 量化模型测试

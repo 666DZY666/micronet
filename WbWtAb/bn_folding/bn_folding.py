@@ -128,11 +128,11 @@ if __name__=='__main__':
     # ********************* BN融合 **********************
     bn_counter = 0
     model_1.load_state_dict(torch.load('models_save/quan_model_para.pth'))
-    bn_folding_model = model_bn_folding(model_1) #  模型BN融合
-    torch.save(bn_folding_model, 'models_save/quan_bn_folding_model.pth')                   # 保存量化融合模型(结构+参数)
-    torch.save(bn_folding_model.state_dict(), 'models_save/quan_bn_folding_model_para.pth') # 保存量化融合模型参数
-    model_array = np.array(bn_folding_model)
-    model_para_array = np.array(bn_folding_model.state_dict())
+    quan_bn_folding_model = model_bn_folding(model_1) #  模型BN融合
+    torch.save(quan_bn_folding_model, 'models_save/quan_bn_folding_model.pth')                   # 保存量化融合模型(结构+参数)
+    torch.save(quan_bn_folding_model.state_dict(), 'models_save/quan_bn_folding_model_para.pth') # 保存量化融合模型参数
+    model_array = np.array(quan_bn_folding_model)
+    model_para_array = np.array(quan_bn_folding_model.state_dict())
     np.savetxt('models_save/quan_bn_folding_model.txt', [model_array], fmt = '%s', delimiter=',')
     np.savetxt('models_save/quan_bn_folding_model_para.txt', [model_para_array], fmt = '%s', delimiter=',')
     print("************* BN_folding-完成 **************")
@@ -140,7 +140,6 @@ if __name__=='__main__':
     # *********************** 转换预测试(dataset测试在bn_folding_test_model.py中进行) *************************
     quan_model = nin_gc_inference.Net()
     quan_model.load_state_dict(torch.load('models_save/quan_model_para.pth'))    # 加载量化模型
-    quan_bn_folding_model = torch.load('models_save/quan_bn_folding_model.pth')  # 加载量化融合模型
     quan_model.eval()
     quan_bn_folding_model.eval()
     softmax = nn.Softmax(dim=1)
@@ -149,12 +148,12 @@ if __name__=='__main__':
     print("\r\n************* 转换预测试 **************")
     for i in range(0, epochs):
         p = torch.rand([1, 3, 32, 32])
-        out = softmax(quan_model(p))
-        out_bn_folding = softmax(quan_bn_folding_model(p))
+        out = softmax(quan_model(p))                       # 量化模型测试
+        out_bn_folding = softmax(quan_bn_folding_model(p)) # 量化融合模型测试
         #print(out_bn_folding)
         if(out.argmax() == out_bn_folding.argmax()):
             f += 1
     print('The last result:')
-    print('ori_model_output:', out)
-    print('bn_folding_model_output:', out_bn_folding)
-    print("folding_success_rate: {:.2f}%".format((f / epochs) * 100))
+    print('quan_model_output:', out)
+    print('quan_bn_folding_model_output:', out_bn_folding)
+    print("bn_folding_success_rate: {:.2f}%".format((f / epochs) * 100))
