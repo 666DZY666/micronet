@@ -17,7 +17,7 @@ class QuanConv2d(nn.Module):
         else:
             self.q_conv = Conv2d_Q(input_channels, output_channels,
                     kernel_size=kernel_size, stride=stride, padding=padding, groups=groups, a_bits=abits, w_bits=wbits, q_type=q_type, first_layer=first_layer)
-            self.bn = nn.BatchNorm2d(output_channels)
+            self.bn = nn.BatchNorm2d(output_channels, momentum=0.01) # 考虑量化带来的抖动影响,对momentum进行调整(0.1 ——> 0.01),削弱batch统计参数占比，一定程度抑制抖动。经实验量化训练效果更好,acc提升1%左右
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):

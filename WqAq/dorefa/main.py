@@ -13,7 +13,7 @@ from torch.autograd import Variable
 import torchvision
 import torchvision.transforms as transforms
 from models import nin_gc
-#from models import nin
+from models import nin
 import os
 
 def setup_seed(seed):
@@ -34,8 +34,10 @@ def save_state(model, best_acc):
         if 'module' in key:
             state['state_dict'][key.replace('module.', '')] = \
                     state['state_dict'].pop(key)
-    torch.save(state, 'models_save/nin_gc.pth')
-    #torch.save(state, 'models_save/nin.pth')
+    if args.model_type == 0:
+        torch.save(state, 'models_save/nin.pth')
+    else:
+        torch.save(state, 'models_save/nin_gc.pth')
 
 def adjust_learning_rate(optimizer, epoch):
     update_list = [80, 130, 180, 230, 280]
@@ -116,11 +118,16 @@ if __name__=='__main__':
     parser.add_argument('--train_batch_size', type=int, default=50)
     parser.add_argument('--eval_batch_size', type=int, default=256)
     parser.add_argument('--num_workers', type=int, default=2)
-    parser.add_argument('--epochs', type=int, default=300, metavar='N',
-            help='number of epochs to train')
+    parser.add_argument('--start_epochs', type=int, default=1, metavar='N',
+            help='number of epochs to train_start')
+    parser.add_argument('--end_epochs', type=int, default=300, metavar='N',
+            help='number of epochs to train_end')
     # W/A — bits
     parser.add_argument('--Wbits', type=int, default=8)
     parser.add_argument('--Abits', type=int, default=8)
+    # 模型结构选择
+    parser.add_argument('--model_type', type=int, default=1,
+            help='model type:0-nin,1-nin_gc')
     args = parser.parse_args()
     print('==> Options:',args)
 
@@ -151,14 +158,18 @@ if __name__=='__main__':
         print('******Refine model******')
         #checkpoint = torch.load('../prune/models_save/nin_refine.pth')
         checkpoint = torch.load(args.refine)
-        model = nin_gc.Net(cfg=checkpoint['cfg'], abits=args.Abits, wbits=args.Wbits)
-        #model = nin.Net(cfg=checkpoint['cfg'], abits=args.Abits, wbits=args.Wbits)
+        if args.model_type == 0:
+            model = nin.Net(cfg=checkpoint['cfg'], abits=args.Abits, wbits=args.Wbits)
+        else:
+            model = nin_gc.Net(cfg=checkpoint['cfg'], abits=args.Abits, wbits=args.Wbits)
         model.load_state_dict(checkpoint['state_dict'])
         best_acc = 0
     else:
         print('******Initializing model******')
-        model = nin_gc.Net(abits=args.Abits, wbits=args.Wbits)
-        #model = nin.Net(abits=args.Abits, wbits=args.Wbits)
+        if args.model_type == 0:
+            model = nin.Net(abits=args.Abits, wbits=args.Wbits)
+        else:
+            model = nin_gc.Net(abits=args.Abits, wbits=args.Wbits)
         best_acc = 0
         for m in model.modules():
             if isinstance(m, nn.Conv2d):
@@ -192,7 +203,7 @@ if __name__=='__main__':
         test()
         exit(0)
 
-    for epoch in range(1, args.epochs):
+    for epoch in range(args.start_epochs, args.end_epochs):
         adjust_learning_rate(optimizer, epoch)
         train(epoch)
         test()

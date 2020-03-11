@@ -63,12 +63,12 @@ class AveragedRangeTracker(RangeTracker):  # A,min_max_shape=(1, 1, 1, 1),layer�
 class Round(Function):
 
     @staticmethod
-    def forward(ctx, input):
+    def forward(self, input):
         output = torch.round(input)
         return output
 
     @staticmethod
-    def backward(ctx, grad_output):
+    def backward(self, grad_output):
         grad_input = grad_output.clone()
         return grad_input
 class Quantizer(nn.Module):
@@ -215,7 +215,7 @@ class BNFold_Conv2d_Q(Conv2d_Q):
         groups=1,
         bias=False,
         eps=1e-5,
-        momentum=0.1,
+        momentum=0.01, # 考虑量化带来的抖动影响,对momentum进行调整(0.1 ——> 0.01),削弱batch统计参数占比，一定程度抑制抖动。经实验量化训练效果更好,acc提升1%左右
         a_bits=8,
         w_bits=8,
         q_type=1,

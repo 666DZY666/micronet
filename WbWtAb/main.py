@@ -13,7 +13,7 @@ from torch.autograd import Variable
 import torchvision
 import torchvision.transforms as transforms
 from models import nin_gc
-#from models import nin
+from models import nin
 #from models import nin_bn_conv
 import os
 
@@ -37,13 +37,14 @@ def save_state(model, best_acc):
         if 'module' in key:
             state['state_dict'][key.replace('module.', '')] = \
                     state['state_dict'].pop(key)
-    torch.save(state, 'models_save/nin_gc.pth')
-    #torch.save(state, 'models_save/nin.pth')
+    if args.model_type == 0:
+        torch.save(state, 'models_save/nin.pth')
+    else:
+        torch.save(state, 'models_save/nin_gc.pth')
 
 # 训练lr调整
 def adjust_learning_rate(optimizer, epoch):
-    update_list = [80, 130, 180, 230, 280]    # Wb
-    #update_list = [70, 110, 150, 190, 230]    # Wt
+    update_list = [80, 130, 180, 230, 280]
     if epoch in update_list:
         for param_group in optimizer.param_groups:
             param_group['lr'] = param_group['lr'] * 0.1
@@ -140,14 +141,18 @@ if __name__=='__main__':
     parser.add_argument('--eval_batch_size', type=int, default=256)
     parser.add_argument('--num_workers', type=int, default=2)
     # epochs
-    parser.add_argument('--epochs', type=int, default=300, metavar='N',
-            help='number of epochs to train')
+    parser.add_argument('--start_epochs', type=int, default=1, metavar='N',
+            help='number of epochs to train_start')
+    parser.add_argument('--end_epochs', type=int, default=300, metavar='N',
+            help='number of epochs to train_end')
     # W/A — FP/三值/二值
     parser.add_argument('--W', type=int, default=2,
             help='Wb:2, Wt:3, Wfp:32')
     parser.add_argument('--A', type=int, default=2,
             help='Ab:2, Afp:32')
-
+    # 模型结构选择
+    parser.add_argument('--model_type', type=int, default=1,
+            help='model type:0-nin,1-nin_gc')
     args = parser.parse_args()
     print('==> Options:',args)
 
@@ -184,15 +189,19 @@ if __name__=='__main__':
         print('******Refine model******')
         #checkpoint = torch.load('../prune/models_save/nin_refine.pth')
         checkpoint = torch.load(args.refine)
-        model = nin_gc.Net(cfg=checkpoint['cfg'], A=args.A, W=args.W)
-        #model = nin.Net(cfg=checkpoint['cfg'], A=args.A, W=args.W)
+        if args.model_type == 0:
+            model = nin.Net(cfg=checkpoint['cfg'], A=args.A, W=args.W)
+        else:
+            model = nin_gc.Net(cfg=checkpoint['cfg'], A=args.A, W=args.W)
         model.load_state_dict(checkpoint['state_dict'])
         best_acc = 0
     else:
         print('******Initializing model******')
         # ******************** 在model的量化卷积中同时量化A(特征)和W(模型参数) ************************
-        model = nin_gc.Net(A=args.A, W=args.W)
-        #model = nin.Net(A=args.A, W=args.W)
+        if args.model_type == 0:
+            model = nin.Net(A=args.A, W=args.W)
+        else:
+            model = nin_gc.Net(A=args.A, W=args.W)
         #model = nin_bn_conv.Net()
         best_acc = 0
         for m in model.modules():
@@ -234,7 +243,7 @@ if __name__=='__main__':
         exit(0)
 
     # 训练模型
-    for epoch in range(1, args.epochs):
+    for epoch in range(args.start_epochs, args.end_epochs):
         adjust_learning_rate(optimizer, epoch)
         train(epoch)
         test()
