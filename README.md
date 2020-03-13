@@ -64,7 +64,7 @@
 --W --A, 权重W和特征A量化取值
 
 ```
-cd WbWtAb
+cd quantization/WbWtAb
 ```
 
 - WbAb
@@ -96,8 +96,10 @@ python main.py --W 3 --A 32
 --Wbits --Abits, 权重W和特征A量化位数
 
 ```
-cd WqAq
+cd quantization/WqAq 或 cd quantization/IAO
 ```
+
+##### dorefa
 
 - W16A16
 
@@ -111,12 +113,6 @@ python main.py --Wbits 16 --Abits 16
 python main.py --Wbits 8 --Abits 8
 ```
 
-- W4A8
-
-```
-python main.py --Wbits 4 --Abits 8
-```
-
 - W4A4
 
 ```
@@ -125,12 +121,32 @@ python main.py --Wbits 4 --Abits 4
 
 - 其他bits情况类比
 
+##### IAO
+
+*量化位数选择同上*
+
+--q_type, 量化类型; --bn_fold, 量化中bn融合标志
+
+- 对称量化, bn不融合
+
+```
+python main.py --q_type 0 --bn_fold 0
+```
+
+- 非对称量化, bn融合
+
+```
+python main.py --q_type 1 --bn_fold 1
+```
+
+- 其他组合情况类比
+  
 ### 剪枝
 
 *稀疏训练  —>  剪枝  —>  微调*
 
 ```
-cd prune
+cd pruning
 ```
 
 #### 正常训练
@@ -198,7 +214,7 @@ python main.py --refine models_save/nin_prune.pth
 #### 剪枝 —> 量化（16/8/4/2 bits）（剪枝率偏大、量化率偏小）
 
 ```
-cd WqAq
+cd quantization/WqAq 或 cd quantization/IAO
 ```
 
 ##### W8A8
@@ -206,13 +222,13 @@ cd WqAq
 - nin(正常卷积结构)
 
 ```
-python main.py --Wbits 8 --Abits 8 --refine ../prune/models_save/nin_refine.pth
+python main.py --Wbits 8 --Abits 8 --refine ../../../prune/models_save/nin_refine.pth
 ```
 
 - nin_gc(含分组卷积结构)
 
 ```
-python main.py --Wbits 8 --Abits 8 --refine ../prune/models_save/nin_gc_refine.pth
+python main.py --Wbits 8 --Abits 8 --refine ../../../prune/models_save/nin_gc_refine.pth
 ```
 
 ##### 其他bits情况类比
@@ -220,7 +236,7 @@ python main.py --Wbits 8 --Abits 8 --refine ../prune/models_save/nin_gc_refine.p
 #### 剪枝 —> 量化（三/二值）（剪枝率偏小、量化率偏大）
 
 ```
-cd WbWtAb
+cd quantization/WbWtAb
 ```
 
 ##### WbAb
@@ -228,13 +244,13 @@ cd WbWtAb
 - nin(正常卷积结构)
 
 ```
-python main.py --W 2 --A 2 --refine ../prune/models_save/nin_refine.pth
+python main.py --W 2 --A 2 --refine ../../prune/models_save/nin_refine.pth
 ```
 
 - nin_gc(含分组卷积结构)
 
 ```
-python main.py --W 2 --A 2 --refine ../prune/models_save/nin_gc_refine.pth
+python main.py --W 2 --A 2 --refine ../../prune/models_save/nin_gc_refine.pth
 ```
 
 ##### 其他取值情况类比
@@ -242,34 +258,36 @@ python main.py --W 2 --A 2 --refine ../prune/models_save/nin_gc_refine.pth
 ### BN融合
 
 ```
-cd WbWtAb/bn_merge
+cd quantization/WbWtAb/bn_folding
 ```
 
---W 权重W量化取值(据训练时W量化(FP/三值/二值)情况而定)
+--W 权重W量化取值(据量化训练时W量化取值(FP32/三值/二值)情况对应选择)
 
 #### 融合并保存融合前后model
 
+- Wb
+  
 ```
-python bn_merge.py --W 2
+python bn_folding.py --W 2
 ```
 
-或
+- Wt
 
 ```
-python bn_merge.py --W 3
+python bn_folding.py --W 3
 ```
 
 #### 融合前后model对比测试
 
 ```
-python bn_merge_test_model.py
+python bn_folding_model_test.py
 ```
 
 ### 设备选取
 
 *现支持cpu、gpu(单卡、多卡)*
 
---cpu 使用cpu，--gpu_id 选择gpu
+--cpu 使用cpu，--gpu_id 使用并选择gpu
 
 - cpu
 
