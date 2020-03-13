@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .util_wqaq import Conv2d_Q
+from util_wqaq import Conv2d_Q
 
 def channel_shuffle(x, groups):
     """shuffle channels of a 4-D Tensor"""

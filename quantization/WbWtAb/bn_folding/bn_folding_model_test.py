@@ -80,7 +80,7 @@ if __name__=='__main__':
             help='set if only CPU is available')
     parser.add_argument('--gpu_id', action='store', default='',
             help='gpu_id')
-    parser.add_argument('--data', action='store', default='../../data',
+    parser.add_argument('--data', action='store', default='../../../data',
             help='dataset path')
     parser.add_argument('--eval_batch_size', type=int, default=256)
     parser.add_argument('--num_workers', type=int, default=2)
