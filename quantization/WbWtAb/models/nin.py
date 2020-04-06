@@ -1,5 +1,5 @@
 import torch.nn as nn
-from util_wt_bab import Conv2d_Q
+from .util_wt_bab import Conv2d_Q
 
 # *********************量化(三值、二值)卷积*********************
 class Tnn_Bin_Conv2d(nn.Module):

@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from util_wqaq import Conv2d_Q
+from .util_wqaq import Conv2d_Q
 
 class DorefaConv2d(nn.Module):
     def __init__(self, input_channels, output_channels,

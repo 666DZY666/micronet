@@ -4,7 +4,8 @@ import torch.nn.functional as F
 from torch.autograd import Function
 
 # ********************* 二值(+-1) ***********************
-class Binary(Function):
+# A
+class Binary_a(Function):
 
     @staticmethod
     def forward(self, input):
@@ -28,6 +29,19 @@ class Binary(Function):
         #print(grad)
         grad_input = grad_output * grad
         '''
+        return grad_input
+# W
+class Binary_w(Function):
+
+    @staticmethod
+    def forward(self, input):
+        output = torch.sign(input)
+        return output
+
+    @staticmethod
+    def backward(self, grad_output):
+        #*******************ste*********************
+        grad_input = grad_output.clone()
         return grad_input
 # ********************* 三值(+-1、0) ***********************
 class Ternary(Function):
@@ -56,7 +70,7 @@ class activation_bin(nn.Module):
     self.relu = nn.ReLU(inplace=True)
 
   def binary(self, input):
-    output = Binary.apply(input)
+    output = Binary_a.apply(input)
     return output
 
   def forward(self, input):
@@ -69,9 +83,9 @@ class activation_bin(nn.Module):
     return output
 # ********************* W(模型参数)量化(三/二值) ***********************
 def meancenter_clampConvParams(w):
-    mean = torch.mean(w, 1, keepdim=True)
-    w = torch.sub(w, mean)# W中心化
-    w = torch.clamp(w, min=-1.0, max=1.0)# W截断
+    mean = w.data.mean(1, keepdim=True)
+    w.data.sub(mean) # W中心化(C方向)
+    w.data.clamp(-1.0, 1.0) # W截断
     return w
 class weight_tnn_bin(nn.Module):
   def __init__(self, W):
@@ -79,7 +93,7 @@ class weight_tnn_bin(nn.Module):
     self.W = W
 
   def binary(self, input):
-    output = Binary.apply(input)
+    output = Binary_w.apply(input)
     return output
 
   def ternary(self, input):
@@ -90,7 +104,7 @@ class weight_tnn_bin(nn.Module):
     if self.W == 2 or self.W == 3:
         # **************************************** W二值 *****************************************
         if self.W == 2:
-            output = meancenter_clampConvParams(input)# W中心化+截断
+            output = meancenter_clampConvParams(input) # W中心化+截断
             # **************** channel级 - E(|W|) ****************
             E = torch.mean(torch.abs(output), (3, 2, 1), keepdim=True)
             # **************** α(缩放因子) ****************
