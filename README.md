@@ -76,7 +76,7 @@
 --W --A, 权重W和特征A量化取值
 
 ```
-cd quantization/WbWtAb
+cd compression/quantization/WbWtAb
 ```
 
 - WbAb
@@ -108,7 +108,7 @@ python main.py --W 3 --A 32
 --Wbits --Abits, 权重W和特征A量化位数
 
 ```
-cd quantization/WqAq 或 cd quantization/IAO
+cd compression/quantization/WqAq/dorefa 或 cd compression/quantization/WqAq/IAO
 ```
 
 ###### dorefa
@@ -158,7 +158,7 @@ python main.py --q_type 1 --bn_fold 1
 *稀疏训练  —>  剪枝  —>  微调*
 
 ```
-cd pruning
+cd compression/pruning
 ```
 
 ##### 正常训练
@@ -226,7 +226,7 @@ python main.py --refine models_save/nin_prune.pth
 ##### 剪枝 —> 量化（16/8/4/2 bits）（剪枝率偏大、量化率偏小）
 
 ```
-cd quantization/WqAq 或 cd quantization/IAO
+cd compression/quantization/WqAq/dorefa 或 cd compression/quantization/WqAq/IAO
 ```
 
 ###### W8A8
@@ -248,7 +248,7 @@ python main.py --Wbits 8 --Abits 8 --refine ../../../prune/models_save/nin_gc_re
 ##### 剪枝 —> 量化（三/二值）（剪枝率偏小、量化率偏大）
 
 ```
-cd quantization/WbWtAb
+cd compression/quantization/WbWtAb
 ```
 
 ###### WbAb
@@ -270,7 +270,7 @@ python main.py --W 2 --A 2 --refine ../../prune/models_save/nin_gc_refine.pth
 #### BN融合
 
 ```
-cd quantization/WbWtAb/bn_folding
+cd compression/quantization/WbWtAb/bn_folding
 ```
 
 --W 权重W量化取值(据量化训练时W量化取值(FP32/三值/二值)情况对应选择)
