@@ -335,10 +335,15 @@ python main.py --gpu_id 0,1,2
 ### 部署
 
 #### TensorRT
+
 *目前仅提供相关**核心模块**代码，后续再加入完整可运行demo*
 
+##### 相关细节
+- [tensorrt-基础](https://zhuanlan.zhihu.com/p/336256668)
+- [tensorrt-op/dynamic_shape](https://zhuanlan.zhihu.com/p/335829625)
 
-## 模型压缩数据对比（示例）
+
+## 模型压缩数据对比（仅供参考）
 
 *以下为cifar10测试，可在更冗余模型、更大数据集上尝试其他组合压缩方式*
 
@@ -397,7 +402,10 @@ python main.py --gpu_id 0,1,2
 
 - [github](https://github.com/NVIDIA/TensorRT)
 - [ptq](https://on-demand.gputechconf.com/gtc/2017/presentation/s7310-8-bit-inference-with-tensorrt.pdf)
+- [tensorrt-基础](https://zhuanlan.zhihu.com/p/336256668)
+- [tensorrt-op/dynamic_shape](https://zhuanlan.zhihu.com/p/335829625)
 - [summary](https://github.com/mileistone/study_resources/blob/master/engineering/tensorrt/tensorrt.md)
+
 
 
 ## 后续
