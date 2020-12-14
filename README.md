@@ -9,11 +9,10 @@
 
 ### 压缩
 
-- 量化：任意位数(16/8/4/2 bits)、三值/二值
+- 量化：qat，任意位数(16/8/4/2-bit)、三值/二值；ptq，8-bit(tensorrt)
 - 剪枝：正常、规整、分组卷积结构剪枝
 - 针对特征(A)二值量化的BN融合
-- 任意位数(bits)量化的BN融合
-- 分组卷积结构
+- 任意位数(any-bit)量化的BN融合
 
 ### 部署
 
@@ -22,12 +21,11 @@
 ## 目前提供
 
 - 1、普通卷积和分组卷积结构
-- 2、权重W和特征A的训练中量化, W(FP32/16/8/4/2bits, 三/二值) 和 A(FP32/16/8/4/2bits, 二值)任意组合
+- 2、权重W和特征A的训练中/后量化。训练中量化，W(32/16/8/4/2-bit, 三/二值) 和 A(32/16/8/4/2-bit, 二值)任意组合；训练后量化，采用tensorrt，支持8-bit
 - 3、针对三/二值的一些tricks：W二值/三值缩放因子，W/grad（ste、saturate_ste、soft_ste）截断，A二值时采用B-A-C-P可比C-B-A-P获得更高acc等
 - 4、多种剪枝方式：正常、规整（比如model可剪枝为每层剩余filter个数为N(8,16等)的倍数）、分组卷积结构（剪枝后仍保证分组卷积结构）的通道剪枝
 - 5、batch normalization融合及融合前后model对比测试：非量化普通BN融合（训练后，BN层参数 —> conv的权重w和偏置b）、针对特征(A)二值量化的BN融合（训练量化后，BN层参数 —> conv的偏置b)、任意位数(bits)量化的BN融合（训练量化中，先融合再量化）
-- 6、tensorrt：fp32/fp16/int8(ptq-calibration)、op-adapt(upsample)、dynamic_shape
-
+- 6、tensorrt：fp32/fp16/int8(ptq-calibration)、op-adapt(upsample)、dynamic_shape等
 
 ## 代码结构
 
