@@ -407,7 +407,6 @@ python main.py --gpu_id 0,1,2
 - [summary](https://github.com/mileistone/study_resources/blob/master/engineering/tensorrt/tensorrt.md)
 
 
-
 ## 后续
 
 - 0、tensorrt完整demo
