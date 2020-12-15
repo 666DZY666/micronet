@@ -29,7 +29,7 @@
 
 ## 代码结构
 
-![img1](https://github.com/666DZY666/Model-Compression-Deploy/blob/master/readme_imgs/code_structure.jpg)
+![code_structure](https://github.com/666DZY666/Model-Compression-Deploy/blob/master/readme_imgs/code_structure.jpg)
 
 
 ## 项目进展
