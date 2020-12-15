@@ -338,7 +338,7 @@ python main.py --gpu_id 0,1,2
 
 *目前仅提供相关**核心模块**代码，后续再加入完整可运行demo*
 
-##### 相关细节
+##### 相关解读
 - [tensorrt-基础](https://zhuanlan.zhihu.com/p/336256668)
 - [tensorrt-op/dynamic_shape](https://zhuanlan.zhihu.com/p/335829625)
 
@@ -396,7 +396,6 @@ python main.py --gpu_id 0,1,2
 ### 针对专用芯片的模型压缩
 
 - [Convolutional Networks for Fast, Energy-Efficient Neuromorphic Computing](https://arxiv.org/abs/1603.08270)
-
 
 ### TensorRT
 
