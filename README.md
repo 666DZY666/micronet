@@ -390,7 +390,9 @@ python main.py --gpu_id 0,1,2
 
 ##### PTQ
 
-- [tensorrt-ptq](https://on-demand.gputechconf.com/gtc/2017/presentation/s7310-8-bit-inference-with-tensorrt.pdf)
+###### tensorrt
+
+- [ptq](https://on-demand.gputechconf.com/gtc/2017/presentation/s7310-8-bit-inference-with-tensorrt.pdf)
 
 #### 剪枝
 
