@@ -362,9 +362,13 @@ python main.py --gpu_id 0,1,2
 
 ## 相关资料
 
-### 量化
+### 压缩
 
-#### 二值
+#### 量化
+
+##### QAT
+
+###### 二值
 
 - [BinarizedNeuralNetworks: TrainingNeuralNetworkswithWeightsand ActivationsConstrainedto +1 or−1](https://arxiv.org/abs/1602.02830)
 
@@ -374,30 +378,32 @@ python main.py --gpu_id 0,1,2
 
 - [A Review of Binarized Neural Networks](https://www.semanticscholar.org/paper/A-Review-of-Binarized-Neural-Networks-Simons-Lee/0332fdf00d7ff988c5b66c47afd49431eafa6cd1)
 
-#### 三值
+###### 三值
 
 - [Ternary weight networks](https://arxiv.org/abs/1605.04711)
 
-#### 任意位数
+###### 任意位数
 
 - [DoReFa-Net: Training Low Bitwidth Convolutional Neural Networks with Low Bitwidth Gradients](https://arxiv.org/abs/1606.06160)
 - [Quantization and Training of Neural Networks for Efficient Integer-Arithmetic-Only Inference](https://arxiv.org/abs/1712.05877)
 - [Quantizing deep convolutional networks for efficient inference: A whitepaper](https://arxiv.org/abs/1806.08342)
 
-#### PTQ
+##### PTQ
 
 - [tensorrt-ptq](https://on-demand.gputechconf.com/gtc/2017/presentation/s7310-8-bit-inference-with-tensorrt.pdf)
 
-### 剪枝
+#### 剪枝
 
 - [Learning Efficient Convolutional Networks through Network Slimming](https://arxiv.org/abs/1708.06519)
 - [RETHINKING THE VALUE OF NETWORK PRUNING](https://arxiv.org/abs/1810.05270)
 
-### 针对专用芯片的模型压缩
+#### 适配专用芯片的模型压缩
 
 - [Convolutional Networks for Fast, Energy-Efficient Neuromorphic Computing](https://arxiv.org/abs/1603.08270)
 
-### TensorRT
+### 部署
+
+#### TensorRT
 
 - [github](https://github.com/NVIDIA/TensorRT)
 - [ptq](https://on-demand.gputechconf.com/gtc/2017/presentation/s7310-8-bit-inference-with-tensorrt.pdf)
