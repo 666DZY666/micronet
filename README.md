@@ -65,6 +65,14 @@
 
 ## 使用
 
+```
+git clone https://github.com/666DZY666/Model-Compression-Deploy.git
+```
+
+```
+cd Model-Compression-Deploy
+```
+
 ### 压缩
 
 #### 量化
