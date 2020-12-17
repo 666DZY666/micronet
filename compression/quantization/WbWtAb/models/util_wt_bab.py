@@ -4,8 +4,8 @@ import torch.nn.functional as F
 from torch.autograd import Function
 
 # ********************* 二值(+-1) ***********************
-# A
-class Binary_a(Function):
+# activation
+class BinaryActivation(Function):
 
     @staticmethod
     def forward(self, input):
@@ -30,8 +30,8 @@ class Binary_a(Function):
         grad_input = grad_output * grad
         '''
         return grad_input
-# W
-class Binary_w(Function):
+# weight
+class BinaryWeight(Function):
 
     @staticmethod
     def forward(self, input):
@@ -63,14 +63,14 @@ class Ternary(Function):
         return grad_input
 
 # ********************* A(特征)量化(二值) ***********************
-class activation_bin(nn.Module):
+class ActivationBin(nn.Module):
   def __init__(self, A):
     super().__init__()
     self.A = A
     self.relu = nn.ReLU(inplace=True)
 
   def binary(self, input):
-    output = Binary_a.apply(input)
+    output = BinaryActivation.apply(input)
     return output
 
   def forward(self, input):
@@ -82,18 +82,18 @@ class activation_bin(nn.Module):
       output = self.relu(input)
     return output
 # ********************* W(模型参数)量化(三/二值) ***********************
-def meancenter_clampConvParams(w):
+def meancenter_clamp_convparams(w):
     mean = w.data.mean(1, keepdim=True)
     w.data.sub(mean) # W中心化(C方向)
     w.data.clamp(-1.0, 1.0) # W截断
     return w
-class weight_tnn_bin(nn.Module):
+class WeightTnnBin(nn.Module):
   def __init__(self, W):
     super().__init__()
     self.W = W
 
   def binary(self, input):
-    output = Binary_w.apply(input)
+    output = BinaryWeight.apply(input)
     return output
 
   def ternary(self, input):
@@ -104,7 +104,7 @@ class weight_tnn_bin(nn.Module):
     if self.W == 2 or self.W == 3:
         # **************************************** W二值 *****************************************
         if self.W == 2:
-            output = meancenter_clampConvParams(input) # W中心化+截断
+            output = meancenter_clamp_convparams(input) # W中心化+截断
             # **************** channel级 - E(|W|) ****************
             E = torch.mean(torch.abs(output), (3, 2, 1), keepdim=True)
             # **************** α(缩放因子) ****************
@@ -134,7 +134,7 @@ class weight_tnn_bin(nn.Module):
     return output
 
 # ********************* 量化卷积（同时量化A/W，并做卷积） ***********************
-class Conv2d_Q(nn.Conv2d):
+class QuantConv2d(nn.Conv2d):
     def __init__(
         self,
         in_channels,
@@ -159,8 +159,8 @@ class Conv2d_Q(nn.Conv2d):
             bias=bias
         )
         # 实例化调用A和W量化器
-        self.activation_quantizer = activation_bin(A=A)
-        self.weight_quantizer = weight_tnn_bin(W=W)
+        self.activation_quantizer = ActivationBin(A=A)
+        self.weight_quantizer = WeightTnnBin(W=W)
           
     def forward(self, input):
         # 量化A和W

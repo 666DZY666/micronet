@@ -32,11 +32,11 @@ class BinActive(torch.autograd.Function):
         '''
         return grad_input
 
-class Tnn_Bin_Conv2d(nn.Module):
+class TnnBinConvBNReLU(nn.Module):
     def __init__(self, input_channels, output_channels,
             kernel_size=-1, stride=-1, padding=-1, dropout=0):
-        super(Tnn_Bin_Conv2d, self).__init__()
-        self.layer_type = 'Tnn_Bin_Conv2d'
+        super(TnnBinConvBNReLU, self).__init__()
+        self.layer_type = 'TnnBinConvBNReLU'
         self.kernel_size = kernel_size
         self.stride = stride
         self.padding = padding
@@ -65,21 +65,21 @@ class Net(nn.Module):
         if cfg is None:
             # 模型结构
             cfg = [192, 160, 96, 192, 192, 192, 192, 192]
-        self.tnn_bin = nn.Sequential(
+        self.tnn_bin_model = nn.Sequential(
                 nn.Conv2d(3, cfg[0], kernel_size=5, stride=1, padding=2),
                 nn.BatchNorm2d(cfg[0], eps=1e-4, momentum=0.1, affine=False),
                 nn.ReLU(inplace=True),
-                Tnn_Bin_Conv2d(cfg[0], cfg[1], kernel_size=1, stride=1, padding=0),
-                Tnn_Bin_Conv2d(cfg[1],  cfg[2], kernel_size=1, stride=1, padding=0),
+                TnnBinConvBNReLU(cfg[0], cfg[1], kernel_size=1, stride=1, padding=0),
+                TnnBinConvBNReLU(cfg[1],  cfg[2], kernel_size=1, stride=1, padding=0),
                 nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
 
-                Tnn_Bin_Conv2d(cfg[2], cfg[3], kernel_size=5, stride=1, padding=2, dropout=0.5),
-                Tnn_Bin_Conv2d(cfg[3], cfg[4], kernel_size=1, stride=1, padding=0),
-                Tnn_Bin_Conv2d(cfg[4], cfg[5], kernel_size=1, stride=1, padding=0),
+                TnnBinConvBNReLU(cfg[2], cfg[3], kernel_size=5, stride=1, padding=2, dropout=0.5),
+                TnnBinConvBNReLU(cfg[3], cfg[4], kernel_size=1, stride=1, padding=0),
+                TnnBinConvBNReLU(cfg[4], cfg[5], kernel_size=1, stride=1, padding=0),
                 nn.AvgPool2d(kernel_size=3, stride=2, padding=1),
 
-                Tnn_Bin_Conv2d(cfg[5], cfg[6], kernel_size=3, stride=1, padding=1, dropout=0.5),
-                Tnn_Bin_Conv2d(cfg[6], cfg[7], kernel_size=1, stride=1, padding=0),
+                TnnBinConvBNReLU(cfg[5], cfg[6], kernel_size=3, stride=1, padding=1, dropout=0.5),
+                TnnBinConvBNReLU(cfg[6], cfg[7], kernel_size=1, stride=1, padding=0),
                 nn.BatchNorm2d(cfg[7], eps=1e-4, momentum=0.1, affine=False),
                 nn.Conv2d(cfg[7],  10, kernel_size=1, stride=1, padding=0),
                 nn.ReLU(inplace=True),
@@ -91,6 +91,6 @@ class Net(nn.Module):
             if isinstance(m, nn.BatchNorm2d) or isinstance(m, nn.BatchNorm1d):
                 if hasattr(m.weight, 'data'):
                     m.weight.data.clamp_(min=0.01)
-        x = self.tnn_bin(x)
+        x = self.tnn_bin_model(x)
         x = x.view(x.size(0), 10)
         return x

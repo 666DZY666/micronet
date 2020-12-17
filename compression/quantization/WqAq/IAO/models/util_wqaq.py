@@ -143,7 +143,7 @@ class AsymmetricQuantizer(UnsignedQuantizer):
         self.zero_point = torch.round(self.range_tracker.min_val * self.scale)  # 量化零点
 
 # ********************* 量化卷积（同时量化A/W，并做卷积） *********************
-class Conv2d_Q(nn.Conv2d):
+class QuantConv2d(nn.Conv2d):
     def __init__(
         self,
         in_channels,
@@ -203,7 +203,7 @@ def reshape_to_weight(input):
 def reshape_to_bias(input):
   return input.reshape(-1)
 # ********************* bn融合_量化卷积（bn融合后，同时量化A/W，并做卷积） *********************
-class BNFold_Conv2d_Q(Conv2d_Q):
+class QuantBNFoldConv2d(QuantConv2d):
     def __init__(
         self,
         in_channels,

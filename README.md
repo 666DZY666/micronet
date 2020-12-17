@@ -113,11 +113,11 @@ python main.py --W 3 --A 32
 
 --Wbits --Abits, 权重W和特征A量化位数
 
-```
-cd compression/quantization/WqAq/dorefa 或 cd compression/quantization/WqAq/IAO
-```
-
 ###### dorefa
+
+```
+cd compression/quantization/WqAq/dorefa  
+```
 
 - W16A16
 
@@ -141,7 +141,11 @@ python main.py --Wbits 4 --Abits 4
 
 ###### IAO
 
-*量化位数选择同上*
+```
+cd compression/quantization/WqAq/IAO
+```
+
+*量化位数选择同dorefa*
 
 --q_type, 量化类型; --bn_fold, 量化中bn融合标志
 

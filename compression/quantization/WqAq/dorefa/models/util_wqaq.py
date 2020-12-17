@@ -16,7 +16,7 @@ class Round(Function):
         return grad_input
 
 # ********************* A(特征)量化 ***********************
-class activation_quantize(nn.Module):
+class ActivationQuantize(nn.Module):
   def __init__(self, a_bits):
     super().__init__()
     self.a_bits = a_bits
@@ -39,7 +39,7 @@ class activation_quantize(nn.Module):
       output = output / scale
     return output
 # ********************* W(模型参数)量化 ***********************
-class weight_quantize(nn.Module):
+class WeightQuantize(nn.Module):
   def __init__(self, w_bits):
     super().__init__()
     self.w_bits = w_bits
@@ -65,7 +65,7 @@ class weight_quantize(nn.Module):
     return output
 
 # ********************* 量化卷积（同时量化A/W，并做卷积） ***********************
-class Conv2d_Q(nn.Conv2d):
+class QuantConv2d(nn.Conv2d):
   def __init__(
         self,
         in_channels,
@@ -91,8 +91,8 @@ class Conv2d_Q(nn.Conv2d):
             bias=bias
         )
         # 实例化调用A和W量化器
-        self.activation_quantizer = activation_quantize(a_bits=a_bits)
-        self.weight_quantizer = weight_quantize(w_bits=w_bits)    
+        self.activation_quantizer = ActivationQuantize(a_bits=a_bits)
+        self.weight_quantizer = WeightQuantize(w_bits=w_bits)    
         self.first_layer = first_layer
 
   def forward(self, input):
@@ -113,11 +113,11 @@ class Conv2d_Q(nn.Conv2d):
         )
     return output
 # ********************* 量化全连接（同时量化A/W，并做全连接） ***********************
-class Linear_Q(nn.Linear):
+class QuantLinear(nn.Linear):
   def __init__(self, in_features, out_features, bias=True, a_bits=2, w_bits=2):
     super().__init__(in_features=in_features, out_features=out_features, bias=bias)
-    self.activation_quantizer = activation_quantize(a_bits=a_bits)
-    self.weight_quantizer = weight_quantize(w_bits=w_bits) 
+    self.activation_quantizer = ActivationQuantize(a_bits=a_bits)
+    self.weight_quantizer = WeightQuantize(w_bits=w_bits) 
 
   def forward(self, input):
     # 量化A和W
