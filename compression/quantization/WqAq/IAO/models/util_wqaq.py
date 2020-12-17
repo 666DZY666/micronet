@@ -182,12 +182,12 @@ class QuantConv2d(nn.Conv2d):
         # 量化A和W
         if not self.first_layer:
             input = self.activation_quantizer(input)
-        q_input = input
-        q_weight = self.weight_quantizer(self.weight) 
+        quant_input = input
+        quant_weight = self.weight_quantizer(self.weight) 
         # 量化卷积
         output = F.conv2d(
-            input=q_input,
-            weight=q_weight,
+            input=quant_input,
+            weight=quant_weight,
             bias=self.bias,
             stride=self.stride,
             padding=self.padding,
@@ -294,13 +294,13 @@ class QuantBNFoldConv2d(QuantConv2d):
         # 量化A和bn融合后的W
         if not self.first_layer:
             input = self.activation_quantizer(input)
-        q_input = input
-        q_weight = self.weight_quantizer(weight) 
+        quant_input = input
+        quant_weight = self.weight_quantizer(weight) 
         # 量化卷积
         if self.training:  # 训练态
           output = F.conv2d(
-              input=q_input,
-              weight=q_weight,
+              input=quant_input,
+              weight=quant_weight,
               bias=self.bias,  # 注意，这里不加bias（self.bias为None）
               stride=self.stride,
               padding=self.padding,
@@ -312,8 +312,8 @@ class QuantBNFoldConv2d(QuantConv2d):
           output += reshape_to_activation(bias)
         else:  # 测试态
           output = F.conv2d(
-              input=q_input,
-              weight=q_weight,
+              input=quant_input,
+              weight=quant_weight,
               bias=bias,  # 注意，这里加bias，做完整的conv+bn
               stride=self.stride,
               padding=self.padding,

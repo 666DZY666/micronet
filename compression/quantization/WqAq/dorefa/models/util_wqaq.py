@@ -99,12 +99,12 @@ class QuantConv2d(nn.Conv2d):
     # 量化A和W
     if not self.first_layer:
       input = self.activation_quantizer(input)
-    q_input = input
-    q_weight = self.weight_quantizer(self.weight) 
+    quant_input = input
+    quant_weight = self.weight_quantizer(self.weight) 
     # 量化卷积
     output = F.conv2d(
-            input=q_input,
-            weight=q_weight,
+            input=quant_input,
+            weight=quant_weight,
             bias=self.bias,
             stride=self.stride,
             padding=self.padding,
@@ -121,8 +121,8 @@ class QuantLinear(nn.Linear):
 
   def forward(self, input):
     # 量化A和W
-    q_input = self.activation_quantizer(input)
-    q_weight = self.weight_quantizer(self.weight) 
+    quant_input = self.activation_quantizer(input)
+    quant_weight = self.weight_quantizer(self.weight) 
     # 量化全连接
-    output = F.linear(input=q_input, weight=q_weight, bias=self.bias)
+    output = F.linear(input=quant_input, weight=quant_weight, bias=self.bias)
     return output

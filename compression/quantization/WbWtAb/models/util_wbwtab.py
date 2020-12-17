@@ -166,8 +166,6 @@ class QuantConv2d(nn.Conv2d):
         # 量化A和W
         bin_input = self.activation_quantizer(input)
         tnn_bin_weight = self.weight_quantizer(self.weight)    
-        #print(bin_input)
-        #print(tnn_bin_weight)
         # 用量化后的A和W做卷积
         output = F.conv2d(
             input=bin_input, 
