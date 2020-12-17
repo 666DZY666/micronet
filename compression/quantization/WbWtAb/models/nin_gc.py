@@ -1,5 +1,5 @@
 import torch.nn as nn
-from .util_wt_bab import ActivationBin, QuantConv2d
+from .util_wbwtab import ActivationBin, QuantConv2d
 
 # 通道混合
 def channel_shuffle(x, groups):
