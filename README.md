@@ -236,7 +236,13 @@ python main.py --refine models_save/nin_prune.pth
 ##### 剪枝 —> 量化（16/8/4/2 bits）（剪枝率偏大、量化率偏小）
 
 ```
-cd compression/quantization/WqAq/dorefa 或 cd compression/quantization/WqAq/IAO
+cd compression/quantization/WqAq/dorefa 
+```
+
+或 
+
+```
+cd compression/quantization/WqAq/IAO
 ```
 
 ###### W8A8
