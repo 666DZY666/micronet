@@ -31,6 +31,76 @@
 
 ![code_structure](https://github.com/666DZY666/Model-Compression-Deploy/blob/master/readme_imgs/code_structure.jpg)
 
+```
+Model-Compression-Deploy
+├── README.md
+├── compression
+│   ├── README.md
+│   ├── data
+│   │   └── data.txt
+│   ├── pruning
+│   │   ├── README.md
+│   │   ├── gc_prune.py
+│   │   ├── main.py
+│   │   ├── models
+│   │   │   ├── __init__.py
+│   │   │   ├── nin.py
+│   │   │   └── nin_gc.py
+│   │   ├── models_save
+│   │   │   └── models_save.txt
+│   │   └── normal_regular_prune.py
+│   └── quantization
+│       ├── README.md
+│       ├── WbWtAb
+│       │   ├── bn_folding
+│       │   │   ├── bn_folding.py
+│       │   │   ├── bn_folding_model_test.py
+│       │   │   ├── models_save
+│       │   │   │   └── models_save.txt
+│       │   │   ├── nin_gc_inference.py
+│       │   │   ├── nin_gc_training.py
+│       │   │   └── util_wt_bab.py
+│       │   ├── main.py
+│       │   ├── models
+│       │   │   ├── __init__.py
+│       │   │   ├── nin.py
+│       │   │   ├── nin_bn_conv.py
+│       │   │   ├── nin_gc.py
+│       │   │   └── util_wbwtab.py
+│       │   └── models_save
+│       │       └── models_save.txt
+│       └── WqAq
+│           ├── IAO
+│           │   ├── main.py
+│           │   ├── models
+│           │   │   ├── __init__.py
+│           │   │   ├── nin.py
+│           │   │   ├── nin_gc.py
+│           │   │   └── util_wqaq.py
+│           │   └── models_save
+│           │       └── models_save.txt
+│           └── dorefa
+│               ├── main.py
+│               ├── models
+│               │   ├── __init__.py
+│               │   ├── nin.py
+│               │   ├── nin_gc.py
+│               │   └── util_wqaq.py
+│               └── models_save
+│                   └── models_save.txt
+└── deploy
+    ├── README.md
+    └── tensorrt
+        ├── README.md
+        ├── calibrator.py
+        ├── eval_trt.py
+        ├── models
+        │   └── models_trt.py
+        ├── models_save
+        │   └── calibration_seg.cache
+        ├── test_trt.py
+        └── util_trt.py
+```
 
 ## 项目进展
 - **2019.12.4**，初次提交
@@ -46,11 +116,11 @@
 - **2.18**，优化针对特征(A)二值的BN融合:去除对BN层gamma参数的限制，即现在此情况下融合时BN可正常训练
 - **2.24**，再次优化三/二值量化代码组织结构，增强可移植性，旧版确实不太好移植。目前移植方法：将想要量化的Conv用compression/quantization/WbWtAb/models/util_wbwtab.py中的QuantConv2d替换即可，可参照该路径下nin_gc.py中的使用方法
 - **3.1**，新增：1、google任意位数(bits)量化方法；2、任意位数量化的BN融合
-- **3.2、3.3**，规整量化代码整体结构，目前所有量化方法都可采取类似的移植方式：将想要量化的Conv(或FC，目前dorefa支持，其他方法类似可写)用models/util_xx.py中的QuantConv2d(或QuantLinear)替换即可，可分别参照该路径下nin_gc.py中的使用方法进行移植（分类、检测、分割等均适用，但需要据实际情况具体调试）
+- **3.2、3.3**，规整量化代码整体结构，目前所有量化方法都可采取类似的移植方式：将想要量化的Conv(或FC，目前dorefa支持，其他方法类似可写)用models/util_wxax.py中的QuantConv2d(或QuantLinear)替换即可，可分别参照该路径下nin_gc.py中的使用方法进行移植（分类、检测、分割等均适用，但需要据实际情况具体调试）
 - **3.4**，规整优化WbWtAb/bn_folding中“针对特征(A)二值的BN融合”的相关实现代码，可进行BN融合及融合前后模型对比测试(精度/速度/(大小))
 - 3.11，调整WqAq/IAO中的BN层momentum参数(0.1 —> 0.01),削弱batch统计参数占比,一定程度抑制量化带来的抖动。经实验,量化训练更稳定,acc提升1%左右
 - **3.13**，更新代码结构图
-- 4.6，修正二值量化训练中W_clip的相关问题(之前由于这个，导致二值量化训练精度上不去，现在已可正常使用)(同时修正无法找到一些模块如models/util_xx.py的问题)
+- 4.6，修正二值量化训练中W_clip的相关问题(之前由于这个，导致二值量化训练精度上不去，现在已可正常使用)(同时修正无法找到一些模块如models/util_wxax.py的问题)
 - **12.14**，1、improve code structure；2、add deploy-tensorrt(main module, but not running yet)
 
 ## 环境要求
