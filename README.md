@@ -119,7 +119,7 @@ Model-Compression-Deploy
 - **2.24**，再次优化三/二值量化代码组织结构，增强可移植性，旧版确实不太好移植。目前移植方法：将想要量化的Conv用compression/quantization/WbWtAb/models/util_wbwtab.py中的QuantConv2d替换即可，可参照该路径下nin_gc.py中的使用方法
 - **3.1**，新增：1、google任意位数(bits)量化方法；2、任意位数量化的BN融合
 - **3.2、3.3**，规整量化代码整体结构，目前所有量化方法都可采取类似的移植方式：将想要量化的Conv(或FC，目前dorefa支持，其他方法类似可写)用models/util_wxax.py中的QuantConv2d(或QuantLinear)替换即可，可分别参照该路径下nin_gc.py中的使用方法进行移植（分类、检测、分割等均适用，但需要据实际情况具体调试）
-- **3.4**，规整优化WbWtAb/bn_folding中“针对特征(A)二值的BN融合”的相关实现代码，可进行BN融合及融合前后模型对比测试(精度/速度/(大小))
+- **3.4**，规整优化WbWtAb/bn_fuse中“针对特征(A)二值的BN融合”的相关实现代码，可进行BN融合及融合前后模型对比测试(精度/速度/(大小))
 - 3.11，调整WqAq/IAO中的BN层momentum参数(0.1 —> 0.01),削弱batch统计参数占比,一定程度抑制量化带来的抖动。经实验,量化训练更稳定,acc提升1%左右
 - **3.13**，更新代码结构图
 - 4.6，修正二值量化训练中W_clip的相关问题(之前由于这个，导致二值量化训练精度上不去，现在已可正常使用)(同时修正无法找到一些模块如models/util_wxax.py的问题)
@@ -219,18 +219,18 @@ cd compression/quantization/WqAq/IAO
 
 *量化位数选择同dorefa*
 
---q_type, 量化类型; --bn_fold, 量化中bn融合标志
+--q_type, 量化类型; --bn_fuse, 量化中bn融合标志
 
 - 对称量化, bn不融合
 
 ```
-python main.py --q_type 0 --bn_fold 0
+python main.py --q_type 0 --bn_fuse 0
 ```
 
 - 非对称量化, bn融合
 
 ```
-python main.py --q_type 1 --bn_fold 1
+python main.py --q_type 1 --bn_fuse 1
 ```
 
 - 其他组合情况类比

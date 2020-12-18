@@ -203,7 +203,7 @@ def reshape_to_weight(input):
 def reshape_to_bias(input):
   return input.reshape(-1)
 # ********************* bn融合_量化卷积（bn融合后，同时量化A/W，并做卷积） *********************
-class QuantBNFoldConv2d(QuantConv2d):
+class QuantBNFuseConv2d(QuantConv2d):
     def __init__(
         self,
         in_channels,

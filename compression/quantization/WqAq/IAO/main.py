@@ -37,13 +37,13 @@ def save_state(model, best_acc):
     if args.model_type == 0:
         torch.save(state, 'models_save/nin.pth')
     else:
-        if args.bn_fold == 1:
-            torch.save(state, 'models_save/nin_gc_bn_fold.pth')
+        if args.bn_fuse == 1:
+            torch.save(state, 'models_save/nin_gc_bn_fused.pth')
         else:
             torch.save(state, 'models_save/nin_gc.pth')
     
 def adjust_learning_rate(optimizer, epoch):
-    if args.bn_fold == 1:
+    if args.bn_fuse == 1:
         if args.model_type == 0:
             update_list = [12, 15, 25]
         else:
@@ -135,8 +135,8 @@ if __name__=='__main__':
     parser.add_argument('--Wbits', type=int, default=8)
     parser.add_argument('--Abits', type=int, default=8)
     # bn融合标志位
-    parser.add_argument('--bn_fold', type=int, default=0,
-            help='bn_fold:1')
+    parser.add_argument('--bn_fuse', type=int, default=0,
+            help='bn_fuse:1')
     # 量化方法选择
     parser.add_argument('--q_type', type=int, default=1,
             help='quantization type:0-symmetric,1-asymmetric')
@@ -174,17 +174,17 @@ if __name__=='__main__':
         #checkpoint = torch.load('../prune/models_save/nin_refine.pth')
         checkpoint = torch.load(args.refine)
         if args.model_type == 0:
-            model = nin.Net(cfg=checkpoint['cfg'], abits=args.Abits, wbits=args.Wbits, bn_fold=args.bn_fold, q_type=args.q_type)
+            model = nin.Net(cfg=checkpoint['cfg'], abits=args.Abits, wbits=args.Wbits, bn_fuse=args.bn_fuse, q_type=args.q_type)
         else:
-            model = nin_gc.Net(cfg=checkpoint['cfg'], abits=args.Abits, wbits=args.Wbits, bn_fold=args.bn_fold, q_type=args.q_type)
+            model = nin_gc.Net(cfg=checkpoint['cfg'], abits=args.Abits, wbits=args.Wbits, bn_fuse=args.bn_fuse, q_type=args.q_type)
         model.load_state_dict(checkpoint['state_dict'])
         best_acc = 0
     else:
         print('******Initializing model******')
         if args.model_type == 0:
-            model = nin.Net(abits=args.Abits, wbits=args.Wbits, bn_fold=args.bn_fold, q_type=args.q_type)
+            model = nin.Net(abits=args.Abits, wbits=args.Wbits, bn_fuse=args.bn_fuse, q_type=args.q_type)
         else:
-            model = nin_gc.Net(abits=args.Abits, wbits=args.Wbits, bn_fold=args.bn_fold, q_type=args.q_type)
+            model = nin_gc.Net(abits=args.Abits, wbits=args.Wbits, bn_fuse=args.bn_fuse, q_type=args.q_type)
         best_acc = 0
         for m in model.modules():
             if isinstance(m, nn.Conv2d):

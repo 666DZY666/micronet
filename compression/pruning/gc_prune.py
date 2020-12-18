@@ -8,7 +8,7 @@ from models import nin_gc
 import numpy as np
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data', action='store', default='../data',
+parser.add_argument('--data', action='store', default='../../data',
                     help='dataset path')
 parser.add_argument('--cpu', action='store_true',
                     help='disables CUDA training')
