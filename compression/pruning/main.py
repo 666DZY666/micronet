@@ -128,17 +128,20 @@ if __name__=='__main__':
             help='the path to the refine(prune) model')
     parser.add_argument('--evaluate', action='store_true',
             help='evaluate the model')
+    parser.add_argument('--train_batch_size', type=int, default=50)
+    parser.add_argument('--eval_batch_size', type=int, default=256)
+    parser.add_argument('--num_workers', type=int, default=2)
+    parser.add_argument('--epochs', type=int, default=300, metavar='N',
+            help='number of epochs to train')
     # sr(稀疏标志)
     parser.add_argument('--sparsity-regularization', '-sr', dest='sr', action='store_true',
             help='train with channel sparsity regularization')
     # s(稀疏率)
     parser.add_argument('--s', type=float, default=0.0001,
             help='nin:0.0001, nin_gc:0.001')
-    parser.add_argument('--train_batch_size', type=int, default=50)
-    parser.add_argument('--eval_batch_size', type=int, default=256)
-    parser.add_argument('--num_workers', type=int, default=2)
-    parser.add_argument('--epochs', type=int, default=300, metavar='N',
-            help='number of epochs to train')
+    # 后续量化类型选择(三/二值、高位)
+    parser.add_argument('--quant_type', type=int, default=0,
+            help='quant_type:0-tnn_bin_model, 1-quant_model')
     args = parser.parse_args()
     print('==> Options:',args)
 
@@ -172,7 +175,7 @@ if __name__=='__main__':
         #checkpoint = torch.load('models_save/nin_prune.pth')
         checkpoint = torch.load(args.refine)
         cfg = checkpoint['cfg']
-        model = nin.Net(cfg=checkpoint['cfg'])
+        model = nin.Net(cfg=checkpoint['cfg'], quant_type=args.quant_type)
         model.load_state_dict(checkpoint['state_dict'])
         best_acc = 0
     else:

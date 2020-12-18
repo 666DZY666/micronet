@@ -20,13 +20,11 @@ def channel_shuffle(x, groups):
 
 class QuantConvBNReLU(nn.Module):
     def __init__(self, input_channels, output_channels,
-            kernel_size=-1, stride=-1, padding=-1, groups=1, channel_shuffle=0, shuffle_groups=1, last_relu=0, abits=8, wbits=8, bn_fuse=0, q_type=1, first_layer=0):
+            kernel_size=-1, stride=-1, padding=-1, groups=1, channel_shuffle=0, shuffle_groups=1, abits=8, wbits=8, bn_fuse=0, q_type=1, first_layer=0):
         super(QuantConvBNReLU, self).__init__()
-        self.last_relu = last_relu
         self.channel_shuffle_flag = channel_shuffle
         self.shuffle_groups = shuffle_groups
         self.bn_fuse = bn_fuse
-        self.first_layer = first_layer
 
         if self.bn_fuse == 1:
             self.quant_bn_fuse_conv = QuantBNFuseConv2d(input_channels, output_channels,
@@ -38,8 +36,6 @@ class QuantConvBNReLU(nn.Module):
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
-        if not self.first_layer:
-            x = self.relu(x)
         if self.channel_shuffle_flag:
             x = channel_shuffle(x, groups=self.shuffle_groups)
         if self.bn_fuse == 1:
@@ -47,8 +43,7 @@ class QuantConvBNReLU(nn.Module):
         else:
             x = self.quant_conv(x)
             x = self.bn(x)
-        if self.last_relu:
-            x = self.relu(x)
+        x = self.relu(x)
         return x
 
 class Net(nn.Module):
@@ -70,7 +65,7 @@ class Net(nn.Module):
                 
                 QuantConvBNReLU(cfg[5], cfg[6], kernel_size=3, stride=1, padding=1, groups=32, channel_shuffle=1, shuffle_groups=4, abits=abits, wbits=wbits, bn_fuse=bn_fuse, q_type=q_type),
                 QuantConvBNReLU(cfg[6], cfg[7], kernel_size=1, stride=1, padding=0, groups=8, channel_shuffle=1, shuffle_groups=32, abits=abits, wbits=wbits, bn_fuse=bn_fuse, q_type=q_type),
-                QuantConvBNReLU(cfg[7], 10, kernel_size=1, stride=1, padding=0, last_relu=1, abits=abits, wbits=wbits, bn_fuse=bn_fuse, q_type=q_type),
+                QuantConvBNReLU(cfg[7], 10, kernel_size=1, stride=1, padding=0, abits=abits, wbits=wbits, bn_fuse=bn_fuse, q_type=q_type),
                 nn.AvgPool2d(kernel_size=8, stride=1, padding=0),
                 )
 

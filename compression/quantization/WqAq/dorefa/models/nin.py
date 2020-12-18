@@ -7,10 +7,8 @@ from util_wqaq import QuantConv2d
 
 class QuantConvBNReLU(nn.Module):
     def __init__(self, input_channels, output_channels,
-            kernel_size=-1, stride=-1, padding=-1, groups=1, last_relu=0, abits=8, wbits=8, first_layer=0):
+            kernel_size=-1, stride=-1, padding=-1, groups=1, abits=8, wbits=8, first_layer=0):
         super(QuantConvBNReLU, self).__init__()
-        self.last_relu = last_relu
-        self.first_layer = first_layer
 
         self.quant_conv = QuantConv2d(input_channels, output_channels,
                     kernel_size=kernel_size, stride=stride, padding=padding, groups=groups, a_bits=abits, w_bits=wbits, first_layer=first_layer)
@@ -18,12 +16,9 @@ class QuantConvBNReLU(nn.Module):
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
-        if not self.first_layer:
-            x = self.relu(x)
         x = self.quant_conv(x)
         x = self.bn(x)
-        if self.last_relu:
-            x = self.relu(x)
+        x = self.relu(x)
         return x
 
 class Net(nn.Module):
@@ -46,7 +41,7 @@ class Net(nn.Module):
                 
                 QuantConvBNReLU(cfg[5], cfg[6], kernel_size=3, stride=1, padding=1, abits=abits, wbits=wbits),
                 QuantConvBNReLU(cfg[6], cfg[7], kernel_size=1, stride=1, padding=0, abits=abits, wbits=wbits),
-                QuantConvBNReLU(cfg[7], 10, kernel_size=1, stride=1, padding=0, last_relu=1, abits=abits, wbits=wbits),
+                QuantConvBNReLU(cfg[7], 10, kernel_size=1, stride=1, padding=0, abits=abits, wbits=wbits),
                 nn.AvgPool2d(kernel_size=8, stride=1, padding=0),
                 )
 
