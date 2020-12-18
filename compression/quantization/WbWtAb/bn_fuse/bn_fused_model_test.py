@@ -14,7 +14,7 @@ import argparse
 import numpy as np
 import time
 import nin_gc_inference
-from bn_folding import DummyModule
+from bn_fuse import DummyModule
 
 # 量化模型测试
 def test_quan_model():
@@ -46,11 +46,11 @@ def test_quan_model():
     return
 
 # 量化BN融合模型测试
-def test_quan_bn_folding_model():
-    quan_bn_folding_model.eval()
-    test_loss_bn_folding = 0
-    average_test_loss_bn_folding = 0
-    correct_bn_folding = 0
+def test_quan_bn_fused_model():
+    quan_bn_fused_model.eval()
+    test_loss_bn_fused = 0
+    average_test_loss_bn_fused = 0
+    correct_bn_fused = 0
 
     start_time = time.time()
     for data, target in testloader:
@@ -58,20 +58,20 @@ def test_quan_bn_folding_model():
             data, target = data.cuda(), target.cuda()
         data, target = Variable(data), Variable(target)
                                     
-        output_bn_folding = quan_bn_folding_model(data)
+        output_bn_fused = quan_bn_fused_model(data)
 
-        test_loss_bn_folding += criterion(output_bn_folding, target).data.item()
-        pred_bn_folding = output_bn_folding.data.max(1, keepdim=True)[1]
-        correct_bn_folding += pred_bn_folding.eq(target.data.view_as(pred_bn_folding)).cpu().sum()
+        test_loss_bn_fused += criterion(output_bn_fused, target).data.item()
+        pred_bn_fused = output_bn_fused.data.max(1, keepdim=True)[1]
+        correct_bn_fused += pred_bn_fused.eq(target.data.view_as(pred_bn_fused)).cpu().sum()
     end_time = time.time()
     inference_time = end_time - start_time
     FPS = len(testloader.dataset) / inference_time
 
-    acc_bn_folding = 100. * float(correct_bn_folding) / len(testloader.dataset)
-    average_test_loss_bn_folding = test_loss_bn_folding / (len(testloader.dataset) / args.eval_batch_size)
+    acc_bn_fused = 100. * float(correct_bn_fused) / len(testloader.dataset)
+    average_test_loss_bn_fused = test_loss_bn_fused / (len(testloader.dataset) / args.eval_batch_size)
 
-    print('\nquan_bn_folding_model: Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%), inference_time:{:.4f}ms, FPS:{:.4f}'.format(
-        average_test_loss_bn_folding, correct_bn_folding, len(testloader.dataset), acc_bn_folding, inference_time * 1000, FPS))
+    print('\nquan_bn_fused_model: Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%), inference_time:{:.4f}ms, FPS:{:.4f}'.format(
+        average_test_loss_bn_fused, correct_bn_fused, len(testloader.dataset), acc_bn_fused, inference_time * 1000, FPS))
     return
 
 if __name__=='__main__':
@@ -111,19 +111,19 @@ if __name__=='__main__':
 
     quan_model = nin_gc_inference.Net()
     quan_model.load_state_dict(torch.load('models_save/quan_model_para.pth'))   # 加载量化模型
-    quan_bn_folding_model = torch.load('models_save/quan_bn_folding_model.pth') # 加载量化BN融合模型
+    quan_bn_fused_model = torch.load('models_save/quan_bn_fused_model.pth') # 加载量化BN融合模型
     quan_model.eval()
-    quan_bn_folding_model.eval()
+    quan_bn_fused_model.eval()
     if not args.cpu:
         quan_model.cuda()
-        quan_bn_folding_model.cuda()
+        quan_bn_fused_model.cuda()
         quan_model = torch.nn.DataParallel(quan_model, device_ids=range(torch.cuda.device_count()))
-        quan_bn_folding_model = torch.nn.DataParallel(quan_bn_folding_model, device_ids=range(torch.cuda.device_count()))
+        quan_bn_fused_model = torch.nn.DataParallel(quan_bn_fused_model, device_ids=range(torch.cuda.device_count()))
 
     criterion = nn.CrossEntropyLoss()
     
-    print("********* bn_folding_model_test start *********")
+    print("********* bn_fused_model_test start *********")
     # 融合前后模型对比测试,输出acc和FPS,由结果可知:BN融合成功,实现无损加速
     for epoch in range(1, args.epochs):
         test_quan_model()            # 量化模型测试
-        test_quan_bn_folding_model() # 量化BN融合模型测试
+        test_quan_bn_fused_model() # 量化BN融合模型测试

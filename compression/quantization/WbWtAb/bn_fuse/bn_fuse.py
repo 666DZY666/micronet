@@ -30,37 +30,37 @@ def bn_fuse(conv, bn):
     beta = bn.bias
     # ******************* conv参数 ********************
     w = conv.weight
-    w_fold = w.clone()
+    w_fused = w.clone()
     if conv.bias is not None:
         b = conv.bias
     else:
         b = mean.new_zeros(mean.shape)
-    b_fold = b.clone()
+    b_fused = b.clone()
     # ******************* 针对特征(A)二值的BN融合 *******************
     if(bn_counter >= bn_fuse_range_min and bn_counter <= bn_fuse_range_max + 1):
         mask_positive = gamma.data.gt(0)
         mask_negetive = gamma.data.lt(0)
 
-        w_fold[mask_positive] = w[mask_positive]
-        b_fold[mask_positive] = b[mask_positive] - mean[mask_positive] + beta[mask_positive] * (std[mask_positive] / gamma[mask_positive])
+        w_fused[mask_positive] = w[mask_positive]
+        b_fused[mask_positive] = b[mask_positive] - mean[mask_positive] + beta[mask_positive] * (std[mask_positive] / gamma[mask_positive])
 
-        w_fold[mask_negetive] = w[mask_negetive] * -1
-        b_fold[mask_negetive] = mean[mask_negetive] - b[mask_negetive] - beta[mask_negetive] * (std[mask_negetive] / gamma[mask_negetive])
+        w_fused[mask_negetive] = w[mask_negetive] * -1
+        b_fused[mask_negetive] = mean[mask_negetive] - b[mask_negetive] - beta[mask_negetive] * (std[mask_negetive] / gamma[mask_negetive])
     # ******************* 普通BN融合 *******************
     else:
-        w_fold = w * (gamma / std).reshape([conv.out_channels, 1, 1, 1])
-        b_fold = beta + (b - mean) * (gamma / std) 
-    # 新建bnfold_conv(BN融合的Conv层),将w_fold,b_fold赋值于其参数
-    bnfold_conv = nn.Conv2d(conv.in_channels,
+        w_fused = w * (gamma / std).reshape([conv.out_channels, 1, 1, 1])
+        b_fused = beta + (b - mean) * (gamma / std) 
+    # 新建bn_fused_conv(BN融合的Conv层),将w_fused,b_fused赋值于其参数
+    bn_fused_conv = nn.Conv2d(conv.in_channels,
                          conv.out_channels,
                          conv.kernel_size,
                          conv.stride,
                          conv.padding,
                          groups=conv.groups,
                          bias=True)
-    bnfold_conv.weight.data = w_fold
-    bnfold_conv.bias.data = b_fold
-    return bnfold_conv
+    bn_fused_conv.weight.data = w_fused
+    bn_fused_conv.bias.data = b_fused
+    return bn_fused_conv
 
 # 模型BN融合
 def model_bn_fuse(model):
@@ -69,8 +69,8 @@ def model_bn_fuse(model):
     child_temp = None
     for name, child in children:
         if isinstance(child, nn.BatchNorm2d):
-            bnfold_conv = bn_fuse(child_temp, child) # BN融合
-            model._modules[name_temp] = bnfold_conv
+            bn_fused_conv = bn_fuse(child_temp, child) # BN融合
+            model._modules[name_temp] = bn_fused_conv
             model._modules[name] = DummyModule()
             child_temp = None
         elif isinstance(child, nn.Conv2d):
@@ -149,11 +149,11 @@ if __name__=='__main__':
     for i in range(0, epochs):
         p = torch.rand([1, 3, 32, 32])
         out = softmax(quan_model(p))                       # 量化模型测试
-        out_bn_fuse = softmax(quan_bn_fused_model(p)) # 量化融合模型测试
-        #print(out_bn_fuse)
-        if(out.argmax() == out_bn_fuse.argmax()):
+        out_bn_fused = softmax(quan_bn_fused_model(p)) # 量化融合模型测试
+        #print(out_bn_fused)
+        if(out.argmax() == out_bn_fused.argmax()):
             f += 1
     print('The last result:')
     print('quan_model_output:', out)
-    print('quan_bn_fused_model_output:', out_bn_fuse)
+    print('quan_bn_fused_model_output:', out_bn_fused)
     print("bn_fuse_success_rate: {:.2f}%".format((f / epochs) * 100))
