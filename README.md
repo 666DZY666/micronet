@@ -52,9 +52,9 @@ Model-Compression-Deploy
 │   └── quantization
 │       ├── README.md
 │       ├── WbWtAb
-│       │   ├── bn_folding
-│       │   │   ├── bn_folding.py
-│       │   │   ├── bn_folding_model_test.py
+│       │   ├── bn_fuse
+│       │   │   ├── bn_fuse.py
+│       │   │   ├── bn_fused_model_test.py
 │       │   │   ├── models_save
 │       │   │   │   └── models_save.txt
 │       │   │   ├── nin_gc_inference.py
@@ -88,18 +88,21 @@ Model-Compression-Deploy
 │               │   └── util_wqaq.py
 │               └── models_save
 │                   └── models_save.txt
-└── deploy
-    ├── README.md
-    └── tensorrt
-        ├── README.md
-        ├── calibrator.py
-        ├── eval_trt.py
-        ├── models
-        │   └── models_trt.py
-        ├── models_save
-        │   └── calibration_seg.cache
-        ├── test_trt.py
-        └── util_trt.py
+├── deploy
+│   ├── README.md
+│   └── tensorrt
+│       ├── README.md
+│       ├── calibrator.py
+│       ├── eval_trt.py
+│       ├── models
+│       │   └── models_trt.py
+│       ├── models_save
+│       │   └── calibration_seg.cache
+│       ├── test_trt.py
+│       └── util_trt.py
+└── readme_imgs
+    ├── code_structure.jpg
+    └── model-compression-deploy.xmind
 ```
 
 ## 项目进展
