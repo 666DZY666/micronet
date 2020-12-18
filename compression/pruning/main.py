@@ -180,11 +180,11 @@ if __name__=='__main__':
         best_acc = 0
     else:
         print('******Initializing model******')
-        model = nin.Net()
-        #model = nin_gc.Net()
+        model = nin.Net(quant_type=args.quant_type)
+        #model = nin_gc.Net(quant_type=args.quant_type)
         '''
         cfg = []   #gc_prune —— cfg
-        model = nin_gc.Net(cfg=cfg)
+        model = nin_gc.Net(cfg=cfg, quant_type=args.quant_type)
         '''
         best_acc = 0
         for m in model.modules():

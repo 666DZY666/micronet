@@ -17,11 +17,12 @@ def channel_shuffle(x, groups):
 
 class ConvBNReLU(nn.Module):
     def __init__(self, input_channels, output_channels,
-            kernel_size=-1, stride=-1, padding=-1, dropout=0, groups=1, channel_shuffle=0, shuffle_groups=1, quant_type=0):
+            kernel_size=-1, stride=-1, padding=-1, groups=1, channel_shuffle=0, shuffle_groups=1, quant_type=0, first_relu=0):
         super(ConvBNReLU, self).__init__()
         self.channel_shuffle_flag = channel_shuffle
         self.shuffle_groups = shuffle_groups
-        self.quant_type = quant_type 
+        self.quant_type = quant_type
+        self.first_relu = first_relu
         if self.quant_type == 0:
             self.tnn_bin_conv = nn.Conv2d(input_channels, output_channels,
                     kernel_size=kernel_size, stride=stride, padding=padding, groups=groups)
@@ -32,6 +33,8 @@ class ConvBNReLU(nn.Module):
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
+        if self.first_relu == 1:
+            x = self.relu(x)
         if self.channel_shuffle_flag:
             x = channel_shuffle(x, groups=self.shuffle_groups)
         if self.quant_type == 0:
@@ -52,17 +55,17 @@ class Net(nn.Module):
             self.tnn_bin_model = nn.Sequential(
                     nn.Conv2d(3, cfg[0], kernel_size=5, stride=1, padding=2),
                     nn.BatchNorm2d(cfg[0]),
-                    ConvBNReLU(cfg[0], cfg[1], kernel_size=1, stride=1, padding=0, groups=2, channel_shuffle=0),
-                    ConvBNReLU(cfg[1], cfg[2], kernel_size=1, stride=1, padding=0, groups=2, channel_shuffle=1, shuffle_groups=2, bin_mp=1),
+                    ConvBNReLU(cfg[0], cfg[1], kernel_size=1, stride=1, padding=0, groups=2, channel_shuffle=0, first_relu=1, quant_type=quant_type),
+                    ConvBNReLU(cfg[1], cfg[2], kernel_size=1, stride=1, padding=0, groups=2, channel_shuffle=1, shuffle_groups=2, quant_type=quant_type),
                     nn.MaxPool2d(kernel_size=2, stride=2, padding=0),
 
-                    ConvBNReLU(cfg[2], cfg[3], kernel_size=3, stride=1, padding=1, groups=16, channel_shuffle=1, shuffle_groups=2, bin_nor=0),
-                    ConvBNReLU(cfg[3], cfg[4], kernel_size=1, stride=1, padding=0, groups=4, channel_shuffle=1, shuffle_groups=16),
-                    ConvBNReLU(cfg[4], cfg[5], kernel_size=1, stride=1, padding=0, groups=4, channel_shuffle=1, shuffle_groups=4, bin_mp=1),
+                    ConvBNReLU(cfg[2], cfg[3], kernel_size=3, stride=1, padding=1, groups=16, channel_shuffle=1, shuffle_groups=2, quant_type=quant_type),
+                    ConvBNReLU(cfg[3], cfg[4], kernel_size=1, stride=1, padding=0, groups=4, channel_shuffle=1, shuffle_groups=16, quant_type=quant_type),
+                    ConvBNReLU(cfg[4], cfg[5], kernel_size=1, stride=1, padding=0, groups=4, channel_shuffle=1, shuffle_groups=4, quant_type=quant_type),
                     nn.MaxPool2d(kernel_size=2, stride=2, padding=0),
 
-                    ConvBNReLU(cfg[5], cfg[6], kernel_size=3, stride=1, padding=1, groups=32, channel_shuffle=1, shuffle_groups=4, bin_nor=0),
-                    ConvBNReLU(cfg[6], cfg[7], kernel_size=1, stride=1, padding=0, groups=8, channel_shuffle=1, shuffle_groups=32),
+                    ConvBNReLU(cfg[5], cfg[6], kernel_size=3, stride=1, padding=1, groups=32, channel_shuffle=1, shuffle_groups=4, quant_type=quant_type),
+                    ConvBNReLU(cfg[6], cfg[7], kernel_size=1, stride=1, padding=0, groups=8, channel_shuffle=1, shuffle_groups=32, quant_type=quant_type),
                     nn.Conv2d(cfg[7],  10, kernel_size=1, stride=1, padding=0),
                     nn.BatchNorm2d(10),
                     nn.ReLU(inplace=True),
@@ -91,5 +94,5 @@ class Net(nn.Module):
             x = self.tnn_bin_model(x)
         elif self.quant_type == 1:
             x = self.quant_model(x)
-        x = x.view(x.size(0), 10)
+        x = x.view(x.size(0), -1)
         return x

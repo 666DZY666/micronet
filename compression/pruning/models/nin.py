@@ -2,78 +2,80 @@ import torch.nn as nn
 import torch
 import torch.nn.functional as F
 
-class FP_Conv2d(nn.Module):
+class ConvBNReLU(nn.Module):
     def __init__(self, input_channels, output_channels,
-            kernel_size=-1, stride=-1, padding=-1, dropout=0, groups=1, channel_shuffle=0, shuffle_groups=1, last=0, first=0):
-        super(FP_Conv2d, self).__init__()
-        self.dropout_ratio = dropout
-        self.last = last
-        self.first_flag = first
-        if dropout!=0:
-            self.dropout = nn.Dropout(dropout)
-        self.conv = nn.Conv2d(input_channels, output_channels,
-                kernel_size=kernel_size, stride=stride, padding=padding, groups=groups)
+            kernel_size=-1, stride=-1, padding=-1, quant_type=0, first_relu=0):
+        super(ConvBNReLU, self).__init__()
+        self.quant_type = quant_type
+        self.first_relu = first_relu
+        if self.quant_type == 0:
+            self.tnn_bin_conv = nn.Conv2d(input_channels, output_channels,
+                    kernel_size=kernel_size, stride=stride, padding=padding, groups=groups)
+        elif self.quant_type == 1:
+            self.quant_conv = nn.Conv2d(input_channels, output_channels,
+                    kernel_size=kernel_size, stride=stride, padding=padding, groups=groups)
         self.bn = nn.BatchNorm2d(output_channels)
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
-        if self.first_flag:
+        if self.first_relu == 1:
             x = self.relu(x)
-        if self.dropout_ratio!=0:
-            x = self.dropout(x)
-        x = self.conv(x)
+        if self.quant_type == 0:
+            x = self.tnn_bin_conv(x)
+        elif self.quant_type == 1:
+            x = self.quant_conv(x)
         x = self.bn(x)
         x = self.relu(x)
         return x
 
 class Net(nn.Module):
-    def __init__(self, cfg = None):
+    def __init__(self, cfg=None, quant_type=0):
         super(Net, self).__init__()
         if cfg is None:
             cfg = [192, 160, 96, 192, 192, 192, 192, 192]
-        
-        self.tnn_bin = nn.Sequential(
-                nn.Conv2d(3, cfg[0], kernel_size=5, stride=1, padding=2),
-                nn.BatchNorm2d(cfg[0]),
-                FP_Conv2d(cfg[0], cfg[1], kernel_size=1, stride=1, padding=0, first=1),
-                FP_Conv2d(cfg[1], cfg[2], kernel_size=1, stride=1, padding=0),
-                nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+        self.quant_type = quant_type 
+        if self.quant_type == 0:
+            self.tnn_bin_model = nn.Sequential(
+                    nn.Conv2d(3, cfg[0], kernel_size=5, stride=1, padding=2),
+                    nn.BatchNorm2d(cfg[0]),
+                    ConvBNReLU(cfg[0], cfg[1], kernel_size=1, stride=1, padding=0, first_relu=1, quant_type=quant_type),
+                    ConvBNReLU(cfg[1], cfg[2], kernel_size=1, stride=1, padding=0, quant_type=quant_type),
+                    nn.MaxPool2d(kernel_size=2, stride=2, padding=0),
 
-                FP_Conv2d(cfg[2], cfg[3], kernel_size=5, stride=1, padding=2),
-                FP_Conv2d(cfg[3], cfg[4], kernel_size=1, stride=1, padding=0),
-                FP_Conv2d(cfg[4], cfg[5], kernel_size=1, stride=1, padding=0),
-                nn.AvgPool2d(kernel_size=3, stride=2, padding=1),
+                    ConvBNReLU(cfg[2], cfg[3], kernel_size=3, stride=1, padding=1, quant_type=quant_type),
+                    ConvBNReLU(cfg[3], cfg[4], kernel_size=1, stride=1, padding=0, quant_type=quant_type),
+                    ConvBNReLU(cfg[4], cfg[5], kernel_size=1, stride=1, padding=0, quant_type=quant_type),
+                    nn.MaxPool2d(kernel_size=2, stride=2, padding=0),
 
-                FP_Conv2d(cfg[5], cfg[6], kernel_size=3, stride=1, padding=1),
-                FP_Conv2d(cfg[6], cfg[7], kernel_size=1, stride=1, padding=0),
-                nn.Conv2d(cfg[7],  10, kernel_size=1, stride=1, padding=0),
-                nn.BatchNorm2d(10),
-                nn.ReLU(inplace=True),
-                nn.AvgPool2d(kernel_size=8, stride=1, padding=0),
-                )
-        '''
-        self.dorefa = nn.Sequential(
-                nn.Conv2d(3, cfg[0], kernel_size=5, stride=1, padding=2),
-                nn.BatchNorm2d(cfg[0]),
-                FP_Conv2d(cfg[0], cfg[1], kernel_size=1, stride=1, padding=0, first=1),
-                FP_Conv2d(cfg[1], cfg[2], kernel_size=1, stride=1, padding=0),
-                nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+                    ConvBNReLU(cfg[5], cfg[6], kernel_size=3, stride=1, padding=1, quant_type=quant_type),
+                    ConvBNReLU(cfg[6], cfg[7], kernel_size=1, stride=1, padding=0, quant_type=quant_type),
+                    nn.Conv2d(cfg[7],  10, kernel_size=1, stride=1, padding=0),
+                    nn.BatchNorm2d(10),
+                    nn.ReLU(inplace=True),
+                    nn.AvgPool2d(kernel_size=8, stride=1, padding=0),
+                    )
+        elif self.quant_type == 1:
+            self.quant_model = nn.Sequential(
+                    ConvBNReLU(3, cfg[0], kernel_size=5, stride=1, padding=2, quant_type=quant_type),
+                    ConvBNReLU(cfg[0], cfg[1], kernel_size=1, stride=1, padding=0, quant_type=quant_type),
+                    ConvBNReLU(cfg[1], cfg[2], kernel_size=1, stride=1, padding=0, quant_type=quant_type),
+                    nn.MaxPool2d(kernel_size=2, stride=2, padding=0),
 
-                FP_Conv2d(cfg[2], cfg[3], kernel_size=5, stride=1, padding=2),
-                FP_Conv2d(cfg[3], cfg[4], kernel_size=1, stride=1, padding=0),
-                FP_Conv2d(cfg[4], cfg[5], kernel_size=1, stride=1, padding=0),
-                nn.AvgPool2d(kernel_size=3, stride=2, padding=1),
+                    ConvBNReLU(cfg[2], cfg[3], kernel_size=3, stride=1, padding=1, quant_type=quant_type),
+                    ConvBNReLU(cfg[3], cfg[4], kernel_size=1, stride=1, padding=0, quant_type=quant_type),
+                    ConvBNReLU(cfg[4], cfg[5], kernel_size=1, stride=1, padding=0, quant_type=quant_type),
+                    nn.MaxPool2d(kernel_size=2, stride=2, padding=0),
 
-                FP_Conv2d(cfg[5], cfg[6], kernel_size=3, stride=1, padding=1),
-                FP_Conv2d(cfg[6], cfg[7], kernel_size=1, stride=1, padding=0),
-                nn.Conv2d(cfg[7],  10, kernel_size=1, stride=1, padding=0),
-                nn.BatchNorm2d(10),
-                nn.ReLU(inplace=True),
-                nn.AvgPool2d(kernel_size=8, stride=1, padding=0),
-                )
-        '''
+                    ConvBNReLU(cfg[5], cfg[6], kernel_size=3, stride=1, padding=1, quant_type=quant_type),
+                    ConvBNReLU(cfg[6], cfg[7], kernel_size=1, stride=1, padding=0, quant_type=quant_type),
+                    ConvBNReLU(cfg[7],  10, kernel_size=1, stride=1, padding=0, quant_type=quant_type),
+                    nn.AvgPool2d(kernel_size=8, stride=1, padding=0),
+                    )
+
     def forward(self, x):
-        x = self.tnn_bin(x)
-        #x = self.dorefa(x)
-        x = x.view(x.size(0), 10)
+        if self.quant_type == 0:
+            x = self.tnn_bin_model(x)
+        elif self.quant_type == 1:
+            x = self.quant_model(x)
+        x = x.view(x.size(0), -1)
         return x

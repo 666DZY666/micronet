@@ -137,11 +137,11 @@ Model-Compression-Deploy
 
 ## 使用
 
-```
+```shell
 git clone https://github.com/666DZY666/Model-Compression-Deploy.git
 ```
 
-```
+```shell
 cd Model-Compression-Deploy
 ```
 
@@ -153,31 +153,31 @@ cd Model-Compression-Deploy
 
 --W --A, 权重W和特征A量化取值
 
-```
+```shell
 cd compression/quantization/WbWtAb
 ```
 
 - WbAb
 
-```
+```shell
 python main.py --W 2 --A 2
 ```
 
 - WbA32
 
-```
+```shell
 python main.py --W 2 --A 32
 ```
 
 - WtAb
 
-```
+```shell
 python main.py --W 3 --A 2
 ```
 
 - WtA32
 
-```
+```shell
 python main.py --W 3 --A 32
 ```
 
@@ -187,25 +187,25 @@ python main.py --W 3 --A 32
 
 ###### dorefa
 
-```
+```shell
 cd compression/quantization/WqAq/dorefa  
 ```
 
 - W16A16
 
-```
+```shell
 python main.py --Wbits 16 --Abits 16
 ```
 
 - W8A8
 
-```
+```shell
 python main.py --Wbits 8 --Abits 8
 ```
 
 - W4A4
 
-```
+```shell
 python main.py --Wbits 4 --Abits 4
 ```
 
@@ -213,7 +213,7 @@ python main.py --Wbits 4 --Abits 4
 
 ###### IAO
 
-```
+```shell
 cd compression/quantization/WqAq/IAO
 ```
 
@@ -223,13 +223,13 @@ cd compression/quantization/WqAq/IAO
 
 - 对称量化, bn不融合
 
-```
+```shell
 python main.py --q_type 0 --bn_fuse 0
 ```
 
 - 非对称量化, bn融合
 
-```
+```shell
 python main.py --q_type 1 --bn_fuse 1
 ```
 
@@ -239,13 +239,13 @@ python main.py --q_type 1 --bn_fuse 1
 
 *稀疏训练  —>  剪枝  —>  微调*
 
-```
+```shell
 cd compression/pruning
 ```
 
 ##### 正常训练
 
-```
+```shell
 python main.py
 ```
 
@@ -255,13 +255,13 @@ python main.py
 
 - nin(正常卷积结构)
 
-```
+```shell
 python main.py -sr --s 0.0001
 ```
 
 - nin_gc(含分组卷积结构)
 
-```
+```shell
 python main.py -sr --s 0.001
 ```
 
@@ -271,25 +271,25 @@ python main.py -sr --s 0.001
 
 - 正常剪枝
 
-```
+```shell
 python normal_regular_prune.py --percent 0.5 --model models_save/nin_preprune.pth --save models_save/nin_prune.pth
 ```
 
 - 规整剪枝
 
-```
+```shell
 python normal_regular_prune.py --percent 0.5 --normal_regular 8 --model models_save/nin_preprune.pth --save models_save/nin_prune.pth
 ```
 
 或
 
-```
+```shell
 python normal_regular_prune.py --percent 0.5 --normal_regular 16 --model models_save/nin_preprune.pth --save models_save/nin_prune.pth
 ```
 
 - 分组卷积结构剪枝
 
-```
+```shell
 python gc_prune.py --percent 0.4 --model models_save/nin_gc_preprune.pth
 ```
 
@@ -297,7 +297,7 @@ python gc_prune.py --percent 0.4 --model models_save/nin_gc_preprune.pth
 
 --refine 剪枝后的model路径（在其基础上做微调）
 
-```
+```shell
 python main.py --refine models_save/nin_prune.pth
 ```
 
@@ -307,13 +307,13 @@ python main.py --refine models_save/nin_prune.pth
 
 ##### 剪枝 —> 量化（16/8/4/2 bits）（剪枝率偏大、量化率偏小）
 
-```
+```shell
 cd compression/quantization/WqAq/dorefa 
 ```
 
 或 
 
-```
+```shell
 cd compression/quantization/WqAq/IAO
 ```
 
@@ -321,13 +321,13 @@ cd compression/quantization/WqAq/IAO
 
 - nin(正常卷积结构)
 
-```
+```shell
 python main.py --Wbits 8 --Abits 8 --refine ../../../prune/models_save/nin_refine.pth
 ```
 
 - nin_gc(含分组卷积结构)
 
-```
+```shell
 python main.py --Wbits 8 --Abits 8 --refine ../../../prune/models_save/nin_gc_refine.pth
 ```
 
@@ -335,7 +335,7 @@ python main.py --Wbits 8 --Abits 8 --refine ../../../prune/models_save/nin_gc_re
 
 ##### 剪枝 —> 量化（三/二值）（剪枝率偏小、量化率偏大）
 
-```
+```shell
 cd compression/quantization/WbWtAb
 ```
 
@@ -343,13 +343,13 @@ cd compression/quantization/WbWtAb
 
 - nin(正常卷积结构)
 
-```
+```shell
 python main.py --W 2 --A 2 --refine ../../prune/models_save/nin_refine.pth
 ```
 
 - nin_gc(含分组卷积结构)
 
-```
+```shell
 python main.py --W 2 --A 2 --refine ../../prune/models_save/nin_gc_refine.pth
 ```
 
@@ -357,7 +357,7 @@ python main.py --W 2 --A 2 --refine ../../prune/models_save/nin_gc_refine.pth
 
 #### BN融合
 
-```
+```shell
 cd compression/quantization/WbWtAb/bn_fuse
 ```
 
@@ -367,19 +367,19 @@ cd compression/quantization/WbWtAb/bn_fuse
 
 - Wb
   
-```
+```shell
 python bn_fuse.py --W 2
 ```
 
 - Wt
 
-```
+```shell
 python bn_fuse.py --W 3
 ```
 
 ##### 融合前后model对比测试
 
-```
+```shell
 python bn_fused_model_test.py
 ```
 
@@ -391,31 +391,31 @@ python bn_fused_model_test.py
 
 - cpu
 
-```
+```shell
 python main.py --cpu
 ```
 
 - gpu单卡
 
-```
+```shell
 python main.py --gpu_id 0
 ```
 
 或
 
-```
+```shell
 python main.py --gpu_id 1
 ```
 
 - gpu多卡
 
-```
+```shell
 python main.py --gpu_id 0,1
 ```
 
 或
 
-```
+```shell
 python main.py --gpu_id 0,1,2
 ```
 
@@ -431,6 +431,56 @@ python main.py --gpu_id 0,1,2
 ##### 相关解读
 - [tensorrt-基础](https://zhuanlan.zhihu.com/p/336256668)
 - [tensorrt-op/dynamic_shape](https://zhuanlan.zhihu.com/p/335829625)
+
+
+### 迁移
+
+#### 量化
+
+*A model can be quantized(any-bit、ternary/binary) by simply replacing ***op*** with ***quant_op***. For example, replacing ***nn.ConvNd*** and ***nn.Linear*** with ***QuantConvNd*** and ***QuantLinear***.*
+
+*LeNet example*
+
+```python
+import torch.nn as nn
+import torch.nn.functional as F
+
+from util_wxtx import QuantConv2d, QuantLinear # util_wxtx is quant_module, QuantConv2d and QuantLinear are quant_op
+
+class LeNet(nn.Module):
+    def __init__(self):
+        super(LeNet, self).__init__()
+        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
+        self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
+        self.fc1 = nn.Linear(320, 50)
+        self.fc2 = nn.Linear(50, 10)
+
+    def forward(self, x):
+        x = F.relu(F.max_pool2d(self.conv1(x), 2))
+        x = F.relu(F.max_pool2d(self.conv2(x), 2))
+        x = x.view(-1, 320)
+        x = F.relu(self.fc1(x))
+        x = F.dropout(x, training=self.training)
+        x = self.fc2(x)
+        return F.log_softmax(x, dim=1)
+
+class QuantLeNet(nn.Module):
+    def __init__(self):
+        super(QuantLeNet, self).__init__()
+        self.conv1 = QuantConv2d(1, 10, kernel_size=5)
+        self.conv2 = QuantConv2d(10, 20, kernel_size=5)
+        self.fc1 = QuantLinear(320, 50)
+        self.fc2 = QuantLinear(50, 10)
+
+    def forward(self, x):
+        x = F.relu(F.max_pool2d(self.conv1(x), 2))
+        x = F.relu(F.max_pool2d(self.conv2(x), 2))
+        x = x.view(-1, 320)
+        x = F.relu(self.fc1(x))
+        x = F.dropout(x, training=self.training)
+        x = self.fc2(x)
+        return F.log_softmax(x, dim=1)
+```
 
 
 ## 模型压缩数据对比（仅供参考）

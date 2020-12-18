@@ -9,24 +9,27 @@ import numpy as np
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data', action='store', default='../../data',
-                    help='dataset path')
+        help='dataset path')
 parser.add_argument('--cpu', action='store_true',
-                    help='disables CUDA training')
+        help='disables CUDA training')
 # percent(剪枝率)
 parser.add_argument('--percent', type=float, default=0.5,
-                    help='nin:0.5')
+        help='nin:0.5')
 # 正常|规整剪枝标志
 parser.add_argument('--normal_regular', type=int, default=1,
-                    help='--normal_regular_flag (default: normal)')
+        help='--normal_regular_flag (default: normal)')
 # model层数
 parser.add_argument('--layers', type=int, default=9,
-                    help='layers (default: 9)')
+        help='layers (default: 9)')
 # 稀疏训练后的model
 parser.add_argument('--model', default='models_save/nin_preprune.pth', type=str, metavar='PATH',
-                    help='path to raw trained model (default: none)')
+        help='path to raw trained model (default: none)')
 # 剪枝后保存的model
 parser.add_argument('--save', default='models_save/nin_prune.pth', type=str, metavar='PATH',
-                    help='path to save prune model (default: none)')
+        help='path to save prune model (default: none)')
+# 后续量化类型选择(三/二值、高位)
+parser.add_argument('--quant_type', type=int, default=0,
+        help='quant_type:0-tnn_bin_model, 1-quant_model')
 args = parser.parse_args()
 base_number = args.normal_regular
 layers = args.layers
@@ -36,7 +39,7 @@ if base_number <= 0:
     print('\r\n!base_number is error!\r\n')
     base_number = 1
 
-model = nin.Net()
+model = nin.Net(quant_type=args.quant_type)
 if args.model:
     if os.path.isfile(args.model):
         print("=> loading checkpoint '{}'".format(args.model))
@@ -145,7 +148,7 @@ if not args.cpu:
 test()
 
 #********************************剪枝*********************************
-newmodel = nin.Net(cfg)
+newmodel = nin.Net(cfg, quant_type=args.quant_type)
 if not args.cpu:
     newmodel.cuda()
 layer_id_in_cfg = 0
@@ -190,10 +193,10 @@ for [m0, m1] in zip(model.modules(), newmodel.modules()):
             m1.weight.data = m0.weight.data[:, idx0, :, :].clone()
             m1.bias.data = m0.bias.data.clone()
     elif isinstance(m0, nn.Linear):
-            idx0 = np.squeeze(np.argwhere(np.asarray(start_mask.cpu().numpy())))
-            if idx0.size == 1:
-                idx0 = np.resize(idx0, (1,))
-            m1.weight.data = m0.weight.data[:, idx0].clone()
+        idx0 = np.squeeze(np.argwhere(np.asarray(start_mask.cpu().numpy())))
+        if idx0.size == 1:
+            idx0 = np.resize(idx0, (1,))
+        m1.weight.data = m0.weight.data[:, idx0].clone()
 #******************************剪枝后model测试*********************************
 print('新模型: ', newmodel)
 print('**********剪枝后新模型测试*********')
