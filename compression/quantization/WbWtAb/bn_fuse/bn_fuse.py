@@ -137,7 +137,7 @@ if __name__=='__main__':
     np.savetxt('models_save/quan_bn_fused_model_para.txt', [model_para_array], fmt = '%s', delimiter=',')
     print("************* BN_fuse-完成 **************")
 
-    # *********************** 转换预测试(dataset测试在bn_fuse_test_model.py中进行) *************************
+    # *********************** 转换预测试(dataset测试在bn_fused_model_test.py中进行) *************************
     quan_model = nin_gc_inference.Net()
     quan_model.load_state_dict(torch.load('models_save/quan_model_para.pth'))    # 加载量化模型
     quan_model.eval()
