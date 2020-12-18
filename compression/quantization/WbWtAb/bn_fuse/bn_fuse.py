@@ -1,11 +1,12 @@
 import sys
+sys.path.append("..")
 import numpy as np
 import argparse
 import torch
 import torch.nn as nn
 import nin_gc_inference
 import nin_gc_training
-from util_wt_bab import weight_tnn_bin, Conv2d_Q
+from util_wbwtab import WeightTnnBin, QuantConv2d
 
 # ******************** 是否保存模型完整参数 ********************
 #torch.set_printoptions(precision=8, edgeitems=sys.maxsize, linewidth=200, sci_mode=False)
@@ -89,7 +90,7 @@ if __name__=='__main__':
     args = parser.parse_args()
     print('==> Options:',args)
 
-    weight_quantizer = weight_tnn_bin(W=args.W)  # 实例化W量化器
+    weight_quantizer = WeightTnnBin(W=args.W)  # 实例化W量化器
 
     print("************* 参数量化表示 + BN_fuse —— Beginning **************")
     # ********************** 模型加载 ************************
@@ -112,7 +113,7 @@ if __name__=='__main__':
     for m in model_0.modules():
         if isinstance(m, nn.BatchNorm2d):
             bn_fuse_num += 1
-        if isinstance(m, Conv2d_Q):
+        if isinstance(m, QuantConv2d):
             m.weight.data = weight_quantizer(m.weight)  # W量化表示
             bn_fuse_range.append(bn_fuse_num)     # 统计可以进行“针对特征(A)二值的BN融合”的BN层位置
     bn_fuse_range_min = bn_fuse_range[0]

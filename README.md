@@ -36,8 +36,6 @@ Model-Compression-Deploy
 ├── README.md
 ├── compression
 │   ├── README.md
-│   ├── data
-│   │   └── data.txt
 │   ├── pruning
 │   │   ├── README.md
 │   │   ├── gc_prune.py
@@ -58,36 +56,37 @@ Model-Compression-Deploy
 │       │   │   ├── models_save
 │       │   │   │   └── models_save.txt
 │       │   │   ├── nin_gc_inference.py
-│       │   │   ├── nin_gc_training.py
-│       │   │   └── util_wt_bab.py
+│       │   │   └── nin_gc_training.py
 │       │   ├── main.py
 │       │   ├── models
 │       │   │   ├── __init__.py
 │       │   │   ├── nin.py
 │       │   │   ├── nin_bn_conv.py
-│       │   │   ├── nin_gc.py
-│       │   │   └── util_wbwtab.py
-│       │   └── models_save
-│       │       └── models_save.txt
+│       │   │   └── nin_gc.py
+│       │   ├── models_save
+│       │   │   └── models_save.txt
+│       │   └── util_wbwtab.py
 │       └── WqAq
 │           ├── IAO
 │           │   ├── main.py
 │           │   ├── models
 │           │   │   ├── __init__.py
 │           │   │   ├── nin.py
-│           │   │   ├── nin_gc.py
-│           │   │   └── util_wqaq.py
-│           │   └── models_save
-│           │       └── models_save.txt
+│           │   │   └── nin_gc.py
+│           │   ├── models_save
+│           │   │   └── models_save.txt
+│           │   └── util_wqaq.py
 │           └── dorefa
 │               ├── main.py
 │               ├── models
 │               │   ├── __init__.py
 │               │   ├── nin.py
-│               │   ├── nin_gc.py
-│               │   └── util_wqaq.py
-│               └── models_save
-│                   └── models_save.txt
+│               │   └── nin_gc.py
+│               ├── models_save
+│               │   └── models_save.txt
+│               └── util_wqaq.py
+├── data
+│   └── data.txt
 ├── deploy
 │   ├── README.md
 │   └── tensorrt
@@ -359,7 +358,7 @@ python main.py --W 2 --A 2 --refine ../../prune/models_save/nin_gc_refine.pth
 #### BN融合
 
 ```
-cd compression/quantization/WbWtAb/bn_folding
+cd compression/quantization/WbWtAb/bn_fuse
 ```
 
 --W 权重W量化取值(据量化训练时W量化取值(FP32/三值/二值)情况对应选择)
@@ -369,19 +368,19 @@ cd compression/quantization/WbWtAb/bn_folding
 - Wb
   
 ```
-python bn_folding.py --W 2
+python bn_fuse.py --W 2
 ```
 
 - Wt
 
 ```
-python bn_folding.py --W 3
+python bn_fuse.py --W 3
 ```
 
 ##### 融合前后model对比测试
 
 ```
-python bn_folding_model_test.py
+python bn_fused_model_test.py
 ```
 
 #### 设备选取

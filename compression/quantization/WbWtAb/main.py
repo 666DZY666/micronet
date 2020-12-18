@@ -119,7 +119,7 @@ if __name__=='__main__':
     parser.add_argument('--gpu_id', action='store', default='',
             help='gpu_id')
     # dataset
-    parser.add_argument('--data', action='store', default='../../data',
+    parser.add_argument('--data', action='store', default='../../../data',
             help='dataset path')
     # lr
     parser.add_argument('--lr', action='store', default=0.01,
