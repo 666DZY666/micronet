@@ -177,7 +177,11 @@ if __name__=='__main__':
             model = nin.Net(cfg=checkpoint['cfg'], abits=args.Abits, wbits=args.Wbits, bn_fuse=args.bn_fuse, q_type=args.q_type)
         else:
             model = nin_gc.Net(cfg=checkpoint['cfg'], abits=args.Abits, wbits=args.Wbits, bn_fuse=args.bn_fuse, q_type=args.q_type)
-        model.load_state_dict(checkpoint['state_dict'])
+        model_dict = model.state_dict()
+        update_state_dict = {k:v for k,v in checkpoint['state_dict'].items() if k in model_dict.keys()}  
+        model_dict.update(update_state_dict)
+        print('fp32_model weight load successfully')
+        model.load_state_dict(model_dict)
         best_acc = 0
     else:
         print('******Initializing model******')

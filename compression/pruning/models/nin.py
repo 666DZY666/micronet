@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 class ConvBNReLU(nn.Module):
     def __init__(self, input_channels, output_channels,
-            kernel_size=-1, stride=-1, padding=-1, quant_type=0, first_relu=0):
+            kernel_size=-1, stride=-1, padding=-1, groups=1, quant_type=0, first_relu=0):
         super(ConvBNReLU, self).__init__()
         self.quant_type = quant_type
         self.first_relu = first_relu
@@ -40,12 +40,12 @@ class Net(nn.Module):
                     nn.BatchNorm2d(cfg[0]),
                     ConvBNReLU(cfg[0], cfg[1], kernel_size=1, stride=1, padding=0, first_relu=1, quant_type=quant_type),
                     ConvBNReLU(cfg[1], cfg[2], kernel_size=1, stride=1, padding=0, quant_type=quant_type),
-                    nn.MaxPool2d(kernel_size=2, stride=2, padding=0),
+                    nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
 
-                    ConvBNReLU(cfg[2], cfg[3], kernel_size=3, stride=1, padding=1, quant_type=quant_type),
+                    ConvBNReLU(cfg[2], cfg[3], kernel_size=5, stride=1, padding=2, quant_type=quant_type),
                     ConvBNReLU(cfg[3], cfg[4], kernel_size=1, stride=1, padding=0, quant_type=quant_type),
                     ConvBNReLU(cfg[4], cfg[5], kernel_size=1, stride=1, padding=0, quant_type=quant_type),
-                    nn.MaxPool2d(kernel_size=2, stride=2, padding=0),
+                    nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
 
                     ConvBNReLU(cfg[5], cfg[6], kernel_size=3, stride=1, padding=1, quant_type=quant_type),
                     ConvBNReLU(cfg[6], cfg[7], kernel_size=1, stride=1, padding=0, quant_type=quant_type),
@@ -59,12 +59,12 @@ class Net(nn.Module):
                     ConvBNReLU(3, cfg[0], kernel_size=5, stride=1, padding=2, quant_type=quant_type),
                     ConvBNReLU(cfg[0], cfg[1], kernel_size=1, stride=1, padding=0, quant_type=quant_type),
                     ConvBNReLU(cfg[1], cfg[2], kernel_size=1, stride=1, padding=0, quant_type=quant_type),
-                    nn.MaxPool2d(kernel_size=2, stride=2, padding=0),
+                    nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
 
-                    ConvBNReLU(cfg[2], cfg[3], kernel_size=3, stride=1, padding=1, quant_type=quant_type),
+                    ConvBNReLU(cfg[2], cfg[3], kernel_size=5, stride=1, padding=2, quant_type=quant_type),
                     ConvBNReLU(cfg[3], cfg[4], kernel_size=1, stride=1, padding=0, quant_type=quant_type),
                     ConvBNReLU(cfg[4], cfg[5], kernel_size=1, stride=1, padding=0, quant_type=quant_type),
-                    nn.MaxPool2d(kernel_size=2, stride=2, padding=0),
+                    nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
 
                     ConvBNReLU(cfg[5], cfg[6], kernel_size=3, stride=1, padding=1, quant_type=quant_type),
                     ConvBNReLU(cfg[6], cfg[7], kernel_size=1, stride=1, padding=0, quant_type=quant_type),

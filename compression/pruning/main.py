@@ -13,7 +13,7 @@ from torch.autograd import Variable
 import torchvision
 import torchvision.transforms as transforms
 from models import nin
-#from models import nin_gc
+from models import nin_gc
 import os
 
 def setup_seed(seed):
@@ -34,13 +34,21 @@ def save_state(model, best_acc):
         if 'module' in key:
             state['state_dict'][key.replace('module.', '')] = \
                     state['state_dict'].pop(key)
-    torch.save(state, 'models_save/nin.pth')
-    #torch.save(state, 'models_save/nin_gc.pth')
-    #torch.save(state, 'models_save/nin_preprune.pth')
-    #torch.save(state, 'models_save/nin_gc_preprune.pth')
-    #torch.save({'cfg': cfg, 'best_acc': best_acc, 'state_dict': state['state_dict']}, 'models_save/nin_refine.pth')
-    #torch.save({'cfg': cfg, 'best_acc': best_acc, 'state_dict': state['state_dict']}, 'models_save/nin_gc_refine.pth')
-    
+    if args.model_type == 0:
+        if args.sr:
+            torch.save(state, 'models_save/nin_sparse.pth')
+        elif args.refine:
+            torch.save({'cfg': cfg, 'best_acc': best_acc, 'state_dict': state['state_dict']}, 'models_save/nin_finetune.pth')
+        else:
+            torch.save(state, 'models_save/nin.pth')
+    else:
+        if args.sr:
+            torch.save(state, 'models_save/nin_gc_sparse.pth')
+        elif args.gc_refine:
+            torch.save({'cfg': cfg, 'best_acc': best_acc, 'state_dict': state['state_dict']}, 'models_save/nin_gc_retrain.pth')
+        else:
+            torch.save(state, 'models_save/nin_gc.pth')
+        
 #***********************稀疏训练（对BN层γ进行约束）**************************
 def updateBN():
     for m in model.modules():
@@ -142,6 +150,12 @@ if __name__=='__main__':
     # 后续量化类型选择(三/二值、高位)
     parser.add_argument('--quant_type', type=int, default=0,
             help='quant_type:0-tnn_bin_model, 1-quant_model')
+    # 模型结构选择
+    parser.add_argument('--model_type', type=int, default=1,
+            help='model type:0-nin,1-nin_gc')
+    # gc_refine的cfg
+    parser.add_argument('--gc_refine', nargs='+', type=int,
+            help='gc_refine-cfg')   
     args = parser.parse_args()
     print('==> Options:',args)
 
@@ -179,13 +193,18 @@ if __name__=='__main__':
         model.load_state_dict(checkpoint['state_dict'])
         best_acc = 0
     else:
-        print('******Initializing model******')
-        model = nin.Net(quant_type=args.quant_type)
-        #model = nin_gc.Net(quant_type=args.quant_type)
-        '''
-        cfg = []   #gc_prune —— cfg
-        model = nin_gc.Net(cfg=cfg, quant_type=args.quant_type)
-        '''
+        # nin_gc_retrain
+        if args.gc_refine:
+            print('******Refine model******')
+            cfg = args.gc_refine  
+            model = nin_gc.Net(cfg=cfg, quant_type=args.quant_type)
+        else:
+            print('******Initializing model******')
+            if args.model_type == 0:
+                model = nin.Net(quant_type=args.quant_type)
+            else:
+                model = nin_gc.Net(quant_type=args.quant_type)
+
         best_acc = 0
         for m in model.modules():
             if isinstance(m, nn.Conv2d):
@@ -197,8 +216,8 @@ if __name__=='__main__':
     if args.resume:
         print('******Reume model******')
         #pretrained_model = torch.load('models_save/nin.pth')
-        #pretrained_model = torch.load('models_save/nin_preprune.pth')
-        #pretrained_model = torch.load('models_save/nin_refine.pth')
+        #pretrained_model = torch.load('models_save/nin_sparse.pth')
+        #pretrained_model = torch.load('models_save/nin_finetune.pth')
         pretrained_model = torch.load(args.resume)
         best_acc = pretrained_model['best_acc']
         model.load_state_dict(pretrained_model['state_dict'])

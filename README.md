@@ -2,7 +2,6 @@
 
 *"目前在深度学习领域分类两个派别，一派为学院派，研究强大、复杂的模型网络和实验方法，为了追求更高的性能；另一派为工程派，旨在将算法更稳定、高效的落地在硬件平台上，效率是其追求的目标。复杂的模型固然具有更好的性能，但是高额的存储空间、计算资源消耗是使其难以有效的应用在各硬件平台上的重要原因。所以，深度神经网络日益增长的规模为深度学习在移动端的部署带来了巨大的挑战，深度学习模型压缩与部署成为了学术界和工业界都重点关注的研究领域之一"*
 
-
 ## 项目简介
 
 **模型压缩与部署**
@@ -18,6 +17,7 @@
 
 - tensorrt
 
+
 ## 目前提供
 
 - 普通卷积和分组卷积结构
@@ -26,6 +26,7 @@
 - 多种剪枝方式：正常、规整（比如model可剪枝为每层剩余filter个数为N(8,16等)的倍数）、分组卷积结构（剪枝后仍保证分组卷积结构）的通道剪枝
 - batch normalization融合及融合前后model对比测试：非量化普通BN融合（训练后，BN层参数 —> conv的权重w和偏置b）、针对特征(A)二值量化的BN融合（训练量化后，BN层参数 —> conv的偏置b)、任意位数(bits)量化的BN融合（训练量化中，先融合再量化）
 - tensorrt：fp32/fp16/int8(ptq-calibration)、op-adapt(upsample)、dynamic_shape等
+
 
 ## 代码结构
 
@@ -104,26 +105,30 @@ Model-Compression-Deploy
     └── model-compression-deploy.xmind
 ```
 
+
 ## 项目进展
-- **2019.12.4**，初次提交
-- **12.8**，任意位数特征(A)量化前先进行缩放(* 0.1)，然后再截断，以减小截断误差
-- **12.11**，增加项目代码结构图
-- 12.12，完善使用示例
-- 12.14，增加:1、BN融合量化情况(W三值/二值)可选，即训练量化时选择W三/二值，这里则对应选择；2、BN融合时对卷积核(conv)不带偏置(bias)的处理
-- **12.17**，增加模型压缩前后数据对比(示例)
-- 12.20，增加设备可选(cpu、gpu(单卡、多卡))
-- **12.27**，补充相关论文
-- 12.29，取消任意位数量化8bits以内的限制，即现在可以量化至10bits、16bits等
-- **2020.2.17**，1、精简W三值/二值量化代码；2、加速W三值量化训练
-- **2.18**，优化针对特征(A)二值的BN融合:去除对BN层gamma参数的限制，即现在此情况下融合时BN可正常训练
-- **2.24**，再次优化三/二值量化代码组织结构，增强可移植性，旧版确实不太好移植。目前移植方法：将想要量化的Conv用compression/quantization/WbWtAb/models/util_wbwtab.py中的QuantConv2d替换即可，可参照该路径下nin_gc.py中的使用方法
-- **3.1**，新增：1、google任意位数(bits)量化方法；2、任意位数量化的BN融合
-- **3.2、3.3**，规整量化代码整体结构，目前所有量化方法都可采取类似的移植方式：将想要量化的Conv(或FC，目前dorefa支持，其他方法类似可写)用models/util_wxax.py中的QuantConv2d(或QuantLinear)替换即可，可分别参照该路径下nin_gc.py中的使用方法进行移植（分类、检测、分割等均适用，但需要据实际情况具体调试）
-- **3.4**，规整优化WbWtAb/bn_fuse中“针对特征(A)二值的BN融合”的相关实现代码，可进行BN融合及融合前后模型对比测试(精度/速度/(大小))
-- 3.11，调整WqAq/IAO中的BN层momentum参数(0.1 —> 0.01),削弱batch统计参数占比,一定程度抑制量化带来的抖动。经实验,量化训练更稳定,acc提升1%左右
-- **3.13**，更新代码结构图
-- 4.6，修正二值量化训练中W_clip的相关问题(之前由于这个，导致二值量化训练精度上不去，现在已可正常使用)(同时修正无法找到一些模块如models/util_wxax.py的问题)
-- **12.14**，1、improve code structure；2、add deploy-tensorrt(main module, but not running yet)
+- **2019.12.4**, 初次提交
+- **12.8**, 任意位数特征(A)量化前先进行缩放(* 0.1)，然后再截断，以减小截断误差
+- **12.11**, 增加项目代码结构图
+- 12.12, 完善使用示例
+- 12.14, 增加:1、BN融合量化情况(W三值/二值)可选，即训练量化时选择W三/二值，这里则对应选择; 2、BN融合时对卷积核(conv)不带偏置(bias)的处理
+- **12.17**, 增加模型压缩前后数据对比(示例)
+- 12.20, 增加设备可选(cpu、gpu(单卡、多卡))
+- **12.27**, 补充相关论文
+- 12.29, 取消任意位数量化8bits以内的限制，即现在可以量化至10bits、16bits等
+- **2020.2.17**, 1、精简W三值/二值量化代码; 2、加速W三值量化训练
+- **2.18**, 优化针对特征(A)二值的BN融合:去除对BN层gamma参数的限制，即现在此情况下融合时BN可正常训练
+- **2.24**, 再次优化三/二值量化代码组织结构，增强可移植性，旧版确实不太好移植。目前移植方法：将想要量化的Conv用compression/quantization/WbWtAb/models/util_wbwtab.py中的QuantConv2d替换即可，可参照该路径下nin_gc.py中的使用方法
+- **3.1**, 新增：1、google任意位数(bits)量化方法; 2、任意位数量化的BN融合
+- **3.2、3.3**, 规整量化代码整体结构，目前所有量化方法都可采取类似的移植方式：将想要量化的Conv(或FC，目前dorefa支持，其他方法类似可写)用models/util_wxax.py中的QuantConv2d(或QuantLinear)替换即可，可分别参照该路径下nin_gc.py中的使用方法进行移植（分类、检测、分割等均适用，但需要据实际情况具体调试）
+- **3.4**, 规整优化WbWtAb/bn_fuse中“针对特征(A)二值的BN融合”的相关实现代码，可进行BN融合及融合前后模型对比测试(精度/速度/(大小))
+- 3.11, 调整WqAq/IAO中的BN层momentum参数(0.1 —> 0.01),削弱batch统计参数占比,一定程度抑制量化带来的抖动。经实验,量化训练更稳定,acc提升1%左右
+- **3.13**, 更新代码结构图
+- 4.6, 修正二值量化训练中W_clip的相关问题(之前由于这个，导致二值量化训练精度上不去，现在已可正常使用)(同时修正无法找到一些模块如models/util_wxax.py的问题)
+- **12.14**, 1、improve code structure; 2、add deploy-tensorrt(main module, but not running yet)
+- 12.18, 1、improve code structure/module reference/module_name; 2、add transfer-use demo
+- **12.21**, improve pruning-quantization's pipeline and code
+
 
 ## 环境要求
 
@@ -219,7 +224,7 @@ cd compression/quantization/WqAq/IAO
 
 *量化位数选择同dorefa*
 
---q_type, 量化类型; --bn_fuse, 量化中bn融合标志
+--q_type, 量化类型(0-对称, 1-非对称); --bn_fuse, 量化中bn融合标志(0-不融合, 1-融合)
 
 - 对称量化, bn不融合
 
@@ -243,62 +248,70 @@ python main.py --q_type 1 --bn_fuse 1
 cd compression/pruning
 ```
 
-##### 正常训练
-
-```shell
-python main.py
-```
+*可选: --quant_type 后续量化类型选择(0-三/二值, 1-高位), 默认为0*
 
 ##### 稀疏训练
 
--sr 稀疏标志, --s 稀疏率(需根据dataset、model情况具体调整)
+-sr 稀疏标志, --s 稀疏率(需根据dataset、model情况具体调整), --model_type 模型类型(0-nin, 1-nin_gc)
 
 - nin(正常卷积结构)
 
 ```shell
-python main.py -sr --s 0.0001
+python main.py -sr --s 0.0001 --model_type 0
 ```
 
 - nin_gc(含分组卷积结构)
 
 ```shell
-python main.py -sr --s 0.001
+python main.py -sr --s 0.001 --model_type 1
 ```
 
 ##### 剪枝
 
 --percent 剪枝率, --normal_regular 正常、规整剪枝标志及规整剪枝基数(如设置为N,则剪枝后模型每层filter个数即为N的倍数), --model 稀疏训练后的model路径, --save 剪枝后保存的model路径（路径默认已给出, 可据实际情况更改）
 
-- 正常剪枝
+- 正常剪枝(nin)
 
 ```shell
-python normal_regular_prune.py --percent 0.5 --model models_save/nin_preprune.pth --save models_save/nin_prune.pth
+python normal_regular_prune.py --percent 0.5 --model models_save/nin_sparse.pth --save models_save/nin_prune.pth
 ```
 
-- 规整剪枝
+- 规整剪枝(nin)
 
 ```shell
-python normal_regular_prune.py --percent 0.5 --normal_regular 8 --model models_save/nin_preprune.pth --save models_save/nin_prune.pth
+python normal_regular_prune.py --percent 0.5 --normal_regular 8 --model models_save/nin_sparse.pth --save models_save/nin_prune.pth
 ```
 
 或
 
 ```shell
-python normal_regular_prune.py --percent 0.5 --normal_regular 16 --model models_save/nin_preprune.pth --save models_save/nin_prune.pth
+python normal_regular_prune.py --percent 0.5 --normal_regular 16 --model models_save/nin_sparse.pth --save models_save/nin_prune.pth
 ```
 
-- 分组卷积结构剪枝
+- 分组卷积结构剪枝(nin_gc)
 
 ```shell
-python gc_prune.py --percent 0.4 --model models_save/nin_gc_preprune.pth
+python gc_prune.py --percent 0.4 --model models_save/nin_gc_sparse.pth
 ```
 
 ##### 微调
 
 --refine 剪枝后的model路径（在其基础上做微调）
 
+- nin
+
 ```shell
-python main.py --refine models_save/nin_prune.pth
+python main.py --model_type 0 --refine models_save/nin_prune.pth
+```
+
+- nin_gc
+
+*将**剪枝**后得到的新模型的**cfg**赋给main.py中‘Initializing model’部分的cfg*
+
+*如*
+
+```shell
+python main.py --model_type 1 --gc_refine 154 162 144 304 320 320 608 584
 ```
 
 #### 剪枝 —> 量化（注意剪枝率和量化率平衡）
@@ -306,6 +319,8 @@ python main.py --refine models_save/nin_prune.pth
 *剪枝完成后，加载保存的模型参数在其基础上再做量化*
 
 ##### 剪枝 —> 量化（16/8/4/2 bits）（剪枝率偏大、量化率偏小）
+
+*对应剪枝中 --quant_type 1*
 
 ```shell
 cd compression/quantization/WqAq/dorefa 
@@ -322,18 +337,20 @@ cd compression/quantization/WqAq/IAO
 - nin(正常卷积结构)
 
 ```shell
-python main.py --Wbits 8 --Abits 8 --refine ../../../prune/models_save/nin_refine.pth
+python main.py --Wbits 8 --Abits 8 --model_type 0 --refine ../../../pruning/models_save/nin_finetune.pth
 ```
 
 - nin_gc(含分组卷积结构)
 
 ```shell
-python main.py --Wbits 8 --Abits 8 --refine ../../../prune/models_save/nin_gc_refine.pth
+python main.py --Wbits 8 --Abits 8 --model_type 1 --refine ../../../pruning/models_save/nin_gc_retrain.pth
 ```
 
 ###### 其他bits情况类比
 
 ##### 剪枝 —> 量化（三/二值）（剪枝率偏小、量化率偏大）
+
+*对应剪枝中 --quant_type 0*
 
 ```shell
 cd compression/quantization/WbWtAb
@@ -344,13 +361,13 @@ cd compression/quantization/WbWtAb
 - nin(正常卷积结构)
 
 ```shell
-python main.py --W 2 --A 2 --refine ../../prune/models_save/nin_refine.pth
+python main.py --W 2 --A 2 --model_type 0 --refine ../../pruning/models_save/nin_finetune.pth
 ```
 
 - nin_gc(含分组卷积结构)
 
 ```shell
-python main.py --W 2 --A 2 --refine ../../prune/models_save/nin_gc_refine.pth
+python main.py --W 2 --A 2 --model_type 1 --refine ../../pruning/models_save/nin_gc_retrain.pth
 ```
 
 ###### 其他取值情况类比
@@ -421,7 +438,6 @@ python main.py --gpu_id 0,1,2
 
 *默认：使用服务器全卡*
 
-
 ### 部署
 
 #### TensorRT
@@ -431,7 +447,6 @@ python main.py --gpu_id 0,1,2
 ##### 相关解读
 - [tensorrt-基础](https://zhuanlan.zhihu.com/p/336256668)
 - [tensorrt-op/dynamic_shape](https://zhuanlan.zhihu.com/p/335829625)
-
 
 ### 迁移
 
