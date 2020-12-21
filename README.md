@@ -127,7 +127,7 @@ Model-Compression-Deploy
 - 4.6, 修正二值量化训练中W_clip的相关问题(之前由于这个，导致二值量化训练精度上不去，现在已可正常使用)(同时修正无法找到一些模块如models/util_wxax.py的问题)
 - **12.14**, 1、improve code structure; 2、add deploy-tensorrt(main module, but not running yet)
 - 12.18, 1、improve code structure/module reference/module_name; 2、add transfer-use demo
-- **12.21**, improve pruning-quantization's pipeline and code
+- **12.21**, improve pruning-quantization pipeline and code
 
 
 ## 环境要求
