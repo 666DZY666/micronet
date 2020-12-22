@@ -306,7 +306,7 @@ python main.py --model_type 0 --refine models_save/nin_prune.pth
 
 - nin_gc
 
-*将**剪枝**后得到的新模型的**cfg**赋给main.py中‘Initializing model’部分的cfg*
+*需要传入**剪枝**后得到的新模型的**cfg***
 
 *如*
 
