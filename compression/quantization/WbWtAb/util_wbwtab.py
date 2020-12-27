@@ -6,7 +6,6 @@ from torch.autograd import Function
 # ********************* 二值(+-1) ***********************
 # activation
 class BinaryActivation(Function):
-
     @staticmethod
     def forward(self, input):
         self.save_for_backward(input)
@@ -32,7 +31,6 @@ class BinaryActivation(Function):
         return grad_input
 # weight
 class BinaryWeight(Function):
-
     @staticmethod
     def forward(self, input):
         output = torch.sign(input)
@@ -45,7 +43,6 @@ class BinaryWeight(Function):
         return grad_input
 # ********************* 三值(+-1、0) ***********************
 class Ternary(Function):
-
     @staticmethod
     def forward(self, input):
         # **************** channel级 - E(|W|) ****************

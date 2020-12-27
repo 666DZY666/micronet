@@ -23,13 +23,31 @@ class RangeTracker(nn.Module):
         elif self.q_level == 'C':  # W,min_max_shape=(N, 1, 1, 1),channel级
             min_val = torch.min(torch.min(torch.min(input, 3, keepdim=True)[0], 2, keepdim=True)[0], 1, keepdim=True)[0]
             max_val = torch.max(torch.max(torch.max(input, 3, keepdim=True)[0], 2, keepdim=True)[0], 1, keepdim=True)[0]
+        elif self.q_level == 'C_convtrans':  # W,min_max_shape=(1, C, 1, 1),channel级
+            min_val = torch.min(torch.min(torch.min(input, 3, keepdim=True)[0], 2, keepdim=True)[0], 0, keepdim=True)[0]
+            max_val = torch.max(torch.max(torch.max(input, 3, keepdim=True)[0], 2, keepdim=True)[0], 0, keepdim=True)[0]
+        elif self.q_level == 'FC':  # W,min_max_shape=(N, 1),channel级
+            min_val = torch.min(input, 1, keepdim=True)[0]
+            max_val = torch.max(input, 1, keepdim=True)[0]
             
         self.update_range(min_val, max_val)
+
+# MinMax
 class GlobalRangeTracker(RangeTracker):  # W,min_max_shape=(N, 1, 1, 1),channel级,取本次和之前相比的min_max —— (N, C, W, H)
     def __init__(self, q_level, out_channels):
         super().__init__(q_level)
-        self.register_buffer('min_val', torch.zeros(out_channels, 1, 1, 1))
-        self.register_buffer('max_val', torch.zeros(out_channels, 1, 1, 1))
+        if self.q_level == 'C':
+            self.register_buffer('min_val', torch.zeros(out_channels, 1, 1, 1))
+            self.register_buffer('max_val', torch.zeros(out_channels, 1, 1, 1))
+        if self.q_level == 'C_convtrans':
+            self.register_buffer('min_val', torch.zeros(1, out_channels, 1, 1))
+            self.register_buffer('max_val', torch.zeros(1, out_channels, 1, 1))
+        if self.q_level == 'L':
+            self.register_buffer('min_val', torch.zeros(1))
+            self.register_buffer('max_val', torch.zeros(1))
+        elif self.q_level == 'FC':
+            self.register_buffer('min_val', torch.zeros(out_channels, 1))
+            self.register_buffer('max_val', torch.zeros(out_channels, 1))
         self.register_buffer('first_w', torch.zeros(1))
 
     def update_range(self, min_val, max_val):
@@ -42,6 +60,8 @@ class GlobalRangeTracker(RangeTracker):  # W,min_max_shape=(N, 1, 1, 1),channel�
         else:
             self.min_val.add_(-temp_minval).add_(torch.min(temp_minval, min_val))
             self.max_val.add_(-temp_maxval).add_(torch.max(temp_maxval, max_val))
+
+# MovingAverageMinMax
 class AveragedRangeTracker(RangeTracker):  # A,min_max_shape=(1, 1, 1, 1),layer级,取running_min_max —— (N, C, W, H)
     def __init__(self, q_level, momentum=0.1):
         super().__init__(q_level)
@@ -59,9 +79,9 @@ class AveragedRangeTracker(RangeTracker):  # A,min_max_shape=(1, 1, 1, 1),layer�
             self.min_val.mul_(1 - self.momentum).add_(min_val * self.momentum)
             self.max_val.mul_(1 - self.momentum).add_(max_val * self.momentum)
         
+
 # ********************* quantizers（量化器，量化） *********************
 class Round(Function):
-
     @staticmethod
     def forward(self, input):
         output = torch.round(input)
@@ -71,13 +91,14 @@ class Round(Function):
     def backward(self, grad_output):
         grad_input = grad_output.clone()
         return grad_input
+
 class Quantizer(nn.Module):
     def __init__(self, bits, range_tracker):
         super().__init__()
         self.bits = bits
         self.range_tracker = range_tracker
-        self.register_buffer('scale', None)      # 量化比例因子
-        self.register_buffer('zero_point', None) # 量化零点
+        self.register_buffer('scale', torch.tensor(1.0))      # 量化比例因子
+        self.register_buffer('zero_point', torch.tensor(0))   # 量化零点
 
     def update_params(self):
         raise NotImplementedError
@@ -115,16 +136,19 @@ class Quantizer(nn.Module):
             output = self.clamp(output)     # 截断
             output = self.dequantize(output)# 反量化
         return output
+
 class SignedQuantizer(Quantizer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.register_buffer('min_val', torch.tensor(-(1 << (self.bits - 1))))
         self.register_buffer('max_val', torch.tensor((1 << (self.bits - 1)) - 1))
+
 class UnsignedQuantizer(Quantizer):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.register_buffer('min_val', torch.tensor(0))
         self.register_buffer('max_val', torch.tensor((1 << self.bits) - 1))
+
 # 对称量化
 class SymmetricQuantizer(SignedQuantizer):
 
@@ -133,6 +157,7 @@ class SymmetricQuantizer(SignedQuantizer):
         float_range = torch.max(torch.abs(self.range_tracker.min_val), torch.abs(self.range_tracker.max_val))  # 量化前范围
         self.scale = quantized_range / float_range      # 量化比例因子
         self.zero_point = torch.zeros_like(self.scale)  # 量化零点
+
 # 非对称量化
 class AsymmetricQuantizer(UnsignedQuantizer):
 
@@ -142,33 +167,25 @@ class AsymmetricQuantizer(UnsignedQuantizer):
         self.scale = quantized_range / float_range  # 量化比例因子
         self.zero_point = torch.round(self.range_tracker.min_val * self.scale)  # 量化零点
 
+
 # ********************* 量化卷积（同时量化A/W，并做卷积） *********************
 class QuantConv2d(nn.Conv2d):
-    def __init__(
-        self,
-        in_channels,
-        out_channels,
-        kernel_size,
-        stride=1,
-        padding=0,
-        dilation=1,
-        groups=1,
-        bias=True,
-        a_bits=8,
-        w_bits=8,
-        q_type=1,
-        first_layer=0,
-    ):
-        super().__init__(
-            in_channels=in_channels,
-            out_channels=out_channels,
-            kernel_size=kernel_size,
-            stride=stride,
-            padding=padding,
-            dilation=dilation,
-            groups=groups,
-            bias=bias
-        )
+    def __init__(self,
+                 in_channels,
+                 out_channels,
+                 kernel_size,
+                 stride=1,
+                 padding=0,
+                 dilation=1,
+                 groups=1,
+                 bias=True,
+                 padding_mode='zeros',
+                 a_bits=8,
+                 w_bits=8,
+                 q_type=1,
+                 first_layer=0):
+        super(QuantConv2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups,
+                                          bias, padding_mode)
         # 实例化量化器（A-layer级，W-channel级）
         if q_type == 0:
             self.activation_quantizer = SymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
@@ -185,15 +202,39 @@ class QuantConv2d(nn.Conv2d):
         quant_input = input
         quant_weight = self.weight_quantizer(self.weight) 
         # 量化卷积
-        output = F.conv2d(
-            input=quant_input,
-            weight=quant_weight,
-            bias=self.bias,
-            stride=self.stride,
-            padding=self.padding,
-            dilation=self.dilation,
-            groups=self.groups
-        )
+        output = F.conv2d(quant_input, quant_weight, self.bias, self.stride, self.padding, self.dilation,
+                          self.groups)
+        return output
+
+class QuantConvTranspose2d(nn.ConvTranspose2d):
+    def __init__(self,
+                 in_channels,
+                 out_channels,
+                 kernel_size,
+                 stride=1,
+                 padding=0,
+                 output_padding=0,
+                 dilation=1,
+                 groups=1,
+                 bias=True,
+                 padding_mode='zeros',
+                 a_bits=8,
+                 w_bits=8,
+                 q_type=1):
+        super(QuantConvTranspose2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, output_padding, 
+                         dilation, groups, bias, padding_mode)
+        if q_type == 0:
+            self.activation_quantizer = SymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
+            self.weight_quantizer = SymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='C_convtrans', out_channels=out_channels))
+        else:
+            self.activation_quantizer = AsymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
+            self.weight_quantizer = AsymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='C_convtrans', out_channels=out_channels))
+
+    def forward(self, input):
+        quant_input = self.activation_quantizer(input)
+        quant_weight = self.weight_quantizer(self.weight)
+        output = F.conv_transpose2d(quant_input, quant_weight, self.bias, self.stride, self.padding, self.output_padding,
+                                    self.groups, self.dilation)
         return output
 
 def reshape_to_activation(input):
@@ -204,33 +245,24 @@ def reshape_to_bias(input):
   return input.reshape(-1)
 # ********************* bn融合_量化卷积（bn融合后，同时量化A/W，并做卷积） *********************
 class QuantBNFuseConv2d(QuantConv2d):
-    def __init__(
-        self,
-        in_channels,
-        out_channels,
-        kernel_size,
-        stride=1,
-        padding=0,
-        dilation=1,
-        groups=1,
-        bias=False,
-        eps=1e-5,
-        momentum=0.01, # 考虑量化带来的抖动影响,对momentum进行调整(0.1 ——> 0.01),削弱batch统计参数占比，一定程度抑制抖动。经实验量化训练效果更好,acc提升1%左右
-        a_bits=8,
-        w_bits=8,
-        q_type=1,
-        first_layer=0,
-    ):
-        super().__init__(
-            in_channels=in_channels,
-            out_channels=out_channels,
-            kernel_size=kernel_size,
-            stride=stride,
-            padding=padding,
-            dilation=dilation,
-            groups=groups,
-            bias=bias
-        )
+    def __init__(self,
+                 in_channels,
+                 out_channels,
+                 kernel_size,
+                 stride=1,
+                 padding=0,
+                 dilation=1,
+                 groups=1,
+                 bias=False,
+                 padding_mode='zeros',
+                 eps=1e-5,
+                 momentum=0.01, # 考虑量化带来的抖动影响,对momentum进行调整(0.1 ——> 0.01),削弱batch统计参数占比，一定程度抑制抖动。经实验量化训练效果更好,acc提升1%左右
+                 a_bits=8,
+                 w_bits=8,
+                 q_type=1,
+                 first_layer=0):
+        super(QuantBNFuseConv2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups,
+                                                bias, padding_mode)
         self.eps = eps
         self.momentum = momentum
         self.gamma = Parameter(torch.Tensor(out_channels))
@@ -321,3 +353,76 @@ class QuantBNFuseConv2d(QuantConv2d):
               groups=self.groups
           )
         return output
+
+class QuantLinear(nn.Linear):
+    def __init__(self, in_features, out_features, bias=True, a_bits=8, w_bits=8, q_type=1,):
+        super(QuantLinear, self).__init__(in_features, out_features, bias)
+        if q_type == 0:
+            self.activation_quantizer = SymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
+            self.weight_quantizer = SymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='FC', out_channels=out_features))
+        else:
+            self.activation_quantizer = AsymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
+            self.weight_quantizer = AsymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='FC', out_channels=out_features))
+
+    def forward(self, input):
+        quant_input = self.activation_quantizer(input)
+        quant_weight = self.weight_quantizer(self.weight)
+        output = F.linear(quant_input, quant_weight, bias=self.bias)
+        return output
+        
+class QuantReLU(nn.ReLU):
+    def __init__(self, inplace=False, a_bits=8, q_type=1):
+        super(QuantReLU, self).__init__(inplace)
+        if q_type == 0:
+            self.activation_quantizer = SymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
+        else:
+            self.activation_quantizer = AsymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
+
+    def forward(self, input):
+        quant_input = self.activation_quantizer(input)
+        output = F.relu(quant_input, inplace=self.inplace)
+        return output
+
+class QuantSigmoid(nn.Sigmoid):
+    def __init__(self, a_bits=8, q_type=1):
+        super(QuantSigmoid, self).__init__()
+        if q_type == 0:
+            self.activation_quantizer = SymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
+        else:
+            self.activation_quantizer = AsymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
+
+    def forward(self, input):
+        quant_input = self.activation_quantizer(input)
+        output = F.sigmoid(quant_input)
+        return output
+
+class QuantMaxPool2d(nn.MaxPool2d):
+    def __init__(self, kernel_size, stride=None, padding=0, dilation=1,
+                 return_indices=False, ceil_mode=False, a_bits=8, q_type=1):
+        super(QuantMaxPool2d, self).__init__(kernel_size, stride, padding, dilation,
+                                             return_indices, ceil_mode)
+        if q_type == 0:
+            self.activation_quantizer = SymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
+        else:
+            self.activation_quantizer = AsymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
+
+    def forward(self, input):
+        quant_input = self.activation_quantizer(input)
+        output = F.max_pool2d(quant_input, self.kernel_size, self.stride, self.padding, self.dilation, self.return_indices, self.ceil_mode)
+        return output
+        
+class QuantAvgPool2d(nn.AvgPool2d):
+    def __init__(self, kernel_size, stride=None, padding=0, ceil_mode=False,
+                 count_include_pad=True, divisor_override=None, a_bits=8, q_type=1):
+        super(QuantAvgPool2d, self).__init__(kernel_size, stride, padding, ceil_mode,
+                                             count_include_pad, divisor_override)
+        if q_type == 0:
+            self.activation_quantizer = SymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
+        else:
+            self.activation_quantizer = AsymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
+
+    def forward(self, input):
+        quant_input = self.activation_quantizer(input)
+        output = F.avg_pool2d(quant_input, self.kernel_size, self.stride, self.padding, self.ceil_mode, self.count_include_pad, self.divisor_override)
+        return output
+        

@@ -4,7 +4,6 @@ import torch.nn.functional as F
 from torch.autograd import Function
 
 class Round(Function):
-    
     @staticmethod
     def forward(self, input):
         output = torch.round(input)
