@@ -8,10 +8,10 @@
 
 ### 压缩
 
-- 量化：qat，任意位数(16/8/4/2-bit)、三值/二值；ptq，8-bit(tensorrt)
+- 量化：qat, High-Bit(>2b)、Low-Bit(≤2b)/Ternary and Binary; ptq, 8-bit(tensorrt)
 - 剪枝：正常、规整、分组卷积结构剪枝
 - 针对特征(A)二值量化的BN融合
-- 任意位数(any-bit)量化的BN融合
+- High-Bit量化的BN融合
 
 ### 部署
 
@@ -24,7 +24,7 @@
 - 权重W和特征A的训练中/后量化。训练中量化，W(32/16/8/4/2-bit, 三/二值) 和 A(32/16/8/4/2-bit, 二值)任意组合；训练后量化，采用tensorrt，支持8-bit
 - 针对三/二值的一些tricks：W二值/三值缩放因子，W/grad（ste、saturate_ste、soft_ste）截断，A二值时采用B-A-C-P可比C-B-A-P获得更高acc等
 - 多种剪枝方式：正常、规整（比如model可剪枝为每层剩余filter个数为N(8,16等)的倍数）、分组卷积结构（剪枝后仍保证分组卷积结构）的通道剪枝
-- batch normalization融合及融合前后model对比测试：非量化普通BN融合（训练后，BN层参数 —> conv的权重w和偏置b）、针对特征(A)二值量化的BN融合（训练量化后，BN层参数 —> conv的偏置b)、任意位数(bits)量化的BN融合（训练量化中，先融合再量化）
+- batch normalization融合及融合前后model对比测试：非量化普通BN融合（训练后，BN层参数 —> conv的权重w和偏置b）、针对特征(A)二值量化的BN融合（训练量化后，BN层参数 —> conv的偏置b)、High-Bit量化的BN融合（训练量化中，先融合再量化）
 - tensorrt：fp32/fp16/int8(ptq-calibration)、op-adapt(upsample)、dynamic_shape等
 
 
@@ -108,21 +108,21 @@ Model-Compression-Deploy
 
 ## 项目进展
 - **2019.12.4**, 初次提交
-- **12.8**, 任意位数特征(A)量化前先进行缩放(* 0.1)，然后再截断，以减小截断误差
+- **12.8**, DoReFa特征(A)量化前先进行缩放(* 0.1)，然后再截断，以减小截断误差
 - **12.11**, 增加项目代码结构图
 - 12.12, 完善使用示例
 - 12.14, 增加:1、BN融合量化情况(W三值/二值)可选，即训练量化时选择W三/二值，这里则对应选择; 2、BN融合时对卷积核(conv)不带偏置(bias)的处理
 - **12.17**, 增加模型压缩前后数据对比(示例)
 - 12.20, 增加设备可选(cpu、gpu(单卡、多卡))
 - **12.27**, 补充相关论文
-- 12.29, 取消任意位数量化8bits以内的限制，即现在可以量化至10bits、16bits等
+- 12.29, 取消High-Bit量化8-bit以内的限制，即现在可以量化至10-bit、16-bit等
 - **2020.2.17**, 1、精简W三值/二值量化代码; 2、加速W三值量化训练
 - **2.18**, 优化针对特征(A)二值的BN融合:去除对BN层gamma参数的限制，即现在此情况下融合时BN可正常训练
 - **2.24**, 再次优化三/二值量化代码组织结构，增强可移植性，旧版确实不太好移植。目前移植方法：将想要量化的Conv用compression/quantization/WbWtAb/models/util_wbwtab.py中的QuantConv2d替换即可，可参照该路径下nin_gc.py中的使用方法
-- **3.1**, 新增：1、google任意位数(bits)量化方法; 2、任意位数量化的BN融合
+- **3.1**, 新增：1、google的High-Bit量化方法; 2、训练中High-Bit量化的BN融合
 - **3.2、3.3**, 规整量化代码整体结构，目前所有量化方法都可采取类似的移植方式：将想要量化的Conv(或FC，目前dorefa支持，其他方法类似可写)用models/util_wxax.py中的QuantConv2d(或QuantLinear)替换即可，可分别参照该路径下nin_gc.py中的使用方法进行移植（分类、检测、分割等均适用，但需要据实际情况具体调试）
 - **3.4**, 规整优化WbWtAb/bn_fuse中“针对特征(A)二值的BN融合”的相关实现代码，可进行BN融合及融合前后模型对比测试(精度/速度/(大小))
-- 3.11, 调整WqAq/IAO中的BN层momentum参数(0.1 —> 0.01),削弱batch统计参数占比,一定程度抑制量化带来的抖动。经实验,量化训练更稳定,acc提升1%左右
+- 3.11, 调整compression/WqAq/IAO中的BN层momentum参数(0.1 —> 0.01),削弱batch统计参数占比,一定程度抑制量化带来的抖动。经实验,量化训练更稳定,acc提升1%左右
 - **3.13**, 更新代码结构图
 - 4.6, 修正二值量化训练中W_clip的相关问题(之前由于这个，导致二值量化训练精度上不去，现在已可正常使用)(同时修正无法找到一些模块如models/util_wxax.py的问题)
 - **12.14**, 1、improve code structure; 2、add deploy-tensorrt(main module, but not running yet)
@@ -186,7 +186,7 @@ python main.py --W 3 --A 2
 python main.py --W 3 --A 32
 ```
 
-##### W（FP32/16/8/4/2 bits）、A（FP32/16/8/4/2 bits）
+##### W（FP32/16/8/4/2-bit）、A（FP32/16/8/4/2-bit）
 
 --Wbits --Abits, 权重W和特征A量化位数
 
@@ -318,7 +318,7 @@ python main.py --model_type 1 --gc_refine 154 162 144 304 320 320 608 584
 
 *剪枝完成后，加载保存的模型参数在其基础上再做量化*
 
-##### 剪枝 —> 量化（16/8/4/2 bits）（剪枝率偏大、量化率偏小）
+##### 剪枝 —> 量化（16/8/4/2-bit）（剪枝率偏大、量化率偏小）
 
 *对应剪枝中 --quant_type 1*
 
@@ -452,7 +452,7 @@ python main.py --gpu_id 0,1,2
 
 #### 量化
 
-*A model can be quantized(any-bit、ternary/binary) by simply replacing ***op*** with ***quant_op***. For example, replacing ***nn.ConvNd*** and ***nn.Linear*** with ***QuantConvNd*** and ***QuantLinear***.*
+*A model can be quantized(High-Bit(>2b)、Low-Bit(≤2b)/Ternary and Binary) by simply replacing ***op*** with ***quant_op***. For example, replacing ***nn.ConvNd*** and ***nn.Linear*** with ***QuantConvNd*** and ***QuantLinear***.*
 
 *LeNet example*
 
@@ -537,7 +537,7 @@ class QuantLeNet(nn.Module):
 
 - [Ternary weight networks](https://arxiv.org/abs/1605.04711)
 
-###### 任意位数
+###### High-Bit
 
 - [DoReFa-Net: Training Low Bitwidth Convolutional Neural Networks with Low Bitwidth Gradients](https://arxiv.org/abs/1606.06160)
 - [Quantization and Training of Neural Networks for Efficient Integer-Arithmetic-Only Inference](https://arxiv.org/abs/1712.05877)
@@ -545,9 +545,9 @@ class QuantLeNet(nn.Module):
 
 ##### PTQ
 
-###### tensorrt
+###### High-Bit
 
-- [ptq](https://on-demand.gputechconf.com/gtc/2017/presentation/s7310-8-bit-inference-with-tensorrt.pdf)
+- [tensorrt-ptq-8-bit](https://on-demand.gputechconf.com/gtc/2017/presentation/s7310-8-bit-inference-with-tensorrt.pdf)
 
 #### 剪枝
 
