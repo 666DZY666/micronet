@@ -8,7 +8,7 @@
 
 ### 压缩
 
-- 量化：qat, High-Bit(>2b)、Low-Bit(≤2b)/Ternary and Binary; ptq, 8-bit(tensorrt)
+- 量化：QAT, High-Bit(>2b)、Low-Bit(≤2b)/Ternary and Binary; PTQ, 8-bit(tensorrt)
 - 剪枝：正常、规整、分组卷积结构剪枝
 - 针对特征(A)二值量化的BN融合
 - High-Bit量化的BN融合
