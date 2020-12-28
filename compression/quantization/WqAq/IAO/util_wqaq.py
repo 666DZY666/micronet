@@ -286,15 +286,8 @@ class QuantBNFuseConv2d(QuantConv2d):
         # 训练态
         if self.training:
             # 先做普通卷积得到A，以取得BN参数
-            output = F.conv2d(
-                input=input,
-                weight=self.weight,
-                bias=self.bias,
-                stride=self.stride,
-                padding=self.padding,
-                dilation=self.dilation,
-                groups=self.groups
-            )
+            output = F.conv2d(input, self.weight, self.bias, self.stride, self.padding, self.dilation,
+                              self.groups)
             # 更新BN统计参数（batch和running）
             dims = [dim for dim in range(4) if dim != 1]
             batch_mean = torch.mean(output, dim=dims)
@@ -330,28 +323,14 @@ class QuantBNFuseConv2d(QuantConv2d):
         quant_weight = self.weight_quantizer(weight) 
         # 量化卷积
         if self.training:  # 训练态
-          output = F.conv2d(
-              input=quant_input,
-              weight=quant_weight,
-              bias=self.bias,  # 注意，这里不加bias（self.bias为None）
-              stride=self.stride,
-              padding=self.padding,
-              dilation=self.dilation,
-              groups=self.groups
-          )
+          output = F.conv2d(quant_input, quant_weight, self.bias, self.stride, self.padding, self.dilation,
+                            self.groups) # 注意，这里不加bias（self.bias为None）
           # （这里将训练态下，卷积中w融合running参数的效果转为融合batch参数的效果）running ——> batch
           output *= reshape_to_activation(torch.sqrt(self.running_var + self.eps) / torch.sqrt(batch_var + self.eps))
           output += reshape_to_activation(bias)
         else:  # 测试态
-          output = F.conv2d(
-              input=quant_input,
-              weight=quant_weight,
-              bias=bias,  # 注意，这里加bias，做完整的conv+bn
-              stride=self.stride,
-              padding=self.padding,
-              dilation=self.dilation,
-              groups=self.groups
-          )
+          output = F.conv2d(quant_input, quant_weight, bias, self.stride, self.padding, self.dilation,
+                            self.groups) # 注意，这里加bias，做完整的conv+bn
         return output
 
 class QuantLinear(nn.Linear):
