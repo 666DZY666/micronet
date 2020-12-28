@@ -334,7 +334,7 @@ class QuantBNFuseConv2d(QuantConv2d):
         return output
 
 class QuantLinear(nn.Linear):
-    def __init__(self, in_features, out_features, bias=True, a_bits=8, w_bits=8, q_type=1,):
+    def __init__(self, in_features, out_features, bias=True, a_bits=8, w_bits=8, q_type=1):
         super(QuantLinear, self).__init__(in_features, out_features, bias)
         if q_type == 0:
             self.activation_quantizer = SymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))

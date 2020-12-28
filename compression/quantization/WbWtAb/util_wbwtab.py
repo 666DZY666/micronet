@@ -132,29 +132,20 @@ class WeightTnnBin(nn.Module):
 
 # ********************* 量化卷积（同时量化A/W，并做卷积） ***********************
 class QuantConv2d(nn.Conv2d):
-    def __init__(
-        self,
-        in_channels,
-        out_channels,
-        kernel_size,
-        stride=1,
-        padding=0,
-        dilation=1,
-        groups=1,
-        bias=True,
-        A=2,
-        W=2
-      ):
-        super().__init__(
-            in_channels=in_channels,
-            out_channels=out_channels,
-            kernel_size=kernel_size,
-            stride=stride,
-            padding=padding,
-            dilation=dilation,
-            groups=groups,
-            bias=bias
-        )
+    def __init__(self,
+                 in_channels,
+                 out_channels,
+                 kernel_size,
+                 stride=1,
+                 padding=0,
+                 dilation=1,
+                 groups=1,
+                 bias=True,
+                 padding_mode='zeros',
+                 A=2,
+                 W=2):
+        super(QuantConv2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups,
+                                          bias, padding_mode)
         # 实例化调用A和W量化器
         self.activation_quantizer = ActivationBin(A=A)
         self.weight_quantizer = WeightTnnBin(W=W)
@@ -164,12 +155,7 @@ class QuantConv2d(nn.Conv2d):
         bin_input = self.activation_quantizer(input)
         tnn_bin_weight = self.weight_quantizer(self.weight)    
         # 用量化后的A和W做卷积
-        output = F.conv2d(
-            input=bin_input, 
-            weight=tnn_bin_weight, 
-            bias=self.bias, 
-            stride=self.stride, 
-            padding=self.padding, 
-            dilation=self.dilation, 
-            groups=self.groups)
+        output = F.conv2d(bin_input, tnn_bin_weight, self.bias, self.stride, self.padding, self.dilation, 
+                          self.groups)
         return output
+        

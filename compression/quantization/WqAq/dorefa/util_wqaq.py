@@ -65,30 +65,21 @@ class WeightQuantize(nn.Module):
 
 # ********************* 量化卷积（同时量化A/W，并做卷积） ***********************
 class QuantConv2d(nn.Conv2d):
-  def __init__(
-        self,
-        in_channels,
-        out_channels,
-        kernel_size,
-        stride=1,
-        padding=0,
-        dilation=1,
-        groups=1,
-        bias=True,
-        a_bits=8,
-        w_bits=8,
-        first_layer=0
-      ):
-        super().__init__(
-            in_channels=in_channels,
-            out_channels=out_channels,
-            kernel_size=kernel_size,
-            stride=stride,
-            padding=padding,
-            dilation=dilation,
-            groups=groups,
-            bias=bias
-        )
+  def __init__(self,
+               in_channels,
+               out_channels,
+               kernel_size,
+               stride=1,
+               padding=0,
+               dilation=1,
+               groups=1,
+               bias=True,
+               padding_mode='zeros',
+               a_bits=8,
+               w_bits=8,
+               first_layer=0):
+        super(QuantConv2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups,
+                                          bias, padding_mode)
         # 实例化调用A和W量化器
         self.activation_quantizer = ActivationQuantize(a_bits=a_bits)
         self.weight_quantizer = WeightQuantize(w_bits=w_bits)    
@@ -101,27 +92,20 @@ class QuantConv2d(nn.Conv2d):
     quant_input = input
     quant_weight = self.weight_quantizer(self.weight) 
     # 量化卷积
-    output = F.conv2d(
-            input=quant_input,
-            weight=quant_weight,
-            bias=self.bias,
-            stride=self.stride,
-            padding=self.padding,
-            dilation=self.dilation,
-            groups=self.groups
-        )
+    output = F.conv2d(quant_input, quant_weight, self.bias, self.stride, self.padding, self.dilation,
+                      self.groups)
     return output
+    
 # ********************* 量化全连接（同时量化A/W，并做全连接） ***********************
 class QuantLinear(nn.Linear):
-  def __init__(self, in_features, out_features, bias=True, a_bits=2, w_bits=2):
-    super().__init__(in_features=in_features, out_features=out_features, bias=bias)
+  def __init__(self, in_features, out_features, bias=True, a_bits=8, w_bits=8):
+    super(QuantLinear, self).__init__(in_features, out_features, bias)
     self.activation_quantizer = ActivationQuantize(a_bits=a_bits)
     self.weight_quantizer = WeightQuantize(w_bits=w_bits) 
 
   def forward(self, input):
-    # 量化A和W
     quant_input = self.activation_quantizer(input)
-    quant_weight = self.weight_quantizer(self.weight) 
-    # 量化全连接
-    output = F.linear(input=quant_input, weight=quant_weight, bias=self.bias)
+    quant_weight = self.weight_quantizer(self.weight)
+    output = F.linear(quant_input, quant_weight, self.bias)
     return output
+    
