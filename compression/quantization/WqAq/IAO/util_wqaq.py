@@ -367,7 +367,7 @@ class QuantLinear(nn.Linear):
     def forward(self, input):
         quant_input = self.activation_quantizer(input)
         quant_weight = self.weight_quantizer(self.weight)
-        output = F.linear(quant_input, quant_weight, bias=self.bias)
+        output = F.linear(quant_input, quant_weight, self.bias)
         return output
         
 class QuantReLU(nn.ReLU):
@@ -380,7 +380,7 @@ class QuantReLU(nn.ReLU):
 
     def forward(self, input):
         quant_input = self.activation_quantizer(input)
-        output = F.relu(quant_input, inplace=self.inplace)
+        output = F.relu(quant_input, self.inplace)
         return output
 
 class QuantSigmoid(nn.Sigmoid):
@@ -424,5 +424,181 @@ class QuantAvgPool2d(nn.AvgPool2d):
     def forward(self, input):
         quant_input = self.activation_quantizer(input)
         output = F.avg_pool2d(quant_input, self.kernel_size, self.stride, self.padding, self.ceil_mode, self.count_include_pad, self.divisor_override)
+        return output
+        
+class QuantAdaptiveAvgPool2d(nn.AdaptiveAvgPool2d):
+    def __init__(self, output_size, a_bits=8, q_type=1):
+        super(QuantAdaptiveAvgPool2d, self).__init__(output_size)
+        if q_type == 0:
+            self.activation_quantizer = SymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
+        else:
+            self.activation_quantizer = AsymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
+
+    def forward(self, input):
+        quant_input = self.activation_quantizer(input)
+        output = F.adaptive_avg_pool2d(quant_input, self.output_size)
+        return output
+
+class QuantAdd(nn.Module):
+    def __init__(self, a_bits=8, q_type=1):
+        super(QuantAdd, self).__init__()
+        if q_type == 0:
+            self.activation_quantizer_0 = SymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
+            self.activation_quantizer_1 = SymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
+        else:
+            self.activation_quantizer_0 = AsymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
+            self.activation_quantizer_1 = AsymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
+
+    def forward(self, shortcut, input):
+        output = self.activation_quantizer_0(shortcut) + self.activation_quantizer_1(input)
+        return output
+
+class QuantConcat(nn.Module):
+    def __init__(self, a_bits=8, q_type=1):
+        super(QuantConcat, self).__init__()
+        if q_type == 0:
+            self.activation_quantizer_0 = SymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
+            self.activation_quantizer_1 = SymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
+        else:
+            self.activation_quantizer_0 = AsymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
+            self.activation_quantizer_1 = AsymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
+
+    def forward(self, shortcut, input):
+        output = torch.cat([self.activation_quantizer_1(input), self.activation_quantizer_0(shortcut)], 1)
+        return output
+        
+# *** temp_dev ***
+class BNFold_Conv2d_Q(nn.Module):
+    def __init__(
+        self,
+        input_channels,
+        output_channels,
+        kernel_size,
+        stride=1,
+        padding=0,
+        dilation=1,
+        groups=1,
+        bias=False,
+        a_bits=8,
+        w_bits=8,
+        layer_index=0,
+        weight_qpara_update=True,
+        activation_qpara_update=True
+    ):
+        super().__init__()
+
+        self.weight_qpara_update = weight_qpara_update
+        self.activation_qpara_update = activation_qpara_update
+
+        self.layer_index = layer_index
+
+        self.conv = nn.Conv2d(input_channels, output_channels, kernel_size=kernel_size, stride=stride, padding=padding, groups=groups, bias=bias)
+        self.bn = nn.BatchNorm2d(output_channels)
+
+        # 实例化量化器（A-layer级，W-channel级）
+        self.activation_quantizer = SymmetricQuantizer(bits=a_bits, range_tracker=HistogramRangeTracker(q_level='L',layer_index=self.layer_index), qpara_update = self.activation_qpara_update)
+        self.weight_quantizer = SymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='C', out_channels=output_channels), qpara_update = self.weight_qpara_update)
+    
+    def forward(self, input):
+        # 训练态
+        if self.training:
+            output = self.conv(input)
+            output = self.bn(output)
+            if self.conv.bias is not None:  
+              bias = reshape_to_bias(self.bn.bias + (self.conv.bias -  self.bn.running_mean) * (self.bn.weight / torch.sqrt(self.bn.running_var + self.bn.eps)))
+            else:
+              bias = reshape_to_bias(self.bn.bias - self.bn.running_mean  * (self.bn.weight / torch.sqrt(self.bn.running_var + self.bn.eps)))
+            weight = self.conv.weight * reshape_to_weight(self.bn.weight / torch.sqrt(self.bn.running_var + self.bn.eps))     
+        # 测试态
+        else:
+            if self.conv.bias is not None:  
+              bias = reshape_to_bias(self.bn.bias + (self.conv.bias -  self.bn.running_mean) * (self.bn.weight / torch.sqrt(self.bn.running_var + self.bn.eps)))
+            else:
+              bias = reshape_to_bias(self.bn.bias - self.bn.running_mean  * (self.bn.weight / torch.sqrt(self.bn.running_var + self.bn.eps)))
+            weight = self.conv.weight * reshape_to_weight(self.bn.weight / torch.sqrt(self.bn.running_var + self.bn.eps))     
+            # +++
+            # 所有weight处理
+            weight += 1e-9
+            # 极小weight处理
+            #mask_le = torch.abs(weight).le(1e-9)
+            #weight[mask_le] +=  1e-9
+
+        q_input = self.activation_quantizer(input)
+        q_weight = self.weight_quantizer(weight)
+
+        output = F.conv2d(
+              input=q_input,
+              weight=q_weight,
+              bias=bias,  
+              stride=self.conv.stride,
+              padding=self.conv.padding,
+              dilation=self.conv.dilation,
+              groups=self.conv.groups
+          )
+        return output
+
+class BNFold_ConvTrans2d_Q_ReLU(nn.Module):
+    def __init__(
+        self,
+        input_channels,
+        output_channels,
+        kernel_size,
+        stride=1,
+        padding=0,
+        output_padding=0,
+        groups=1,
+        bias=False,
+        dilation=1,
+        a_bits=8,
+        w_bits=8,
+        layer_index=0,
+        weight_qpara_update=True,
+        activation_qpara_update=True
+    ):
+        super().__init__()
+
+        self.weight_qpara_update = weight_qpara_update
+        self.activation_qpara_update = activation_qpara_update
+
+        self.layer_index = layer_index
+        
+        #self.conv = nn.Conv2d(input_channels, output_channels, kernel_size=kernel_size, stride=stride, padding=padding, groups=groups, bias=bias)
+        self.up_conv = nn.ConvTranspose2d(input_channels, output_channels, kernel_size, stride=stride, padding=padding, output_padding=output_padding, groups=groups, bias=bias, dilation=dilation)
+        self.up_bn = nn.BatchNorm2d(output_channels)
+        self.up_relu = nn.ReLU(inplace=True)
+
+        # 实例化量化器（A-layer级，W-channel级）
+        self.activation_quantizer = SymmetricQuantizer(bits=a_bits, range_tracker=HistogramRangeTracker(q_level='L',layer_index=self.layer_index), qpara_update = self.activation_qpara_update)
+        #self.weight_quantizer = SymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='C', out_channels=output_channels), qpara_update = self.weight_qpara_update)
+        self.weight_quantizer = SymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='C_convtrans', out_channels=output_channels), qpara_update = self.weight_qpara_update)
+
+    def forward(self, input):
+        # 训练态
+        if self.training:
+            output = self.up_conv(input)
+            output = self.up_bn(output)
+            if self.up_conv.bias is not None:  
+              bias = reshape_to_bias(self.up_bn.bias + (self.up_conv.bias -  self.up_bn.running_mean) * (self.up_bn.weight / torch.sqrt(self.up_bn.running_var + self.up_bn.eps)))
+            else:
+              bias = reshape_to_bias(self.up_bn.bias - self.up_bn.running_mean  * (self.up_bn.weight / torch.sqrt(self.up_bn.running_var + self.up_bn.eps)))# b融batch
+            #weight = self.up_conv.weight * reshape_to_weight(self.up_bn.weight / torch.sqrt(self.up_bn.running_var + self.up_bn.eps))     # w融running
+            weight = self.up_conv.weight * reshape_to_convtrans_weight(self.up_bn.weight / torch.sqrt(self.up_bn.running_var + self.up_bn.eps))     # w融running
+        # 测试态
+        else:
+            if self.up_conv.bias is not None:  
+              bias = reshape_to_bias(self.up_bn.bias + (self.up_conv.bias -  self.up_bn.running_mean) * (self.up_bn.weight / torch.sqrt(self.up_bn.running_var + self.up_bn.eps)))
+            else:
+              bias = reshape_to_bias(self.up_bn.bias - self.up_bn.running_mean  * (self.up_bn.weight / torch.sqrt(self.up_bn.running_var + self.up_bn.eps)))# b融batch
+            #weight = self.up_conv.weight * reshape_to_weight(self.up_bn.weight / torch.sqrt(self.up_bn.running_var + self.up_bn.eps))     # w融running
+            weight = self.up_conv.weight * reshape_to_convtrans_weight(self.up_bn.weight / torch.sqrt(self.up_bn.running_var + self.up_bn.eps))     # w融running
+
+        q_input = self.activation_quantizer(input)
+        q_weight = self.weight_quantizer(weight)
+
+        output = F.conv_transpose2d(
+                q_input, q_weight, bias, self.up_conv.stride, self.up_conv.padding,
+                self.up_conv.output_padding, self.up_conv.groups, self.up_conv.dilation)
+
+        output = self.up_relu(output) 
         return output
         
