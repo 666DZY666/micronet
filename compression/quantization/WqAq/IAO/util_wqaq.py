@@ -467,6 +467,7 @@ class QuantConcat(nn.Module):
         output = torch.cat([self.activation_quantizer_1(input), self.activation_quantizer_0(shortcut)], 1)
         return output
         
+'''
 # *** temp_dev ***
 class BNFold_Conv2d_Q(nn.Module):
     def __init__(
@@ -601,4 +602,4 @@ class BNFold_ConvTrans2d_Q_ReLU(nn.Module):
 
         output = self.up_relu(output) 
         return output
-        
+'''
