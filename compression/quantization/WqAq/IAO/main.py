@@ -138,7 +138,7 @@ if __name__=='__main__':
     parser.add_argument('--bn_fuse', type=int, default=0,
             help='bn_fuse:1')
     # 量化方法选择
-    parser.add_argument('--q_type', type=int, default=1,
+    parser.add_argument('--q_type', type=int, default=0,
             help='quantization type:0-symmetric,1-asymmetric')
     # 模型结构选择
     parser.add_argument('--model_type', type=int, default=1,
