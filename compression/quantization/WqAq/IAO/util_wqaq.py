@@ -443,7 +443,7 @@ class QuantConcat(nn.Module):
             self.activation_quantizer_1 = AsymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
 
     def forward(self, shortcut, input):
-        output = torch.cat([self.activation_quantizer_1(input), self.activation_quantizer_0(shortcut)], 1)
+        output = torch.cat((self.activation_quantizer_1(input), self.activation_quantizer_0(shortcut)), 1)
         return output
         
 '''
