@@ -193,7 +193,7 @@ python main.py --W 3 --A 32
 ###### dorefa
 
 ```shell
-cd compression/quantization/WqAq/dorefa  
+cd compression/quantization/WqAq/dorefa
 ```
 
 - W16A16
@@ -323,7 +323,7 @@ python main.py --model_type 1 --gc_refine 154 162 144 304 320 320 608 584
 *对应剪枝中 --quant_type 1*
 
 ```shell
-cd compression/quantization/WqAq/dorefa 
+cd compression/quantization/WqAq/dorefa
 ```
 
 或 
