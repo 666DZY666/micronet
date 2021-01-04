@@ -15,7 +15,7 @@ class Round(Function):
         return grad_input
 
 # ********************* A(特征)量化 ***********************
-class ActivationQuantize(nn.Module):
+class ActivationQuantizer(nn.Module):
   def __init__(self, a_bits):
     super().__init__()
     self.a_bits = a_bits
@@ -38,7 +38,7 @@ class ActivationQuantize(nn.Module):
       output = output / scale
     return output
 # ********************* W(模型参数)量化 ***********************
-class WeightQuantize(nn.Module):
+class WeightQuantizer(nn.Module):
   def __init__(self, w_bits):
     super().__init__()
     self.w_bits = w_bits
@@ -81,8 +81,8 @@ class QuantConv2d(nn.Conv2d):
         super(QuantConv2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups,
                                           bias, padding_mode)
         # 实例化调用A和W量化器
-        self.activation_quantizer = ActivationQuantize(a_bits=a_bits)
-        self.weight_quantizer = WeightQuantize(w_bits=w_bits)    
+        self.activation_quantizer = ActivationQuantizer(a_bits=a_bits)
+        self.weight_quantizer = WeightQuantizer(w_bits=w_bits)    
         self.first_layer = first_layer
 
   def forward(self, input):
@@ -95,13 +95,38 @@ class QuantConv2d(nn.Conv2d):
     output = F.conv2d(quant_input, quant_weight, self.bias, self.stride, self.padding, self.dilation,
                       self.groups)
     return output
-    
-# ********************* 量化全连接（同时量化A/W，并做全连接） ***********************
+
+class QuantConvTranspose2d(nn.ConvTranspose2d):
+    def __init__(self,
+                 in_channels,
+                 out_channels,
+                 kernel_size,
+                 stride=1,
+                 padding=0,
+                 output_padding=0,
+                 dilation=1,
+                 groups=1,
+                 bias=True,
+                 padding_mode='zeros',
+                 a_bits=8,
+                 w_bits=8):
+        super(QuantConvTranspose2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, output_padding, 
+                         dilation, groups, bias, padding_mode)
+        self.activation_quantizer = ActivationQuantizer(a_bits=a_bits)
+        self.weight_quantizer = WeightQuantizer(w_bits=w_bits) 
+
+    def forward(self, input):
+        quant_input = self.activation_quantizer(input)
+        quant_weight = self.weight_quantizer(self.weight)
+        output = F.conv_transpose2d(quant_input, quant_weight, self.bias, self.stride, self.padding, self.output_padding,
+                                    self.groups, self.dilation)
+        return output
+
 class QuantLinear(nn.Linear):
   def __init__(self, in_features, out_features, bias=True, a_bits=8, w_bits=8):
     super(QuantLinear, self).__init__(in_features, out_features, bias)
-    self.activation_quantizer = ActivationQuantize(a_bits=a_bits)
-    self.weight_quantizer = WeightQuantize(w_bits=w_bits) 
+    self.activation_quantizer = ActivationQuantizer(a_bits=a_bits)
+    self.weight_quantizer = WeightQuantizer(w_bits=w_bits) 
 
   def forward(self, input):
     quant_input = self.activation_quantizer(input)
