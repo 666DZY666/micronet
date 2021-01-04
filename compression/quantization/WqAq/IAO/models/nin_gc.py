@@ -3,7 +3,7 @@ sys.path.append("..")
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from util_wqaq import QuantConv2d, QuantBNFuseConv2d
+from util_wqaq import QuantConv2d, QuantBNFuseConv2d, QuantReLU, QuantMaxPool2d, QuantAvgPool2d
 
 def channel_shuffle(x, groups):
     """shuffle channels of a 4-D Tensor"""
@@ -33,7 +33,7 @@ class QuantConvBNReLU(nn.Module):
             self.quant_conv = QuantConv2d(input_channels, output_channels,
                     kernel_size=kernel_size, stride=stride, padding=padding, groups=groups, a_bits=abits, w_bits=wbits, q_type=q_type, first_layer=first_layer)
             self.bn = nn.BatchNorm2d(output_channels, momentum=0.01) # 考虑量化带来的抖动影响,对momentum进行调整(0.1 ——> 0.01),削弱batch统计参数占比，一定程度抑制抖动。经实验量化训练效果更好,acc提升1%左右
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = QuantReLU(inplace=True, a_bits=abits, q_type=q_type)
 
     def forward(self, x):
         if self.channel_shuffle_flag:
@@ -56,17 +56,17 @@ class Net(nn.Module):
                 QuantConvBNReLU(3, cfg[0], kernel_size=5, stride=1, padding=2, abits=abits, wbits=wbits, bn_fuse=bn_fuse, q_type=q_type, first_layer=1),
                 QuantConvBNReLU(cfg[0], cfg[1], kernel_size=1, stride=1, padding=0, groups=2, channel_shuffle=0, abits=abits, wbits=wbits, bn_fuse=bn_fuse, q_type=q_type),
                 QuantConvBNReLU(cfg[1], cfg[2], kernel_size=1, stride=1, padding=0, groups=2, channel_shuffle=1, shuffle_groups=2, abits=abits, wbits=wbits, bn_fuse=bn_fuse, q_type=q_type),
-                nn.MaxPool2d(kernel_size=2, stride=2, padding=0),
+                QuantMaxPool2d(kernel_size=2, stride=2, padding=0, a_bits=abits, q_type=q_type),
                 
                 QuantConvBNReLU(cfg[2], cfg[3], kernel_size=3, stride=1, padding=1, groups=16, channel_shuffle=1, shuffle_groups=2, abits=abits, wbits=wbits, bn_fuse=bn_fuse, q_type=q_type),
                 QuantConvBNReLU(cfg[3], cfg[4], kernel_size=1, stride=1, padding=0, groups=4, channel_shuffle=1, shuffle_groups=16, abits=abits, wbits=wbits, bn_fuse=bn_fuse, q_type=q_type),
                 QuantConvBNReLU(cfg[4], cfg[5], kernel_size=1, stride=1, padding=0, groups=4, channel_shuffle=1, shuffle_groups=4, abits=abits, wbits=wbits, bn_fuse=bn_fuse, q_type=q_type),
-                nn.MaxPool2d(kernel_size=2, stride=2, padding=0),
+                QuantMaxPool2d(kernel_size=2, stride=2, padding=0, a_bits=abits, q_type=q_type),
                 
                 QuantConvBNReLU(cfg[5], cfg[6], kernel_size=3, stride=1, padding=1, groups=32, channel_shuffle=1, shuffle_groups=4, abits=abits, wbits=wbits, bn_fuse=bn_fuse, q_type=q_type),
                 QuantConvBNReLU(cfg[6], cfg[7], kernel_size=1, stride=1, padding=0, groups=8, channel_shuffle=1, shuffle_groups=32, abits=abits, wbits=wbits, bn_fuse=bn_fuse, q_type=q_type),
                 QuantConvBNReLU(cfg[7], 10, kernel_size=1, stride=1, padding=0, abits=abits, wbits=wbits, bn_fuse=bn_fuse, q_type=q_type),
-                nn.AvgPool2d(kernel_size=8, stride=1, padding=0),
+                QuantAvgPool2d(kernel_size=8, stride=1, padding=0, a_bits=abits, q_type=q_type)
                 )
 
     def forward(self, x):

@@ -124,7 +124,7 @@ if __name__=='__main__':
             help='the path to the refine(prune) model')
     parser.add_argument('--evaluate', action='store_true',
             help='evaluate the model')
-    parser.add_argument('--train_batch_size', type=int, default=512)
+    parser.add_argument('--train_batch_size', type=int, default=128)
     parser.add_argument('--eval_batch_size', type=int, default=256)
     parser.add_argument('--num_workers', type=int, default=2)
     parser.add_argument('--start_epochs', type=int, default=1, metavar='N',

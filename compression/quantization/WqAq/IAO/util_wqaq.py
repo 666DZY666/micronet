@@ -182,7 +182,7 @@ class QuantConv2d(nn.Conv2d):
                  padding_mode='zeros',
                  a_bits=8,
                  w_bits=8,
-                 q_type=1,
+                 q_type=0,
                  first_layer=0):
         super(QuantConv2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups,
                                           bias, padding_mode)
@@ -220,7 +220,7 @@ class QuantConvTranspose2d(nn.ConvTranspose2d):
                  padding_mode='zeros',
                  a_bits=8,
                  w_bits=8,
-                 q_type=1):
+                 q_type=0):
         super(QuantConvTranspose2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, output_padding, 
                          dilation, groups, bias, padding_mode)
         if q_type == 0:
@@ -259,7 +259,7 @@ class QuantBNFuseConv2d(QuantConv2d):
                  momentum=0.01, # 考虑量化带来的抖动影响,对momentum进行调整(0.1 ——> 0.01),削弱batch统计参数占比，一定程度抑制抖动。经实验量化训练效果更好,acc提升1%左右
                  a_bits=8,
                  w_bits=8,
-                 q_type=1,
+                 q_type=0,
                  first_layer=0):
         super(QuantBNFuseConv2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups,
                                                 bias, padding_mode)
@@ -334,7 +334,7 @@ class QuantBNFuseConv2d(QuantConv2d):
         return output
 
 class QuantLinear(nn.Linear):
-    def __init__(self, in_features, out_features, bias=True, a_bits=8, w_bits=8, q_type=1):
+    def __init__(self, in_features, out_features, bias=True, a_bits=8, w_bits=8, q_type=0):
         super(QuantLinear, self).__init__(in_features, out_features, bias)
         if q_type == 0:
             self.activation_quantizer = SymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
@@ -350,7 +350,7 @@ class QuantLinear(nn.Linear):
         return output
         
 class QuantReLU(nn.ReLU):
-    def __init__(self, inplace=False, a_bits=8, q_type=1):
+    def __init__(self, inplace=False, a_bits=8, q_type=0):
         super(QuantReLU, self).__init__(inplace)
         if q_type == 0:
             self.activation_quantizer = SymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
@@ -363,7 +363,7 @@ class QuantReLU(nn.ReLU):
         return output
 
 class QuantSigmoid(nn.Sigmoid):
-    def __init__(self, a_bits=8, q_type=1):
+    def __init__(self, a_bits=8, q_type=0):
         super(QuantSigmoid, self).__init__()
         if q_type == 0:
             self.activation_quantizer = SymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
@@ -377,7 +377,7 @@ class QuantSigmoid(nn.Sigmoid):
 
 class QuantMaxPool2d(nn.MaxPool2d):
     def __init__(self, kernel_size, stride=None, padding=0, dilation=1,
-                 return_indices=False, ceil_mode=False, a_bits=8, q_type=1):
+                 return_indices=False, ceil_mode=False, a_bits=8, q_type=0):
         super(QuantMaxPool2d, self).__init__(kernel_size, stride, padding, dilation,
                                              return_indices, ceil_mode)
         if q_type == 0:
@@ -392,7 +392,7 @@ class QuantMaxPool2d(nn.MaxPool2d):
         
 class QuantAvgPool2d(nn.AvgPool2d):
     def __init__(self, kernel_size, stride=None, padding=0, ceil_mode=False,
-                 count_include_pad=True, divisor_override=None, a_bits=8, q_type=1):
+                 count_include_pad=True, divisor_override=None, a_bits=8, q_type=0):
         super(QuantAvgPool2d, self).__init__(kernel_size, stride, padding, ceil_mode,
                                              count_include_pad, divisor_override)
         if q_type == 0:
@@ -406,7 +406,7 @@ class QuantAvgPool2d(nn.AvgPool2d):
         return output
         
 class QuantAdaptiveAvgPool2d(nn.AdaptiveAvgPool2d):
-    def __init__(self, output_size, a_bits=8, q_type=1):
+    def __init__(self, output_size, a_bits=8, q_type=0):
         super(QuantAdaptiveAvgPool2d, self).__init__(output_size)
         if q_type == 0:
             self.activation_quantizer = SymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
@@ -418,8 +418,11 @@ class QuantAdaptiveAvgPool2d(nn.AdaptiveAvgPool2d):
         output = F.adaptive_avg_pool2d(quant_input, self.output_size)
         return output
 
+
+'''
+# *** temp_dev ***
 class QuantAdd(nn.Module):
-    def __init__(self, a_bits=8, q_type=1):
+    def __init__(self, a_bits=8, q_type=0):
         super(QuantAdd, self).__init__()
         if q_type == 0:
             self.activation_quantizer_0 = SymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
@@ -433,7 +436,7 @@ class QuantAdd(nn.Module):
         return output
 
 class QuantConcat(nn.Module):
-    def __init__(self, a_bits=8, q_type=1):
+    def __init__(self, a_bits=8, q_type=0):
         super(QuantConcat, self).__init__()
         if q_type == 0:
             self.activation_quantizer_0 = SymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
@@ -446,8 +449,6 @@ class QuantConcat(nn.Module):
         output = torch.cat((self.activation_quantizer_1(input), self.activation_quantizer_0(shortcut)), 1)
         return output
         
-'''
-# *** temp_dev ***
 class BNFold_Conv2d_Q(nn.Module):
     def __init__(
         self,
