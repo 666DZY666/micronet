@@ -17,7 +17,7 @@ def channel_shuffle(x, groups):
 
 class ConvBNReLU(nn.Module):
     def __init__(self, input_channels, output_channels,
-            kernel_size=-1, stride=-1, padding=-1, groups=1, channel_shuffle=0, shuffle_groups=1, quant_type=0, first_relu=0):
+                 kernel_size=-1, stride=-1, padding=-1, groups=1, channel_shuffle=0, shuffle_groups=1, quant_type=0, first_relu=0):
         super(ConvBNReLU, self).__init__()
         self.channel_shuffle_flag = channel_shuffle
         self.shuffle_groups = shuffle_groups

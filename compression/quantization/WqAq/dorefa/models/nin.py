@@ -7,7 +7,7 @@ from util_wqaq import QuantConv2d
 
 class QuantConvBNReLU(nn.Module):
     def __init__(self, input_channels, output_channels,
-            kernel_size=-1, stride=-1, padding=-1, groups=1, abits=8, wbits=8, first_layer=0):
+                 kernel_size=-1, stride=-1, padding=-1, groups=1, abits=8, wbits=8, first_layer=0):
         super(QuantConvBNReLU, self).__init__()
 
         self.quant_conv = QuantConv2d(input_channels, output_channels,

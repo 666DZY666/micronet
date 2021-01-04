@@ -29,6 +29,7 @@ class BinaryActivation(Function):
         grad_input = grad_output * grad
         '''
         return grad_input
+
 # weight
 class BinaryWeight(Function):
     @staticmethod
@@ -41,6 +42,7 @@ class BinaryWeight(Function):
         #*******************ste*********************
         grad_input = grad_output.clone()
         return grad_input
+
 # ********************* 三值(+-1、0) ***********************
 class Ternary(Function):
     @staticmethod
@@ -61,23 +63,22 @@ class Ternary(Function):
 
 # ********************* A(特征)量化(二值) ***********************
 class ActivationBin(nn.Module):
-  def __init__(self, A):
-    super().__init__()
-    self.A = A
-    self.relu = nn.ReLU(inplace=True)
+    def __init__(self, A):
+        super().__init__()
+        self.A = A
+        self.relu = nn.ReLU(inplace=True) 
+    def binary(self, input):
+        output = BinaryActivation.apply(input)
+        return output 
+    def forward(self, input):
+        if self.A == 2:
+            output = self.binary(input)
+            # ******************** A —— 1、0 *********************
+            #a = torch.clamp(a, min=0)
+        else:
+            output = self.relu(input)
+        return output
 
-  def binary(self, input):
-    output = BinaryActivation.apply(input)
-    return output
-
-  def forward(self, input):
-    if self.A == 2:
-      output = self.binary(input)
-      # ******************** A —— 1、0 *********************
-      #a = torch.clamp(a, min=0)
-    else:
-      output = self.relu(input)
-    return output
 # ********************* W(模型参数)量化(三/二值) ***********************
 def meancenter_clamp_convparams(w):
     mean = w.data.mean(1, keepdim=True)
@@ -85,50 +86,48 @@ def meancenter_clamp_convparams(w):
     w.data.clamp(-1.0, 1.0) # W截断
     return w
 class WeightTnnBin(nn.Module):
-  def __init__(self, W):
-    super().__init__()
-    self.W = W
+    def __init__(self, W):
+        super().__init__()
+        self.W = W    
+    def binary(self, input):
+        output = BinaryWeight.apply(input)
+        return output 
+    def ternary(self, input):
+        output = Ternary.apply(input)
+        return output 
+    def forward(self, input):
+        if self.W == 2 or self.W == 3:
+            # **************************************** W二值 *****************************************
+            if self.W == 2:
+                output = meancenter_clamp_convparams(input) # W中心化+截断
+                # **************** channel级 - E(|W|) ****************
+                E = torch.mean(torch.abs(output), (3, 2, 1), keepdim=True)
+                # **************** α(缩放因子) ****************
+                alpha = E
+                # ************** W —— +-1 **************
+                output = self.binary(output)
+                # ************** W * α **************
+                output = output * alpha # 若不需要α(缩放因子)，注释掉即可
+                # **************************************** W三值 *****************************************
+            elif self.W == 3:
+                output_fp = input.clone()
+                # ************** W —— +-1、0 **************
+                output, threshold = self.ternary(input)
+                # **************** α(缩放因子) ****************
+                output_abs = torch.abs(output_fp)
+                mask_le = output_abs.le(threshold)
+                mask_gt = output_abs.gt(threshold)
+                output_abs[mask_le] = 0
+                output_abs_th = output_abs.clone()
+                output_abs_th_sum = torch.sum(output_abs_th, (3, 2, 1), keepdim=True)
+                mask_gt_sum = torch.sum(mask_gt, (3, 2, 1), keepdim=True).float()
+                alpha = output_abs_th_sum / mask_gt_sum # α(缩放因子)
+                # *************** W * α ****************
+                output = output * alpha # 若不需要α(缩放因子)，注释掉即可
+        else:
+            output = input
+        return output
 
-  def binary(self, input):
-    output = BinaryWeight.apply(input)
-    return output
-
-  def ternary(self, input):
-    output = Ternary.apply(input)
-    return output
-
-  def forward(self, input):
-    if self.W == 2 or self.W == 3:
-        # **************************************** W二值 *****************************************
-        if self.W == 2:
-            output = meancenter_clamp_convparams(input) # W中心化+截断
-            # **************** channel级 - E(|W|) ****************
-            E = torch.mean(torch.abs(output), (3, 2, 1), keepdim=True)
-            # **************** α(缩放因子) ****************
-            alpha = E
-            # ************** W —— +-1 **************
-            output = self.binary(output)
-            # ************** W * α **************
-            output = output * alpha # 若不需要α(缩放因子)，注释掉即可
-            # **************************************** W三值 *****************************************
-        elif self.W == 3:
-            output_fp = input.clone()
-            # ************** W —— +-1、0 **************
-            output, threshold = self.ternary(input)
-            # **************** α(缩放因子) ****************
-            output_abs = torch.abs(output_fp)
-            mask_le = output_abs.le(threshold)
-            mask_gt = output_abs.gt(threshold)
-            output_abs[mask_le] = 0
-            output_abs_th = output_abs.clone()
-            output_abs_th_sum = torch.sum(output_abs_th, (3, 2, 1), keepdim=True)
-            mask_gt_sum = torch.sum(mask_gt, (3, 2, 1), keepdim=True).float()
-            alpha = output_abs_th_sum / mask_gt_sum # α(缩放因子)
-            # *************** W * α ****************
-            output = output * alpha # 若不需要α(缩放因子)，注释掉即可
-    else:
-      output = input
-    return output
 
 # ********************* 量化卷积（同时量化A/W，并做卷积） ***********************
 class QuantConv2d(nn.Conv2d):

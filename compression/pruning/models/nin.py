@@ -4,7 +4,7 @@ import torch.nn.functional as F
 
 class ConvBNReLU(nn.Module):
     def __init__(self, input_channels, output_channels,
-            kernel_size=-1, stride=-1, padding=-1, groups=1, quant_type=0, first_relu=0):
+                 kernel_size=-1, stride=-1, padding=-1, groups=1, quant_type=0, first_relu=0):
         super(ConvBNReLU, self).__init__()
         self.quant_type = quant_type
         self.first_relu = first_relu

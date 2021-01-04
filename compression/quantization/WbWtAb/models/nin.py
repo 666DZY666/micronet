@@ -7,7 +7,7 @@ from util_wbwtab import QuantConv2d
 class TnnBinConvBNReLU(nn.Module):
     # 参数：last_relu-尾层卷积输入激活
     def __init__(self, input_channels, output_channels,
-            kernel_size=-1, stride=-1, padding=-1, groups=1, last_relu=0, A=2, W=2):
+                 kernel_size=-1, stride=-1, padding=-1, groups=1, last_relu=0, A=2, W=2):
         super(TnnBinConvBNReLU, self).__init__()
         self.A = A
         self.W = W

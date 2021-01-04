@@ -20,7 +20,7 @@ def channel_shuffle(x, groups):
 
 class QuantConvBNReLU(nn.Module):
     def __init__(self, input_channels, output_channels,
-            kernel_size=-1, stride=-1, padding=-1, groups=1, channel_shuffle=0, shuffle_groups=1, abits=8, wbits=8, bn_fuse=0, q_type=1, first_layer=0):
+                 kernel_size=-1, stride=-1, padding=-1, groups=1, channel_shuffle=0, shuffle_groups=1, abits=8, wbits=8, bn_fuse=0, q_type=1, first_layer=0):
         super(QuantConvBNReLU, self).__init__()
         self.channel_shuffle_flag = channel_shuffle
         self.shuffle_groups = shuffle_groups
@@ -73,3 +73,4 @@ class Net(nn.Module):
         x = self.quant_model(x)
         x = x.view(x.size(0), -1)
         return x
+        
