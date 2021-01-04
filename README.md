@@ -128,6 +128,7 @@ Model-Compression-Deploy
 - **12.14**, 1、improve code structure; 2、add deploy-tensorrt(main module, but not running yet)
 - 12.18, 1、improve code structure/module reference/module_name; 2、add transfer-use demo
 - **12.21**, improve pruning-quantization pipeline and code
+- **2021.1.4**, add other quant_op
 
 
 ## 环境要求
