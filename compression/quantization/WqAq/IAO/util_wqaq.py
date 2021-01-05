@@ -183,16 +183,23 @@ class QuantConv2d(nn.Conv2d):
                  a_bits=8,
                  w_bits=8,
                  q_type=0,
+                 q_level=0,
                  first_layer=0):
         super(QuantConv2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups,
                                           bias, padding_mode)
         # 实例化量化器（A-layer级，W-channel级）
         if q_type == 0:
             self.activation_quantizer = SymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
-            self.weight_quantizer = SymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='C', out_channels=out_channels))
+            if q_level == 0:
+                self.weight_quantizer = SymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='C', out_channels=out_channels))
+            else:
+                self.weight_quantizer = SymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='L', out_channels=out_channels))
         else:
             self.activation_quantizer = AsymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
-            self.weight_quantizer = AsymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='C', out_channels=out_channels))
+            if q_level == 0:
+                self.weight_quantizer = AsymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='C', out_channels=out_channels))
+            else:
+                self.weight_quantizer = AsymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='L', out_channels=out_channels))
         self.first_layer = first_layer
 
     def forward(self, input):
@@ -220,15 +227,22 @@ class QuantConvTranspose2d(nn.ConvTranspose2d):
                  padding_mode='zeros',
                  a_bits=8,
                  w_bits=8,
-                 q_type=0):
+                 q_type=0,
+                 q_level=0):
         super(QuantConvTranspose2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, output_padding, 
                          dilation, groups, bias, padding_mode)
         if q_type == 0:
             self.activation_quantizer = SymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
-            self.weight_quantizer = SymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='C_convtrans', out_channels=out_channels))
+            if q_level == 0:
+                self.weight_quantizer = SymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='C_convtrans', out_channels=out_channels))
+            else:
+                self.weight_quantizer = SymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='L', out_channels=out_channels))
         else:
             self.activation_quantizer = AsymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
-            self.weight_quantizer = AsymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='C_convtrans', out_channels=out_channels))
+            if q_level == 0:
+                self.weight_quantizer = AsymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='C_convtrans', out_channels=out_channels))
+            else:
+                self.weight_quantizer = AsymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='L', out_channels=out_channels))
 
     def forward(self, input):
         quant_input = self.activation_quantizer(input)
@@ -260,6 +274,7 @@ class QuantBNFuseConv2d(QuantConv2d):
                  a_bits=8,
                  w_bits=8,
                  q_type=0,
+                 q_level=0,
                  first_layer=0):
         super(QuantBNFuseConv2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups,
                                                 bias, padding_mode)
@@ -276,10 +291,16 @@ class QuantBNFuseConv2d(QuantConv2d):
         # 实例化量化器（A-layer级，W-channel级）
         if q_type == 0:
             self.activation_quantizer = SymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
-            self.weight_quantizer = SymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='C', out_channels=out_channels))
+            if q_level == 0:
+                self.weight_quantizer = SymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='C', out_channels=out_channels))
+            else:
+                self.weight_quantizer = SymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='L', out_channels=out_channels))
         else:
             self.activation_quantizer = AsymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
-            self.weight_quantizer = AsymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='C', out_channels=out_channels))
+            if q_level == 0:
+                self.weight_quantizer = AsymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='C', out_channels=out_channels))
+            else:
+                self.weight_quantizer = AsymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='L', out_channels=out_channels))
         self.first_layer = first_layer
 
     def forward(self, input):
@@ -334,14 +355,20 @@ class QuantBNFuseConv2d(QuantConv2d):
         return output
 
 class QuantLinear(nn.Linear):
-    def __init__(self, in_features, out_features, bias=True, a_bits=8, w_bits=8, q_type=0):
+    def __init__(self, in_features, out_features, bias=True, a_bits=8, w_bits=8, q_type=0, q_level=0):
         super(QuantLinear, self).__init__(in_features, out_features, bias)
         if q_type == 0:
             self.activation_quantizer = SymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
-            self.weight_quantizer = SymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='FC', out_channels=out_features))
+            if q_level == 0:
+                self.weight_quantizer = SymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='FC', out_channels=out_features))
+            else:
+                self.weight_quantizer = SymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='L', out_channels=out_features))
         else:
             self.activation_quantizer = AsymmetricQuantizer(bits=a_bits, range_tracker=AveragedRangeTracker(q_level='L'))
-            self.weight_quantizer = AsymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='FC', out_channels=out_features))
+            if q_level == 0:
+                self.weight_quantizer = AsymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='FC', out_channels=out_features))
+            else:
+                self.weight_quantizer = AsymmetricQuantizer(bits=w_bits, range_tracker=GlobalRangeTracker(q_level='L', out_channels=out_features))
 
     def forward(self, input):
         quant_input = self.activation_quantizer(input)

@@ -129,6 +129,7 @@ Model-Compression-Deploy
 - 12.18, 1、improve code structure/module reference/module_name; 2、add transfer-use demo
 - **12.21**, improve pruning-quantization pipeline and code
 - **2021.1.4**, add other quant_op
+- 1.5, add quant_weight's per-channel and per-layer selection
 
 
 ## 环境要求
@@ -225,18 +226,42 @@ cd compression/quantization/WqAq/IAO
 
 *量化位数选择同dorefa*
 
---q_type, 量化类型(0-对称, 1-非对称); --bn_fuse, 量化中bn融合标志(0-不融合, 1-融合)
+--q_type, 量化类型(0-对称, 1-非对称); --q_level, 权重量化级别(0-通道级, 1-层级); --bn_fuse, 量化中bn融合标志(0-不融合, 1-融合)
 
-- 对称量化, bn不融合
+- (默认)对称、(权重)通道级量化, bn不融合
 
 ```shell
-python main.py --q_type 0 --bn_fuse 0
+python main.py --q_type 0 --q_level 0 --bn_fuse 0
 ```
 
-- 非对称量化, bn融合
+- 对称、(权重)层级量化, bn不融合
 
 ```shell
-python main.py --q_type 1 --bn_fuse 1
+python main.py --q_type 0 --q_level 1 --bn_fuse 0
+```
+
+- 非对称、(权重)通道级量化, bn不融合
+
+```shell
+python main.py --q_type 1 --q_level 0 --bn_fuse 0
+```
+
+- 非对称、(权重)层级量化, bn不融合
+
+```shell
+python main.py --q_type 1 --q_level 1 --bn_fuse 0
+```
+
+- 非对称、(权重)通道级量化, bn融合
+
+```shell
+python main.py --q_type 1 --q_level 0 --bn_fuse 1
+```
+
+- 对称、(权重)通道级量化, bn融合
+
+```shell
+python main.py --q_type 0 --q_level 0 --bn_fuse 1
 ```
 
 - 其他组合情况类比

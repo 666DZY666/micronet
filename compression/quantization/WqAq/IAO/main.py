@@ -139,7 +139,10 @@ if __name__=='__main__':
             help='bn_fuse:1')
     # 量化方法选择
     parser.add_argument('--q_type', type=int, default=0,
-            help='quantization type:0-symmetric,1-asymmetric')
+            help='quantization type:0-symmetric, 1-asymmetric')
+    # 量化级别选择
+    parser.add_argument('--q_level', type=int, default=0,
+            help='quantization type:0-per_channel, 1-per_layer')
     # 模型结构选择
     parser.add_argument('--model_type', type=int, default=1,
             help='model type:0-nin,1-nin_gc')
@@ -174,9 +177,9 @@ if __name__=='__main__':
         #checkpoint = torch.load('../prune/models_save/nin_refine.pth')
         checkpoint = torch.load(args.refine)
         if args.model_type == 0:
-            model = nin.Net(cfg=checkpoint['cfg'], abits=args.Abits, wbits=args.Wbits, bn_fuse=args.bn_fuse, q_type=args.q_type)
+            model = nin.Net(cfg=checkpoint['cfg'], abits=args.Abits, wbits=args.Wbits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level)
         else:
-            model = nin_gc.Net(cfg=checkpoint['cfg'], abits=args.Abits, wbits=args.Wbits, bn_fuse=args.bn_fuse, q_type=args.q_type)
+            model = nin_gc.Net(cfg=checkpoint['cfg'], abits=args.Abits, wbits=args.Wbits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level)
         model_dict = model.state_dict()
         update_state_dict = {k:v for k,v in checkpoint['state_dict'].items() if k in model_dict.keys()}  
         model_dict.update(update_state_dict)
@@ -186,9 +189,9 @@ if __name__=='__main__':
     else:
         print('******Initializing model******')
         if args.model_type == 0:
-            model = nin.Net(abits=args.Abits, wbits=args.Wbits, bn_fuse=args.bn_fuse, q_type=args.q_type)
+            model = nin.Net(abits=args.Abits, wbits=args.Wbits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level)
         else:
-            model = nin_gc.Net(abits=args.Abits, wbits=args.Wbits, bn_fuse=args.bn_fuse, q_type=args.q_type)
+            model = nin_gc.Net(abits=args.Abits, wbits=args.Wbits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level)
         best_acc = 0
         for m in model.modules():
             if isinstance(m, nn.Conv2d):
