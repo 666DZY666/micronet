@@ -252,16 +252,16 @@ python main.py --q_type 1 --q_level 0 --bn_fuse 0
 python main.py --q_type 1 --q_level 1 --bn_fuse 0
 ```
 
-- 非对称、(权重)通道级量化, bn融合
+- 对称、(权重)层级量化, bn融合
 
 ```shell
-python main.py --q_type 1 --q_level 0 --bn_fuse 1
+python main.py --q_type 0 --q_level 1 --bn_fuse 1
 ```
 
-- 对称、(权重)通道级量化, bn融合
+- 非对称、(权重)层级量化, bn融合
 
 ```shell
-python main.py --q_type 0 --q_level 0 --bn_fuse 1
+python main.py --q_type 1 --q_level 1 --bn_fuse 1
 ```
 
 - 其他组合情况类比
