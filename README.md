@@ -190,7 +190,7 @@ python main.py --W 3 --A 32
 
 ##### W（FP32/16/8/4/2-bit）、A（FP32/16/8/4/2-bit）
 
---Wbits --Abits, 权重W和特征A量化位数
+--w_bits --a_bits, 权重W和特征A量化位数
 
 ###### dorefa
 
@@ -201,19 +201,19 @@ cd compression/quantization/WqAq/dorefa
 - W16A16
 
 ```shell
-python main.py --Wbits 16 --Abits 16
+python main.py --w_bits 16 --a_bits 16
 ```
 
 - W8A8
 
 ```shell
-python main.py --Wbits 8 --Abits 8
+python main.py --w_bits 8 --a_bits 8
 ```
 
 - W4A4
 
 ```shell
-python main.py --Wbits 4 --Abits 4
+python main.py --w_bits 4 --a_bits 4
 ```
 
 - 其他bits情况类比
@@ -363,13 +363,13 @@ cd compression/quantization/WqAq/IAO
 - nin(正常卷积结构)
 
 ```shell
-python main.py --Wbits 8 --Abits 8 --model_type 0 --refine ../../../pruning/models_save/nin_finetune.pth
+python main.py --w_bits 8 --a_bits 8 --model_type 0 --refine ../../../pruning/models_save/nin_finetune.pth
 ```
 
 - nin_gc(含分组卷积结构)
 
 ```shell
-python main.py --Wbits 8 --Abits 8 --model_type 1 --refine ../../../pruning/models_save/nin_gc_retrain.pth
+python main.py --w_bits 8 --a_bits 8 --model_type 1 --refine ../../../pruning/models_save/nin_gc_retrain.pth
 ```
 
 ###### 其他bits情况类比

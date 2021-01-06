@@ -344,7 +344,7 @@ class QuantBNFuseConv2d(QuantConv2d):
         quant_weight = self.weight_quantizer(weight) 
         # 量化卷积
         if self.training:  # 训练态
-          output = F.conv2d(quant_input, quant_weight, self.bias, self.stride, self.padding, self.dilation,
+          output = F.conv2d(quant_input, quant_weight, None, self.stride, self.padding, self.dilation,
                             self.groups) # 注意，这里不加bias（self.bias为None）
           # （这里将训练态下，卷积中w融合running参数的效果转为融合batch参数的效果）running ——> batch
           output *= reshape_to_activation(torch.sqrt(self.running_var + self.eps) / torch.sqrt(batch_var + self.eps))

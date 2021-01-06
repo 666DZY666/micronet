@@ -123,8 +123,8 @@ if __name__=='__main__':
     parser.add_argument('--end_epochs', type=int, default=300, metavar='N',
             help='number of epochs to train_end')
     # W/A — bits
-    parser.add_argument('--Wbits', type=int, default=8)
-    parser.add_argument('--Abits', type=int, default=8)
+    parser.add_argument('--w_bits', type=int, default=8)
+    parser.add_argument('--a_bits', type=int, default=8)
     # 模型结构选择
     parser.add_argument('--model_type', type=int, default=1,
             help='model type:0-nin,1-nin_gc')
@@ -159,17 +159,17 @@ if __name__=='__main__':
         #checkpoint = torch.load('../prune/models_save/nin_refine.pth')
         checkpoint = torch.load(args.refine)
         if args.model_type == 0:
-            model = nin.Net(cfg=checkpoint['cfg'], abits=args.Abits, wbits=args.Wbits)
+            model = nin.Net(cfg=checkpoint['cfg'], a_bits=args.a_bits, w_bits=args.w_bits)
         else:
-            model = nin_gc.Net(cfg=checkpoint['cfg'], abits=args.Abits, wbits=args.Wbits)
+            model = nin_gc.Net(cfg=checkpoint['cfg'], a_bits=args.a_bits, w_bits=args.w_bits)
         model.load_state_dict(checkpoint['state_dict'])
         best_acc = 0
     else:
         print('******Initializing model******')
         if args.model_type == 0:
-            model = nin.Net(abits=args.Abits, wbits=args.Wbits)
+            model = nin.Net(a_bits=args.a_bits, w_bits=args.w_bits)
         else:
-            model = nin_gc.Net(abits=args.Abits, wbits=args.Wbits)
+            model = nin_gc.Net(a_bits=args.a_bits, w_bits=args.w_bits)
         best_acc = 0
         for m in model.modules():
             if isinstance(m, nn.Conv2d):

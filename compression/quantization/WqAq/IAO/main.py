@@ -124,7 +124,7 @@ if __name__=='__main__':
             help='the path to the refine(prune) model')
     parser.add_argument('--evaluate', action='store_true',
             help='evaluate the model')
-    parser.add_argument('--train_batch_size', type=int, default=128)
+    parser.add_argument('--train_batch_size', type=int, default=64)
     parser.add_argument('--eval_batch_size', type=int, default=256)
     parser.add_argument('--num_workers', type=int, default=2)
     parser.add_argument('--start_epochs', type=int, default=1, metavar='N',
@@ -132,8 +132,8 @@ if __name__=='__main__':
     parser.add_argument('--end_epochs', type=int, default=30, metavar='N',
             help='number of epochs to train_end')
     # W/A — bits
-    parser.add_argument('--Wbits', type=int, default=8)
-    parser.add_argument('--Abits', type=int, default=8)
+    parser.add_argument('--w_bits', type=int, default=8)
+    parser.add_argument('--a_bits', type=int, default=8)
     # bn融合标志位
     parser.add_argument('--bn_fuse', type=int, default=0,
             help='bn_fuse:1')
@@ -177,9 +177,9 @@ if __name__=='__main__':
         #checkpoint = torch.load('../prune/models_save/nin_refine.pth')
         checkpoint = torch.load(args.refine)
         if args.model_type == 0:
-            model = nin.Net(cfg=checkpoint['cfg'], abits=args.Abits, wbits=args.Wbits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level)
+            model = nin.Net(cfg=checkpoint['cfg'], a_bits=args.a_bits, w_bits=args.w_bits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level)
         else:
-            model = nin_gc.Net(cfg=checkpoint['cfg'], abits=args.Abits, wbits=args.Wbits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level)
+            model = nin_gc.Net(cfg=checkpoint['cfg'], a_bits=args.a_bits, w_bits=args.w_bits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level)
         model_dict = model.state_dict()
         update_state_dict = {k:v for k,v in checkpoint['state_dict'].items() if k in model_dict.keys()}  
         model_dict.update(update_state_dict)
@@ -189,9 +189,9 @@ if __name__=='__main__':
     else:
         print('******Initializing model******')
         if args.model_type == 0:
-            model = nin.Net(abits=args.Abits, wbits=args.Wbits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level)
+            model = nin.Net(a_bits=args.a_bits, w_bits=args.w_bits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level)
         else:
-            model = nin_gc.Net(abits=args.Abits, wbits=args.Wbits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level)
+            model = nin_gc.Net(a_bits=args.a_bits, w_bits=args.w_bits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level)
         best_acc = 0
         for m in model.modules():
             if isinstance(m, nn.Conv2d):
