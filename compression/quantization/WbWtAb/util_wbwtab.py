@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Function
 
+
 # ********************* 二值(+-1) ***********************
 # activation
 class BinaryActivation(Function):

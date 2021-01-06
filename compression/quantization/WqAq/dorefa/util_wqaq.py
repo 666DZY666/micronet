@@ -3,6 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Function
 
+
+# ********************* quantizers（量化器，量化） *********************
+# 取整(ste)
 class Round(Function):
     @staticmethod
     def forward(self, input):
@@ -14,14 +17,18 @@ class Round(Function):
         grad_input = grad_output.clone()
         return grad_input
 
-# ********************* A(特征)量化 ***********************
+# A(特征)量化
 class ActivationQuantizer(nn.Module):
     def __init__(self, a_bits):
         super(ActivationQuantizer, self).__init__()
         self.a_bits = a_bits  
+    
+    # 取整(ste)
     def round(self, input):
         output = Round.apply(input)
         return output 
+
+    # 量化/反量化
     def forward(self, input):
         if self.a_bits == 32:
             output = input
@@ -29,20 +36,22 @@ class ActivationQuantizer(nn.Module):
             print('！Binary quantization is not supported ！')
             assert self.a_bits != 1
         else:
-            output = torch.clamp(input * 0.1, 0, 1)  # 特征A截断前先进行缩放（* 0.1），以减小截断误差
-            scale = float(2 ** self.a_bits - 1)
-            output = output * scale
-            output = self.round(output)
-            output = output / scale
+            output = torch.clamp(input * 0.1, 0, 1)      # 特征A截断前先进行缩放（* 0.1），以减小截断误差
+            scale = 1 / float(2 ** self.a_bits - 1)      # scale
+            output = self.round(output / scale) * scale  # 量化/反量化
         return output
-# ********************* W(模型参数)量化 ***********************
+
+# W(权重)量化
 class WeightQuantizer(nn.Module):
     def __init__(self, w_bits):
         super(WeightQuantizer, self).__init__()
         self.w_bits = w_bits  
+
+    # 取整(ste)
     def round(self, input):
         output = Round.apply(input)
         return output 
+
     def forward(self, input):
         if self.w_bits == 32:
             output = input
@@ -51,13 +60,12 @@ class WeightQuantizer(nn.Module):
             assert self.w_bits != 1                      
         else:
             output = torch.tanh(input)
-            output = output / 2 / torch.max(torch.abs(output)) + 0.5  #归一化-[0,1]
-            scale = float(2 ** self.w_bits - 1)
-            output = output * scale
-            output = self.round(output)
-            output = output / scale
+            output = output / 2 / torch.max(torch.abs(output)) + 0.5  # 归一化-[0,1]
+            scale = 1 / float(2 ** self.w_bits - 1)                   # scale
+            output = self.round(output / scale) * scale               # 量化/反量化
             output = 2 * output - 1
         return output
+
 
 # ********************* 量化卷积（同时量化A/W，并做卷积） ***********************
 class QuantConv2d(nn.Conv2d):

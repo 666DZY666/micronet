@@ -6,6 +6,7 @@ from torch.nn import init
 from torch.nn.parameter import Parameter
 from torch.autograd import Function
 
+
 # ********************* range_trackers(范围统计器，统计量化前范围) *********************
 class RangeTracker(nn.Module):
     def __init__(self, q_level):
@@ -81,6 +82,7 @@ class AveragedRangeTracker(RangeTracker):  # A,min_max_shape=(1, 1, 1, 1),layer�
         
 
 # ********************* quantizers（量化器，量化） *********************
+# 取整(ste)
 class Round(Function):
     @staticmethod
     def forward(self, input):
@@ -103,23 +105,9 @@ class Quantizer(nn.Module):
     def update_params(self):
         raise NotImplementedError
 
-    # 量化
-    def quantize(self, input):
-        output = input * self.scale - self.zero_point
-        return output
-
+    # 取整(ste)
     def round(self, input):
         output = Round.apply(input)
-        return output
-
-    # 截断
-    def clamp(self, input):
-        output = torch.clamp(input, self.min_val, self.max_val)
-        return output
-
-    # 反量化
-    def dequantize(self, input):
-        output = (input + self.zero_point) / self.scale
         return output
 
     def forward(self, input):
@@ -131,10 +119,8 @@ class Quantizer(nn.Module):
         else:
             self.range_tracker(input)
             self.update_params()
-            output = self.quantize(input)   # 量化
-            output = self.round(output)
-            output = self.clamp(output)     # 截断
-            output = self.dequantize(output)# 反量化
+            # 量化/反量化
+            output = (torch.clamp(self.round(input / self.scale - self.zero_point), self.min_val, self.max_val) + self.zero_point) * self.scale
         return output
 
 class SignedQuantizer(Quantizer):
@@ -151,21 +137,19 @@ class UnsignedQuantizer(Quantizer):
 
 # 对称量化
 class SymmetricQuantizer(SignedQuantizer):
-
     def update_params(self):
-        quantized_range = torch.min(torch.abs(self.min_val), torch.abs(self.max_val))  # 量化后范围
-        float_range = torch.max(torch.abs(self.range_tracker.min_val), torch.abs(self.range_tracker.max_val))  # 量化前范围
-        self.scale = quantized_range / float_range      # 量化比例因子
-        self.zero_point = torch.zeros_like(self.scale)  # 量化零点
+        quantized_range = torch.min(torch.abs(self.min_val), torch.abs(self.max_val))                          # quantized_range
+        float_range = torch.max(torch.abs(self.range_tracker.min_val), torch.abs(self.range_tracker.max_val))  # float_range
+        self.scale = float_range / quantized_range                                                             # scale
+        self.zero_point = torch.zeros_like(self.scale)                                                         # zero_point
 
 # 非对称量化
 class AsymmetricQuantizer(UnsignedQuantizer):
-
     def update_params(self):
-        quantized_range = self.max_val - self.min_val  # 量化后范围
-        float_range = self.range_tracker.max_val - self.range_tracker.min_val   # 量化前范围
-        self.scale = quantized_range / float_range  # 量化比例因子
-        self.zero_point = torch.round(self.range_tracker.min_val * self.scale)  # 量化零点
+        quantized_range = self.max_val - self.min_val                          # quantized_range
+        float_range = self.range_tracker.max_val - self.range_tracker.min_val  # float_range
+        self.scale = float_range / quantized_range                             # scale
+        self.zero_point = torch.round(self.range_tracker.min_val / self.scale) # zero_point
 
 
 # ********************* 量化卷积（同时量化A/W，并做卷积） *********************
