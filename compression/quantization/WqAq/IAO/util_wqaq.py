@@ -9,7 +9,7 @@ from torch.autograd import Function
 # ********************* range_trackers(范围统计器，统计量化前范围) *********************
 class RangeTracker(nn.Module):
     def __init__(self, q_level):
-        super().__init__()
+        super(RangeTracker, self).__init__()
         self.q_level = q_level
 
     def update_range(self, min_val, max_val):
@@ -35,7 +35,7 @@ class RangeTracker(nn.Module):
 # MinMax
 class GlobalRangeTracker(RangeTracker):  # W,min_max_shape=(N, 1, 1, 1),channel级,取本次和之前相比的min_max —— (N, C, W, H)
     def __init__(self, q_level, out_channels):
-        super().__init__(q_level)
+        super(GlobalRangeTracker, self).__init__(q_level)
         if self.q_level == 'C':
             self.register_buffer('min_val', torch.zeros(out_channels, 1, 1, 1))
             self.register_buffer('max_val', torch.zeros(out_channels, 1, 1, 1))
@@ -64,7 +64,7 @@ class GlobalRangeTracker(RangeTracker):  # W,min_max_shape=(N, 1, 1, 1),channel�
 # MovingAverageMinMax
 class AveragedRangeTracker(RangeTracker):  # A,min_max_shape=(1, 1, 1, 1),layer级,取running_min_max —— (N, C, W, H)
     def __init__(self, q_level, momentum=0.1):
-        super().__init__(q_level)
+        super(AveragedRangeTracker, self).__init__(q_level)
         self.momentum = momentum
         self.register_buffer('min_val', torch.zeros(1))
         self.register_buffer('max_val', torch.zeros(1))
@@ -94,7 +94,7 @@ class Round(Function):
 
 class Quantizer(nn.Module):
     def __init__(self, bits, range_tracker):
-        super().__init__()
+        super(Quantizer, self).__init__()
         self.bits = bits
         self.range_tracker = range_tracker
         self.register_buffer('scale', torch.tensor(1.0))      # 量化比例因子
@@ -139,13 +139,13 @@ class Quantizer(nn.Module):
 
 class SignedQuantizer(Quantizer):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super(SignedQuantizer, self).__init__(*args, **kwargs)
         self.register_buffer('min_val', torch.tensor(-(1 << (self.bits - 1))))
         self.register_buffer('max_val', torch.tensor((1 << (self.bits - 1)) - 1))
 
 class UnsignedQuantizer(Quantizer):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+        super(UnsignedQuantizer, self).__init__(*args, **kwargs)
         self.register_buffer('min_val', torch.tensor(0))
         self.register_buffer('max_val', torch.tensor((1 << self.bits) - 1))
 

@@ -64,7 +64,7 @@ class Ternary(Function):
 # ********************* A(特征)量化(二值) ***********************
 class ActivationBin(nn.Module):
     def __init__(self, A):
-        super().__init__()
+        super(ActivationBin, self).__init__()
         self.A = A
         self.relu = nn.ReLU(inplace=True) 
     def binary(self, input):
@@ -87,7 +87,7 @@ def meancenter_clamp_convparams(w):
     return w
 class WeightTnnBin(nn.Module):
     def __init__(self, W):
-        super().__init__()
+        super(WeightTnnBin, self).__init__()
         self.W = W    
     def binary(self, input):
         output = BinaryWeight.apply(input)

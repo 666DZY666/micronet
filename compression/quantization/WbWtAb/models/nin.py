@@ -30,6 +30,7 @@ class TnnBinConvBNReLU(nn.Module):
                                         kernel_size, stride=stride, padding=padding, dilation=dilation, groups=groups, bias=bias, padding_mode=padding_mode, A=A, W=W)
         self.bn = nn.BatchNorm2d(out_channels, momentum=momentum)
         self.relu = nn.ReLU(inplace=True)
+        self.activation_bin = ActivationBin(A=A)
 
     def forward(self, x):
         x = self.tnn_bin_conv(x)

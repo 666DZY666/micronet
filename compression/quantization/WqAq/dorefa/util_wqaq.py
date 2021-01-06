@@ -17,7 +17,7 @@ class Round(Function):
 # ********************* A(特征)量化 ***********************
 class ActivationQuantizer(nn.Module):
     def __init__(self, a_bits):
-        super().__init__()
+        super(ActivationQuantizer, self).__init__()
         self.a_bits = a_bits  
     def round(self, input):
         output = Round.apply(input)
@@ -38,7 +38,7 @@ class ActivationQuantizer(nn.Module):
 # ********************* W(模型参数)量化 ***********************
 class WeightQuantizer(nn.Module):
     def __init__(self, w_bits):
-        super().__init__()
+        super(WeightQuantizer, self).__init__()
         self.w_bits = w_bits  
     def round(self, input):
         output = Round.apply(input)
