@@ -118,7 +118,7 @@ class Quantizer(nn.Module):
             assert self.bits != 1
         else:
             self.range_tracker(input)
-            self.update_params()
+            self.update_params()  # update scale and zero_point
             # 量化/反量化
             output = (torch.clamp(self.round(input / self.scale - self.zero_point), self.min_val, self.max_val) + self.zero_point) * self.scale
         return output
