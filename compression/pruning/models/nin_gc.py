@@ -38,7 +38,7 @@ class ConvBNReLU(nn.Module):
         self.first_relu = first_relu
         if self.quant_type == 0:
             self.tnn_bin_conv = nn.Conv2d(in_channels, out_channels,
-                                        kernel_size, stride=stride, padding=padding, dilation=dilation, groups=groups, bias=bias, padding_mode=padding_mode)
+                                          kernel_size, stride=stride, padding=padding, dilation=dilation, groups=groups, bias=bias, padding_mode=padding_mode)
         elif self.quant_type == 1:
             self.quant_conv = nn.Conv2d(in_channels, out_channels,
                                         kernel_size, stride=stride, padding=padding, dilation=dilation, groups=groups, bias=bias, padding_mode=padding_mode)
