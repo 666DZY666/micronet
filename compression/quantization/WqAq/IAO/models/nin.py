@@ -16,7 +16,8 @@ class QuantConvBNReLU(nn.Module):
                  groups=1,
                  bias=True,
                  padding_mode='zeros',
-                 momentum=0.01,
+                 eps=1e-5,
+                 momentum=0.1,
                  a_bits=8,
                  w_bits=8,
                  bn_fuse=0,
@@ -28,11 +29,11 @@ class QuantConvBNReLU(nn.Module):
 
         if self.bn_fuse == 1:
             self.quant_bn_fuse_conv = QuantBNFuseConv2d(in_channels, out_channels,
-                                                        kernel_size, stride=stride, padding=padding, dilation=dilation, groups=groups, bias=False, padding_mode=padding_mode, a_bits=a_bits, w_bits=w_bits, q_type=q_type, q_level=q_level, first_layer=first_layer)
+                                                        kernel_size, stride=stride, padding=padding, dilation=dilation, groups=groups, bias=False, padding_mode=padding_mode, eps=eps, momentum=momentum, a_bits=a_bits, w_bits=w_bits, q_type=q_type, q_level=q_level, first_layer=first_layer)
         else:
             self.quant_conv = QuantConv2d(in_channels, out_channels,
                                           kernel_size, stride=stride, padding=padding, dilation=dilation, groups=groups, bias=bias, padding_mode=padding_mode, a_bits=a_bits, w_bits=w_bits, q_type=q_type, q_level=q_level, first_layer=first_layer)
-            self.bn = nn.BatchNorm2d(out_channels, momentum=momentum) # 考虑量化带来的抖动影响,对momentum进行调整(0.1 ——> 0.01),削弱batch统计参数占比，一定程度抑制抖动。经实验量化训练效果更好,acc提升1%左右
+            self.bn = nn.BatchNorm2d(out_channels, eps=eps, momentum=momentum)
         self.relu = QuantReLU(inplace=True, a_bits=a_bits, q_type=q_type)
 
     def forward(self, x):

@@ -18,69 +18,75 @@ class RangeTracker(nn.Module):
 
     @torch.no_grad()
     def forward(self, input):
-        if self.q_level == 'L':    # A,min_max_shape=(1, 1, 1, 1),layer级
+        if self.q_level == 'L':    # layer级(A/W)
             min_val = torch.min(input)
             max_val = torch.max(input)
-        elif self.q_level == 'C':  # W,min_max_shape=(N, 1, 1, 1),channel级
-            min_val = torch.min(torch.min(torch.min(input, 3, keepdim=True)[0], 2, keepdim=True)[0], 1, keepdim=True)[0]
-            max_val = torch.max(torch.max(torch.max(input, 3, keepdim=True)[0], 2, keepdim=True)[0], 1, keepdim=True)[0]
+        elif self.q_level == 'C':  # channel级(W)
+            input = torch.flatten(input, start_dim=1)
+            min_val = torch.min(input, 1)[0]
+            max_val = torch.max(input, 1)[0]
         elif self.q_level == 'C_convtrans':  # W,min_max_shape=(1, C, 1, 1),channel级
             min_val = torch.min(torch.min(torch.min(input, 3, keepdim=True)[0], 2, keepdim=True)[0], 0, keepdim=True)[0]
             max_val = torch.max(torch.max(torch.max(input, 3, keepdim=True)[0], 2, keepdim=True)[0], 0, keepdim=True)[0]
         elif self.q_level == 'FC':  # W,min_max_shape=(N, 1),channel级
             min_val = torch.min(input, 1, keepdim=True)[0]
             max_val = torch.max(input, 1, keepdim=True)[0]
-            
+
         self.update_range(min_val, max_val)
 
 # MinMax
-class GlobalRangeTracker(RangeTracker):  # W,min_max_shape=(N, 1, 1, 1),channel级,取本次和之前相比的min_max —— (N, C, W, H)
+class GlobalRangeTracker(RangeTracker):  
     def __init__(self, q_level, out_channels):
         super(GlobalRangeTracker, self).__init__(q_level)
-        if self.q_level == 'C':
+        if self.q_level == 'C':            # channel级
             self.register_buffer('min_val', torch.zeros(out_channels, 1, 1, 1))
             self.register_buffer('max_val', torch.zeros(out_channels, 1, 1, 1))
-        if self.q_level == 'C_convtrans':
+        if self.q_level == 'C_convtrans':  
             self.register_buffer('min_val', torch.zeros(1, out_channels, 1, 1))
             self.register_buffer('max_val', torch.zeros(1, out_channels, 1, 1))
-        if self.q_level == 'L':
+        if self.q_level == 'L':            # layer级
             self.register_buffer('min_val', torch.zeros(1))
             self.register_buffer('max_val', torch.zeros(1))
         elif self.q_level == 'FC':
             self.register_buffer('min_val', torch.zeros(out_channels, 1))
             self.register_buffer('max_val', torch.zeros(out_channels, 1))
-        self.register_buffer('first_w', torch.zeros(1))
+        self.num_flag = 0
 
-    def update_range(self, min_val, max_val):
-        temp_minval = self.min_val
-        temp_maxval = self.max_val
-        if self.first_w == 0:
-            self.first_w.add_(1)
-            self.min_val.add_(min_val)
-            self.max_val.add_(max_val)
+    def update_range(self, min_val_cur, max_val_cur):
+        if self.q_level == 'C':
+            min_val_cur.resize_(self.min_val.shape)
+            max_val_cur.resize_(self.max_val.shape)
+        if self.num_flag == 0:
+            self.num_flag += 1
+            min_val = min_val_cur
+            max_val = max_val_cur
         else:
-            self.min_val.add_(-temp_minval).add_(torch.min(temp_minval, min_val))
-            self.max_val.add_(-temp_maxval).add_(torch.max(temp_maxval, max_val))
+            min_val = torch.min(min_val_cur, self.min_val)
+            max_val = torch.max(max_val_cur, self.max_val)
+        self.min_val.copy_(min_val)
+        self.max_val.copy_(max_val)
 
 # MovingAverageMinMax
-class AveragedRangeTracker(RangeTracker):  # A,min_max_shape=(1, 1, 1, 1),layer级,取running_min_max —— (N, C, W, H)
+class AveragedRangeTracker(RangeTracker):  
     def __init__(self, q_level, momentum=0.1):
         super(AveragedRangeTracker, self).__init__(q_level)
         self.momentum = momentum
         self.register_buffer('min_val', torch.zeros(1))
         self.register_buffer('max_val', torch.zeros(1))
-        self.register_buffer('first_a', torch.zeros(1))
+        self.num_flag = 0
 
-    def update_range(self, min_val, max_val):
-        if self.first_a == 0:
-            self.first_a.add_(1)
-            self.min_val.add_(min_val)
-            self.max_val.add_(max_val)
+    def update_range(self, min_val_cur, max_val_cur):
+        if self.num_flag == 0:
+            self.num_flag += 1
+            min_val = min_val_cur
+            max_val = max_val_cur
         else:
-            self.min_val.mul_(1 - self.momentum).add_(min_val * self.momentum)
-            self.max_val.mul_(1 - self.momentum).add_(max_val * self.momentum)
-        
+            min_val = (1 - self.momentum) * self.min_val + self.momentum * min_val_cur
+            max_val = (1 - self.momentum) * self.max_val + self.momentum * max_val_cur
+        self.min_val.copy_(min_val)
+        self.max_val.copy_(max_val)
 
+        
 # ********************* quantizers（量化器，量化） *********************
 # 取整(ste)
 class Round(Function):
@@ -254,7 +260,7 @@ class QuantBNFuseConv2d(QuantConv2d):
                  bias=False,
                  padding_mode='zeros',
                  eps=1e-5,
-                 momentum=0.01, # 考虑量化带来的抖动影响,对momentum进行调整(0.1 ——> 0.01),削弱batch统计参数占比，一定程度抑制抖动。经实验量化训练效果更好,acc提升1%左右
+                 momentum=0.1,
                  a_bits=8,
                  w_bits=8,
                  q_type=0,
