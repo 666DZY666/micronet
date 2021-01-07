@@ -130,6 +130,7 @@ Model-Compression-Deploy
 - **12.21**, improve pruning-quantization pipeline and code
 - **2021.1.4**, add other quant_op
 - 1.5, add quant_weight's per-channel and per-layer selection
+- **1.7**, fix IAO's loss-nan bug. The bug is due to per-channel min/max error
 
 
 ## 环境要求
