@@ -37,6 +37,7 @@ class ObserverBase(nn.Module):
 class MinMaxObserver(ObserverBase):  
     def __init__(self, q_level, out_channels):
         super(MinMaxObserver, self).__init__(q_level)
+        self.num_flag = 0
         if self.q_level == 'C':            # channel级
             self.register_buffer('min_val', torch.zeros((out_channels, 1, 1, 1), dtype=torch.float))
             self.register_buffer('max_val', torch.zeros((out_channels, 1, 1, 1), dtype=torch.float))
@@ -49,7 +50,6 @@ class MinMaxObserver(ObserverBase):
         elif self.q_level == 'FC':
             self.register_buffer('min_val', torch.zeros((out_channels, 1), dtype=torch.float))
             self.register_buffer('max_val', torch.zeros((out_channels, 1), dtype=torch.float))
-        self.num_flag = 0
 
     def update_range(self, min_val_cur, max_val_cur):
         if self.q_level == 'C':
@@ -69,10 +69,10 @@ class MovingAverageMinMaxObserver(ObserverBase):
     def __init__(self, q_level, momentum=0.1):
         super(MovingAverageMinMaxObserver, self).__init__(q_level)
         self.momentum = momentum
+        self.num_flag = 0
         self.register_buffer('min_val', torch.zeros((1), dtype=torch.float))
         self.register_buffer('max_val', torch.zeros((1), dtype=torch.float))
-        self.num_flag = 0
-
+        
     def update_range(self, min_val_cur, max_val_cur):
         if self.num_flag == 0:
             self.num_flag += 1
@@ -276,12 +276,12 @@ class QuantBNFuseConv2d(QuantConv2d):
                                                 bias, padding_mode)
         self.eps = eps
         self.momentum = momentum
+        self.num_flag = 0
         self.gamma = Parameter(torch.Tensor(out_channels))
         self.beta = Parameter(torch.Tensor(out_channels))
-        self.register_buffer('running_mean', torch.zeros(out_channels))
-        self.register_buffer('running_var', torch.ones(out_channels))
-        self.register_buffer('first_bn', torch.zeros(1))
-        init.uniform_(self.gamma)
+        self.register_buffer('running_mean', torch.zeros((out_channels), dtype=torch.float))
+        self.register_buffer('running_var', torch.ones((out_channels), dtype=torch.float))
+        init.ones_(self.gamma)
         init.zeros_(self.beta)
         
         # 实例化量化器（A-layer级，W-channel级）
@@ -298,7 +298,7 @@ class QuantBNFuseConv2d(QuantConv2d):
             else:
                 self.weight_quantizer = AsymmetricQuantizer(bits=w_bits, observer=MinMaxObserver(q_level='L', out_channels=out_channels))
         self.first_layer = first_layer
-
+       
     def forward(self, input):
         # 训练态
         if self.training:
@@ -310,13 +310,15 @@ class QuantBNFuseConv2d(QuantConv2d):
             batch_mean = torch.mean(output, dim=dims)
             batch_var = torch.var(output, dim=dims)
             with torch.no_grad():
-                if self.first_bn == 0:
-                    self.first_bn.add_(1)
-                    self.running_mean.add_(batch_mean)
-                    self.running_var.add_(batch_var)
+                if self.num_flag == 0:
+                    self.num_flag += 1
+                    running_mean = batch_mean
+                    running_var = batch_var
                 else:
-                    self.running_mean.mul_(1 - self.momentum).add_(batch_mean * self.momentum)
-                    self.running_var.mul_(1 - self.momentum).add_(batch_var * self.momentum)
+                    running_mean = (1 - self.momentum) * self.running_mean + self.momentum * batch_mean
+                    running_var = (1 - self.momentum) * self.running_var + self.momentum * batch_var
+                self.running_mean.copy_(running_mean)
+                self.running_var.copy_(running_var)
             # BN融合
             if self.bias is not None:  
               bias = reshape_to_bias(self.beta + (self.bias -  batch_mean) * (self.gamma / torch.sqrt(batch_var + self.eps)))
