@@ -134,7 +134,6 @@ class SignedQuantizer(Quantizer):
         super(SignedQuantizer, self).__init__(*args, **kwargs)
         self.register_buffer('min_val', torch.tensor(-(1 << (self.bits - 1))))
         self.register_buffer('max_val', torch.tensor((1 << (self.bits - 1)) - 1))
-        #scale = torch.tensor([float(scale)], dtype=scale.dtype, device=device)
 
 class UnsignedQuantizer(Quantizer):
     def __init__(self, *args, **kwargs):
