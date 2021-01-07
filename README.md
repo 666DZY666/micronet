@@ -15,7 +15,7 @@
 
 ### 部署
 
-- tensorrt
+- TensorRT
 
 
 ## 目前提供
