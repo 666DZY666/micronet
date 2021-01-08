@@ -151,6 +151,8 @@ if __name__=='__main__':
 
     if args.gpu_id:
         os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
+    if not args.cpu:
+        device = 'cuda'
 
     setup_seed(1)
 
@@ -177,9 +179,9 @@ if __name__=='__main__':
         #checkpoint = torch.load('../prune/models_save/nin_refine.pth')
         checkpoint = torch.load(args.refine)
         if args.model_type == 0:
-            model = nin.Net(cfg=checkpoint['cfg'], a_bits=args.a_bits, w_bits=args.w_bits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level)
+            model = nin.Net(cfg=checkpoint['cfg'], a_bits=args.a_bits, w_bits=args.w_bits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level, device=device)
         else:
-            model = nin_gc.Net(cfg=checkpoint['cfg'], a_bits=args.a_bits, w_bits=args.w_bits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level)
+            model = nin_gc.Net(cfg=checkpoint['cfg'], a_bits=args.a_bits, w_bits=args.w_bits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level, device=device)
         model_dict = model.state_dict()
         update_state_dict = {k:v for k,v in checkpoint['state_dict'].items() if k in model_dict.keys()}  
         model_dict.update(update_state_dict)
@@ -189,9 +191,9 @@ if __name__=='__main__':
     else:
         print('******Initializing model******')
         if args.model_type == 0:
-            model = nin.Net(a_bits=args.a_bits, w_bits=args.w_bits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level)
+            model = nin.Net(a_bits=args.a_bits, w_bits=args.w_bits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level, device=device)
         else:
-            model = nin_gc.Net(a_bits=args.a_bits, w_bits=args.w_bits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level)
+            model = nin_gc.Net(a_bits=args.a_bits, w_bits=args.w_bits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level, device=device)
         best_acc = 0
         for m in model.modules():
             if isinstance(m, nn.Conv2d):

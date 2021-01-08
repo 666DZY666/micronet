@@ -232,49 +232,49 @@ cd compression/quantization/WqAq/IAO
 - (默认)对称、(权重)通道级量化, bn不融合
 
 ```shell
-python main.py --q_type 0 --q_level 0 --bn_fuse 0
+python main.py --q_type 0 --q_level 0 --bn_fuse 0 --gpu_id 0
 ```
 
 - 对称、(权重)层级量化, bn不融合
 
 ```shell
-python main.py --q_type 0 --q_level 1 --bn_fuse 0
+python main.py --q_type 0 --q_level 1 --bn_fuse 0 --gpu_id 0
 ```
 
 - 非对称、(权重)通道级量化, bn不融合
 
 ```shell
-python main.py --q_type 1 --q_level 0 --bn_fuse 0
+python main.py --q_type 1 --q_level 0 --bn_fuse 0 --gpu_id 0
 ```
 
 - 非对称、(权重)层级量化, bn不融合
 
 ```shell
-python main.py --q_type 1 --q_level 1 --bn_fuse 0
+python main.py --q_type 1 --q_level 1 --bn_fuse 0 --gpu_id 0
 ```
 
 - 对称、(权重)通道级量化, bn融合
 
 ```shell
-python main.py --q_type 0 --q_level 0 --bn_fuse 1
+python main.py --q_type 0 --q_level 0 --bn_fuse 1 --gpu_id 0
 ```
 
 - 对称、(权重)层级量化, bn融合
 
 ```shell
-python main.py --q_type 0 --q_level 1 --bn_fuse 1
+python main.py --q_type 0 --q_level 1 --bn_fuse 1 --gpu_id 0
 ```
 
 - 非对称、(权重)通道级量化, bn融合
 
 ```shell
-python main.py --q_type 1 --q_level 0 --bn_fuse 1
+python main.py --q_type 1 --q_level 0 --bn_fuse 1 --gpu_id 0
 ```
 
 - 非对称、(权重)层级量化, bn融合
 
 ```shell
-python main.py --q_type 1 --q_level 1 --bn_fuse 1
+python main.py --q_type 1 --q_level 1 --bn_fuse 1 --gpu_id 0
 ```
 
 
@@ -369,6 +369,8 @@ cd compression/quantization/WqAq/dorefa
 ```shell
 cd compression/quantization/WqAq/IAO
 ```
+
+*--gpu_id 0*
 
 ###### W8A8
 
