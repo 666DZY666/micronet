@@ -153,6 +153,8 @@ if __name__=='__main__':
         os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
     if not args.cpu:
         device = 'cuda'
+    else:
+        device = 'cpu'
 
     setup_seed(1)
 

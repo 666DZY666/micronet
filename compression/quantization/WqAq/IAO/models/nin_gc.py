@@ -39,7 +39,7 @@ class QuantConvBNReLU(nn.Module):
                  q_type=1,
                  q_level=0,
                  first_layer=0,
-                 device='cpu'):
+                 device='cuda'):
         super(QuantConvBNReLU, self).__init__()
         self.channel_shuffle_flag = channel_shuffle
         self.shuffle_groups = shuffle_groups
@@ -66,7 +66,7 @@ class QuantConvBNReLU(nn.Module):
         return x
 
 class Net(nn.Module):
-    def __init__(self, cfg = None, a_bits=8, w_bits=8, bn_fuse=0, q_type=1, q_level=0, device='cpu'):
+    def __init__(self, cfg = None, a_bits=8, w_bits=8, bn_fuse=0, q_type=1, q_level=0, device='cuda'):
         super(Net, self).__init__()
         if cfg is None:
             cfg = [256, 256, 256, 512, 512, 512, 1024, 1024]
