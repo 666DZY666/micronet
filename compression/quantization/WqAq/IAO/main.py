@@ -43,13 +43,7 @@ def save_state(model, best_acc):
             torch.save(state, 'models_save/nin_gc.pth')
     
 def adjust_learning_rate(optimizer, epoch):
-    if args.bn_fuse == 1:
-        if args.model_type == 0:
-            update_list = [12, 15, 25]
-        else:
-            update_list = [8, 12, 20, 25]
-    else:
-        update_list = [15, 17, 20]
+    update_list = [80, 130, 180, 230, 280]
     if epoch in update_list:
         for param_group in optimizer.param_groups:
             param_group['lr'] = param_group['lr'] * 0.1
@@ -139,10 +133,13 @@ if __name__=='__main__':
             help='bn_fuse:1')
     # 量化方法选择
     parser.add_argument('--q_type', type=int, default=0,
-            help='quantization type:0-symmetric, 1-asymmetric')
+            help='quant_type:0-symmetric, 1-asymmetric')
     # 量化级别选择
     parser.add_argument('--q_level', type=int, default=0,
-            help='quantization type:0-per_channel, 1-per_layer')
+            help='quant_level:0-per_channel, 1-per_layer')
+    # weight_observer选择
+    parser.add_argument('--weight_observer', type=int, default=0,
+            help='quant_weight_observer:0-MinMaxObserver, 1-MovingAverageMinMaxObserver')
     # 模型结构选择
     parser.add_argument('--model_type', type=int, default=1,
             help='model type:0-nin,1-nin_gc')
@@ -181,9 +178,9 @@ if __name__=='__main__':
         #checkpoint = torch.load('../prune/models_save/nin_refine.pth')
         checkpoint = torch.load(args.refine)
         if args.model_type == 0:
-            model = nin.Net(cfg=checkpoint['cfg'], a_bits=args.a_bits, w_bits=args.w_bits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level, device=device)
+            model = nin.Net(cfg=checkpoint['cfg'], a_bits=args.a_bits, w_bits=args.w_bits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level, device=device, weight_observer=args.weight_observer)
         else:
-            model = nin_gc.Net(cfg=checkpoint['cfg'], a_bits=args.a_bits, w_bits=args.w_bits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level, device=device)
+            model = nin_gc.Net(cfg=checkpoint['cfg'], a_bits=args.a_bits, w_bits=args.w_bits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level, device=device, weight_observer=args.weight_observer)
         model_dict = model.state_dict()
         update_state_dict = {k:v for k,v in checkpoint['state_dict'].items() if k in model_dict.keys()}  
         model_dict.update(update_state_dict)
@@ -193,9 +190,9 @@ if __name__=='__main__':
     else:
         print('******Initializing model******')
         if args.model_type == 0:
-            model = nin.Net(a_bits=args.a_bits, w_bits=args.w_bits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level, device=device)
+            model = nin.Net(a_bits=args.a_bits, w_bits=args.w_bits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level, device=device, weight_observer=args.weight_observer)
         else:
-            model = nin_gc.Net(a_bits=args.a_bits, w_bits=args.w_bits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level, device=device)
+            model = nin_gc.Net(a_bits=args.a_bits, w_bits=args.w_bits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level, device=device, weight_observer=args.weight_observer)
         best_acc = 0
         for m in model.modules():
             if isinstance(m, nn.Conv2d):

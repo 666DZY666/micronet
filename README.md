@@ -131,7 +131,7 @@ Model-Compression-Deploy
 - **2021.1.4**, add other quant_op
 - 1.5, add quant_weight's per-channel and per-layer selection
 - **1.7**, fix IAO's loss-nan bug. The bug is due to per-channel min/max error
-- 1.8, improve quant_para save. Now, only save scale and zero_point
+- 1.8, 1、improve quant_para save. Now, only save scale and zero_point; 2、add optional weight_observer(MinMaxObserver or MovingAverageMinMaxObserver)
 
 
 ## 环境要求
@@ -228,12 +228,12 @@ cd compression/quantization/WqAq/IAO
 
 *量化位数选择同dorefa*
 
---q_type, 量化类型(0-对称, 1-非对称); --q_level, 权重量化级别(0-通道级, 1-层级); --bn_fuse, 量化中bn融合标志(0-不融合, 1-融合)
+--q_type, 量化类型(0-对称, 1-非对称); --q_level, 权重量化级别(0-通道级, 1-层级); --bn_fuse, 量化中bn融合标志(0-不融合, 1-融合); --weight_observer, weight_observer选择(0-MinMaxObserver, 1-MovingAverageMinMaxObserver)
 
-- (默认)对称、(权重)通道级量化, bn不融合
+- (默认)对称、(权重)通道级量化, bn不融合, weight_observer-MinMaxObserver
 
 ```shell
-python main.py --q_type 0 --q_level 0 --bn_fuse 0 --gpu_id 0
+python main.py --q_type 0 --q_level 0 --bn_fuse 0 --weight_observer 0 --gpu_id 0
 ```
 
 - 对称、(权重)层级量化, bn不融合
@@ -387,7 +387,7 @@ python main.py --w_bits 8 --a_bits 8 --model_type 0 --refine ../../../pruning/mo
 python main.py --w_bits 8 --a_bits 8 --model_type 1 --refine ../../../pruning/models_save/nin_gc_retrain.pth
 ```
 
-###### 其他bits情况类比
+###### 其他可选量化配置类比
 
 ##### 剪枝 —> 量化（三/二值）（剪枝率偏小、量化率偏大）
 
