@@ -236,6 +236,12 @@ cd compression/quantization/WqAq/IAO
 python main.py --q_type 0 --q_level 0 --bn_fuse 0 --weight_observer 0 --gpu_id 0
 ```
 
+- 对称、(权重)通道级量化, bn不融合, weight_observer-MovingAverageMinMaxObserver
+
+```shell
+python main.py --q_type 0 --q_level 0 --bn_fuse 0 --weight_observer 1 --gpu_id 0
+```
+
 - 对称、(权重)层级量化, bn不融合
 
 ```shell
