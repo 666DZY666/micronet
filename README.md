@@ -619,5 +619,6 @@ class QuantLeNet(nn.Module):
 ## 后续
 
 - tensorrt完整demo
-- 其他压缩算法(量化/剪枝/NAS/蒸馏等)
+- 其他压缩算法(量化/剪枝/蒸馏/NAS等)
 - 其他部署框架(mnn/tnn/tengine等)
+- 压缩 —> 部署
