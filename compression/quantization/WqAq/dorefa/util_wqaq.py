@@ -52,6 +52,7 @@ class WeightQuantizer(nn.Module):
         output = Round.apply(input)
         return output 
 
+    # 量化/反量化
     def forward(self, input):
         if self.w_bits == 32:
             output = input
@@ -125,6 +126,7 @@ class QuantConvTranspose2d(nn.ConvTranspose2d):
                                     self.groups, self.dilation)
         return output
 
+# ********************* 量化全连接（同时量化A/W，并做卷积） ***********************
 class QuantLinear(nn.Linear):
     def __init__(self, in_features, out_features, bias=True, a_bits=8, w_bits=8):
         super(QuantLinear, self).__init__(in_features, out_features, bias)

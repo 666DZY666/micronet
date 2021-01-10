@@ -132,40 +132,40 @@ class Quantizer(nn.Module):
             self.observer(input)
             self.update_params()  # update scale and zero_point
             # 量化/反量化
-            output = (torch.clamp(self.round(input / self.scale - self.zero_point), self.min_val, self.max_val) + self.zero_point) * self.scale
+            output = (torch.clamp(self.round(input / self.scale - self.zero_point), self.quant_min_val, self.quant_max_val) + self.zero_point) * self.scale
         return output
 
 class SignedQuantizer(Quantizer):
     def __init__(self, *args, **kwargs):
         super(SignedQuantizer, self).__init__(*args, **kwargs)
-        self.min_val = torch.tensor((-(1 << (self.bits - 1))), device=self.device)
-        self.max_val = torch.tensor(((1 << (self.bits - 1)) - 1), device=self.device)
+        self.quant_min_val = torch.tensor((-(1 << (self.bits - 1))), device=self.device)
+        self.quant_max_val = torch.tensor(((1 << (self.bits - 1)) - 1), device=self.device)
 
 class UnsignedQuantizer(Quantizer):
     def __init__(self, *args, **kwargs):
         super(UnsignedQuantizer, self).__init__(*args, **kwargs)
-        self.min_val = torch.tensor((0), device=self.device)
-        self.max_val = torch.tensor(((1 << self.bits) - 1), device=self.device)
+        self.quant_min_val = torch.tensor((0), device=self.device)
+        self.quant_max_val = torch.tensor(((1 << self.bits) - 1), device=self.device)
 
 # 对称量化
 class SymmetricQuantizer(SignedQuantizer):
     def update_params(self):
         # quantized_range
         if self.activation_weight_flag == 0: 
-            quantized_range = float(torch.min(torch.abs(self.min_val), torch.abs(self.max_val)))    # weight               
+            quant_range = float(torch.min(torch.abs(self.quant_min_val), torch.abs(self.quant_max_val)))    # weight               
         else:                              
-            quantized_range = float(self.max_val - self.min_val) / 2                                # activation
+            quant_range = float(self.quant_max_val - self.quant_min_val) / 2                                # activation
         float_range = torch.max(torch.abs(self.observer.min_val), torch.abs(self.observer.max_val))     # float_range
-        self.scale = float_range / quantized_range                                                      # scale
+        self.scale = float_range / quant_range                                                          # scale
         self.scale = torch.max(self.scale, self.eps)                                                    # processing for very small scale
         self.zero_point = torch.zeros_like(self.scale)                                                  # zero_point
 
 # 非对称量化
 class AsymmetricQuantizer(UnsignedQuantizer):
     def update_params(self):
-        quantized_range = float(self.max_val - self.min_val)                   # quantized_range
+        quant_range = float(self.quant_max_val - self.quant_min_val)           # quantized_range
         float_range = self.observer.max_val - self.observer.min_val            # float_range
-        self.scale = float_range / quantized_range                             # scale
+        self.scale = float_range / quant_range                                 # scale
         self.scale = torch.max(self.scale, self.eps)                           # processing for very small scale
         self.zero_point = torch.round(self.observer.min_val / self.scale)      # zero_point
 
