@@ -30,10 +30,10 @@
 
 ## 代码结构
 
-![code_structure](https://github.com/666DZY666/Model-Compression-Deploy/blob/master/readme_imgs/code_structure.jpg)
+![code_structure](https://github.com/666DZY666/micronety/blob/master/readme_imgs/code_structure.jpg)
 
 ```
-Model-Compression-Deploy
+micronet
 ├── README.md
 ├── compression
 │   ├── README.md
@@ -102,7 +102,7 @@ Model-Compression-Deploy
 │       └── util_trt.py
 └── readme_imgs
     ├── code_structure.jpg
-    └── model-compression-deploy.xmind
+    └── micronet.xmind
 ```
 
 
@@ -147,11 +147,11 @@ Model-Compression-Deploy
 ## 使用
 
 ```shell
-git clone https://github.com/666DZY666/Model-Compression-Deploy.git
+git clone https://github.com/666DZY666/micronet.git
 ```
 
 ```shell
-cd Model-Compression-Deploy
+cd micronet
 ```
 
 ### 压缩
