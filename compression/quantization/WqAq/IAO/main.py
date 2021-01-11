@@ -119,7 +119,7 @@ if __name__=='__main__':
     parser.add_argument('--evaluate', action='store_true',
             help='evaluate the model')
     parser.add_argument('--train_batch_size', type=int, default=64)
-    parser.add_argument('--eval_batch_size', type=int, default=256)
+    parser.add_argument('--eval_batch_size', type=int, default=64)
     parser.add_argument('--num_workers', type=int, default=2)
     parser.add_argument('--start_epochs', type=int, default=1, metavar='N',
             help='number of epochs to train_start')
