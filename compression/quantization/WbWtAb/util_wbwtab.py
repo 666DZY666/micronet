@@ -11,6 +11,8 @@ class BinaryActivation(Function):
     def forward(self, input):
         self.save_for_backward(input)
         output = torch.sign(input)
+        # ******************** A —— 1、0 *********************
+        output = torch.clamp(output, min=0)
         return output
 
     @staticmethod
@@ -74,8 +76,6 @@ class ActivationBin(nn.Module):
     def forward(self, input):
         if self.A == 2:
             output = self.binary(input)
-            # ******************** A —— 1、0 *********************
-            #a = torch.clamp(a, min=0)
         else:
             output = self.relu(input)
         return output
