@@ -12,7 +12,7 @@ class BinaryActivation(Function):
         self.save_for_backward(input)
         output = torch.sign(input)
         # ******************** A —— 1、0 *********************
-        output = torch.clamp(output, min=0)
+        #output = torch.clamp(output, min=0)
         return output
 
     @staticmethod
@@ -21,8 +21,8 @@ class BinaryActivation(Function):
         #*******************ste*********************
         grad_input = grad_output.clone()
         #****************saturate_ste***************
-        grad_input[input.ge(1)] = 0
-        grad_input[input.le(-1)] = 0
+        grad_input[input.ge(1.0)] = 0
+        grad_input[input.le(-1.0)] = 0
         '''
         #******************soft_ste*****************
         size = input.size()
@@ -83,8 +83,8 @@ class ActivationBin(nn.Module):
 # ********************* W(模型参数)量化(三/二值) ***********************
 def meancenter_clamp_convparams(w):
     mean = w.data.mean(1, keepdim=True)
-    w.data.sub(mean) # W中心化(C方向)
-    w.data.clamp(-1.0, 1.0) # W截断
+    w.data.sub_(mean)        # W中心化(C方向)
+    w.data.clamp_(-1.0, 1.0) # W截断
     return w
 class WeightTnnBin(nn.Module):
     def __init__(self, W):
@@ -113,7 +113,7 @@ class WeightTnnBin(nn.Module):
             elif self.W == 3:
                 output_fp = input.clone()
                 # ************** W —— +-1、0 **************
-                output, threshold = self.ternary(input)
+                output, threshold = self.ternary(input) # threshold(阈值)
                 # **************** α(缩放因子) ****************
                 output_abs = torch.abs(output_fp)
                 mask_le = output_abs.le(threshold)
