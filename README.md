@@ -161,7 +161,7 @@ micronet
 [PyPI](https://pypi.org/project/micronet/)
 
 ```bash
-pip install micronet
+pip install micronet -i https://pypi.org/simple
 ```
 
 [GitHub](https://github.com/666DZY666/micronet)
