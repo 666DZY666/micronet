@@ -30,15 +30,17 @@
 
 ## 代码结构
 
-![code_structure](https://github.com/666DZY666/micronet/blob/master/readme_imgs/code_structure.jpg)
+![code_structure](https://github.com/666DZY666/micronet/blob/master/micronet/readme_imgs/code_structure.jpg)
 
 ```
 micronet
-├── README.md
+├── __init__.py
 ├── compression
 │   ├── README.md
+│   ├── __init__.py
 │   ├── pruning
 │   │   ├── README.md
+│   │   ├── __init__.py
 │   │   ├── gc_prune.py
 │   │   ├── main.py
 │   │   ├── models
@@ -50,7 +52,9 @@ micronet
 │   │   └── normal_regular_prune.py
 │   └── quantization
 │       ├── README.md
+│       ├── __init__.py
 │       ├── wbwtab
+│       │   ├── __init__.py
 │       │   ├── bn_fuse
 │       │   │   ├── bn_fuse.py
 │       │   │   ├── bn_fused_model_test.py
@@ -66,9 +70,11 @@ micronet
 │       │   │   └── nin_gc.py
 │       │   ├── models_save
 │       │   │   └── models_save.txt
-│       │   └── util_wbwtab.py
+│       │   └── quantize.py
 │       └── wqaq
-│           ├── iao
+│           ├── __init__.py
+│           ├── dorefa
+│           │   ├── __init__.py
 │           │   ├── main.py
 │           │   ├── models
 │           │   │   ├── __init__.py
@@ -76,8 +82,9 @@ micronet
 │           │   │   └── nin_gc.py
 │           │   ├── models_save
 │           │   │   └── models_save.txt
-│           │   └── util_wqaq.py
-│           └── dorefa
+│           │   └── quantize.py
+│           └── iao
+│               ├── __init__.py
 │               ├── main.py
 │               ├── models
 │               │   ├── __init__.py
@@ -85,16 +92,19 @@ micronet
 │               │   └── nin_gc.py
 │               ├── models_save
 │               │   └── models_save.txt
-│               └── util_wqaq.py
+│               └── quantize.py
 ├── data
 │   └── data.txt
 ├── deploy
 │   ├── README.md
+│   ├── __init__.py
 │   └── tensorrt
 │       ├── README.md
+│       ├── __init__.py
 │       ├── calibrator.py
 │       ├── eval_trt.py
 │       ├── models
+│       │   ├── __init__.py
 │       │   └── models_trt.py
 │       ├── models_save
 │       │   └── calibration_seg.cache
