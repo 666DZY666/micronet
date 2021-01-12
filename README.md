@@ -30,7 +30,7 @@
 
 ## 代码结构
 
-![code_structure](https://github.com/666DZY666/micronet/tree/master/micronet/readme_imgs/code_structure.jpg)
+![code_structure](https://github.com/666DZY666/micronet/blob/master/micronet/readme_imgs/code_structure.jpg)
 
 ```
 micronet
