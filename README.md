@@ -511,7 +511,7 @@ python main.py --gpu_id 0,1
 python main.py --gpu_id 0,1,2
 ```
 
-*默认：使用服务器全卡*
+*默认，使用服务器全卡*
 
 ### 部署
 
