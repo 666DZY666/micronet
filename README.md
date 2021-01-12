@@ -4,6 +4,8 @@
 
 ## 项目简介
 
+[![PyPI](https://img.shields.io/pypi/v/micronet)](https://pypi.org/project/micronet) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/micronet)
+
 *micronet, a model compression and deploy lib.*
 
 ### 压缩
