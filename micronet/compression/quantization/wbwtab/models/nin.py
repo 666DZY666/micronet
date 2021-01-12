@@ -1,7 +1,7 @@
 import sys
 sys.path.append("..")
 import torch.nn as nn
-from util_wbwtab import ActivationBin, QuantConv2d
+from quantize import ActivationBin, QuantConv2d
 
 # *********************量化(三值、二值)卷积*********************
 class TnnBinConvBNReLU(nn.Module):

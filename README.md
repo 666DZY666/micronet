@@ -50,7 +50,7 @@ micronet
 │   │   └── normal_regular_prune.py
 │   └── quantization
 │       ├── README.md
-│       ├── WbWtAb
+│       ├── wbwtab
 │       │   ├── bn_fuse
 │       │   │   ├── bn_fuse.py
 │       │   │   ├── bn_fused_model_test.py
@@ -67,8 +67,8 @@ micronet
 │       │   ├── models_save
 │       │   │   └── models_save.txt
 │       │   └── util_wbwtab.py
-│       └── WqAq
-│           ├── IAO
+│       └── wqaq
+│           ├── iao
 │           │   ├── main.py
 │           │   ├── models
 │           │   │   ├── __init__.py
@@ -118,11 +118,11 @@ micronet
 - 12.29, 取消High-Bit量化8-bit以内的限制，即现在可以量化至10-bit、16-bit等
 - **2020.2.17**, 1、精简W三值/二值量化代码; 2、加速W三值量化训练
 - **2.18**, 优化针对特征(A)二值的BN融合:去除对BN层gamma参数的限制，即现在此情况下融合时BN可正常训练
-- **2.24**, 再次优化三/二值量化代码组织结构，增强可移植性，旧版确实不太好移植。目前移植方法：将想要量化的Conv用compression/quantization/WbWtAb/models/util_wbwtab.py中的QuantConv2d替换即可，可参照该路径下nin_gc.py中的使用方法
+- **2.24**, 再次优化三/二值量化代码组织结构，增强可移植性，旧版确实不太好移植。目前移植方法：将想要量化的Conv用compression/quantization/wbwtab/models/util_wbwtab.py中的QuantConv2d替换即可，可参照该路径下nin_gc.py中的使用方法
 - **3.1**, 新增：1、google的High-Bit量化方法; 2、训练中High-Bit量化的BN融合
 - **3.2、3.3**, 规整量化代码整体结构，目前所有量化方法都可采取类似的移植方式：将想要量化的Conv(或FC，目前dorefa支持，其他方法类似可写)用models/util_wxax.py中的QuantConv2d(或QuantLinear)替换即可，可分别参照该路径下nin_gc.py中的使用方法进行移植（分类、检测、分割等均适用，但需要据实际情况具体调试）
-- **3.4**, 规整优化WbWtAb/bn_fuse中“针对特征(A)二值的BN融合”的相关实现代码，可进行BN融合及融合前后模型对比测试(精度/速度/(大小))
-- 3.11, 调整compression/WqAq/IAO中的BN层momentum参数(0.1 —> 0.01),削弱batch统计参数占比,一定程度抑制量化带来的抖动。经实验,量化训练更稳定,acc提升1%左右
+- **3.4**, 规整优化wbwtab/bn_fuse中“针对特征(A)二值的BN融合”的相关实现代码，可进行BN融合及融合前后模型对比测试(精度/速度/(大小))
+- 3.11, 调整compression/wqaq/iao中的BN层momentum参数(0.1 —> 0.01),削弱batch统计参数占比,一定程度抑制量化带来的抖动。经实验,量化训练更稳定,acc提升1%左右
 - **3.13**, 更新代码结构图
 - 4.6, 修正二值量化训练中W_clip的相关问题(之前由于这个，导致二值量化训练精度上不去，现在已可正常使用)(同时修正无法找到一些模块如models/util_wxax.py的问题)
 - **12.14**, 1、improve code structure; 2、add deploy-tensorrt(main module, but not running yet)
@@ -130,8 +130,10 @@ micronet
 - **12.21**, improve pruning-quantization pipeline and code
 - **2021.1.4**, add other quant_op
 - 1.5, add quant_weight's per-channel and per-layer selection
-- **1.7**, fix IAO's loss-nan bug. The bug is due to per-channel min/max error
+- **1.7**, fix iao's loss-nan bug. The bug is due to per-channel min/max error
 - 1.8, 1、improve quant_para save. Now, only save scale and zero_point; 2、add optional weight_observer(MinMaxObserver or MovingAverageMinMaxObserver)
+- **1.11**, fix bug in binary_a(1/0) and binary_w preprocessing
+- **1.12**, add "pip install"
 
 
 ## 环境要求
@@ -144,15 +146,31 @@ micronet
 - tensorrt == 7.0.0.11
 
 
-## 使用
+## 安装
 
-```shell
+[PyPI](https://pypi.org/project/micronet/)
+
+```bash
+pip install micronet
+```
+
+[GitHub](https://github.com/666DZY666/micronet)
+
+```bash
 git clone https://github.com/666DZY666/micronet.git
+cd micronet
+python setup.py install
 ```
 
-```shell
-cd micronet
+*验证*
+
+```bash
+python -c "import micronet; print(micronet.__version__)"
 ```
+
+## 测试
+
+*Install from github*
 
 ### 压缩
 
@@ -162,31 +180,31 @@ cd micronet
 
 --W --A, 权重W和特征A量化取值
 
-```shell
-cd compression/quantization/WbWtAb
+```bash
+cd micronet/compression/quantization/wbwtab
 ```
 
 - WbAb
 
-```shell
+```bash
 python main.py --W 2 --A 2
 ```
 
 - WbA32
 
-```shell
+```bash
 python main.py --W 2 --A 32
 ```
 
 - WtAb
 
-```shell
+```bash
 python main.py --W 3 --A 2
 ```
 
 - WtA32
 
-```shell
+```bash
 python main.py --W 3 --A 32
 ```
 
@@ -196,34 +214,34 @@ python main.py --W 3 --A 32
 
 ###### dorefa
 
-```shell
-cd compression/quantization/WqAq/dorefa
+```bash
+cd micronet/compression/quantization/wqaq/dorefa
 ```
 
 - W16A16
 
-```shell
+```bash
 python main.py --w_bits 16 --a_bits 16
 ```
 
 - W8A8
 
-```shell
+```bash
 python main.py --w_bits 8 --a_bits 8
 ```
 
 - W4A4
 
-```shell
+```bash
 python main.py --w_bits 4 --a_bits 4
 ```
 
 - 其他bits情况类比
 
-###### IAO
+###### iao
 
-```shell
-cd compression/quantization/WqAq/IAO
+```bash
+cd micronet/compression/quantization/wqaq/iao
 ```
 
 *量化位数选择同dorefa*
@@ -232,55 +250,55 @@ cd compression/quantization/WqAq/IAO
 
 - (默认)对称、(权重)通道级量化, bn不融合, weight_observer-MinMaxObserver
 
-```shell
+```bash
 python main.py --q_type 0 --q_level 0 --bn_fuse 0 --weight_observer 0 --gpu_id 0
 ```
 
 - 对称、(权重)通道级量化, bn不融合, weight_observer-MovingAverageMinMaxObserver
 
-```shell
+```bash
 python main.py --q_type 0 --q_level 0 --bn_fuse 0 --weight_observer 1 --gpu_id 0
 ```
 
 - 对称、(权重)层级量化, bn不融合
 
-```shell
+```bash
 python main.py --q_type 0 --q_level 1 --bn_fuse 0 --gpu_id 0
 ```
 
 - 非对称、(权重)通道级量化, bn不融合
 
-```shell
+```bash
 python main.py --q_type 1 --q_level 0 --bn_fuse 0 --gpu_id 0
 ```
 
 - 非对称、(权重)层级量化, bn不融合
 
-```shell
+```bash
 python main.py --q_type 1 --q_level 1 --bn_fuse 0 --gpu_id 0
 ```
 
 - 对称、(权重)通道级量化, bn融合
 
-```shell
+```bash
 python main.py --q_type 0 --q_level 0 --bn_fuse 1 --gpu_id 0
 ```
 
 - 对称、(权重)层级量化, bn融合
 
-```shell
+```bash
 python main.py --q_type 0 --q_level 1 --bn_fuse 1 --gpu_id 0
 ```
 
 - 非对称、(权重)通道级量化, bn融合
 
-```shell
+```bash
 python main.py --q_type 1 --q_level 0 --bn_fuse 1 --gpu_id 0
 ```
 
 - 非对称、(权重)层级量化, bn融合
 
-```shell
+```bash
 python main.py --q_type 1 --q_level 1 --bn_fuse 1 --gpu_id 0
 ```
 
@@ -289,8 +307,8 @@ python main.py --q_type 1 --q_level 1 --bn_fuse 1 --gpu_id 0
 
 *稀疏训练  —>  剪枝  —>  微调*
 
-```shell
-cd compression/pruning
+```bash
+cd micronet/compression/pruning
 ```
 
 *可选: --quant_type 后续量化类型选择(0-三/二值, 1-高位), 默认为0*
@@ -301,13 +319,13 @@ cd compression/pruning
 
 - nin(正常卷积结构)
 
-```shell
+```bash
 python main.py -sr --s 0.0001 --model_type 0
 ```
 
 - nin_gc(含分组卷积结构)
 
-```shell
+```bash
 python main.py -sr --s 0.001 --model_type 1
 ```
 
@@ -317,25 +335,25 @@ python main.py -sr --s 0.001 --model_type 1
 
 - 正常剪枝(nin)
 
-```shell
+```bash
 python normal_regular_prune.py --percent 0.5 --model models_save/nin_sparse.pth --save models_save/nin_prune.pth
 ```
 
 - 规整剪枝(nin)
 
-```shell
+```bash
 python normal_regular_prune.py --percent 0.5 --normal_regular 8 --model models_save/nin_sparse.pth --save models_save/nin_prune.pth
 ```
 
 或
 
-```shell
+```bash
 python normal_regular_prune.py --percent 0.5 --normal_regular 16 --model models_save/nin_sparse.pth --save models_save/nin_prune.pth
 ```
 
 - 分组卷积结构剪枝(nin_gc)
 
-```shell
+```bash
 python gc_prune.py --percent 0.4 --model models_save/nin_gc_sparse.pth
 ```
 
@@ -345,7 +363,7 @@ python gc_prune.py --percent 0.4 --model models_save/nin_gc_sparse.pth
 
 - nin
 
-```shell
+```bash
 python main.py --model_type 0 --refine models_save/nin_prune.pth
 ```
 
@@ -355,7 +373,7 @@ python main.py --model_type 0 --refine models_save/nin_prune.pth
 
 *如*
 
-```shell
+```bash
 python main.py --model_type 1 --gc_refine 154 162 144 304 320 320 608 584
 ```
 
@@ -367,14 +385,14 @@ python main.py --model_type 1 --gc_refine 154 162 144 304 320 320 608 584
 
 *对应剪枝中 --quant_type 1*
 
-```shell
-cd compression/quantization/WqAq/dorefa
+```bash
+cd micronet/compression/quantization/wqaq/dorefa
 ```
 
 或 
 
-```shell
-cd compression/quantization/WqAq/IAO
+```bash
+cd micronet/compression/quantization/wqaq/iao
 ```
 
 *--gpu_id 0*
@@ -383,13 +401,13 @@ cd compression/quantization/WqAq/IAO
 
 - nin(正常卷积结构)
 
-```shell
+```bash
 python main.py --w_bits 8 --a_bits 8 --model_type 0 --refine ../../../pruning/models_save/nin_finetune.pth
 ```
 
 - nin_gc(含分组卷积结构)
 
-```shell
+```bash
 python main.py --w_bits 8 --a_bits 8 --model_type 1 --refine ../../../pruning/models_save/nin_gc_retrain.pth
 ```
 
@@ -399,21 +417,21 @@ python main.py --w_bits 8 --a_bits 8 --model_type 1 --refine ../../../pruning/mo
 
 *对应剪枝中 --quant_type 0*
 
-```shell
-cd compression/quantization/WbWtAb
+```bash
+cd micronet/compression/quantization/wbwtab
 ```
 
 ###### WbAb
 
 - nin(正常卷积结构)
 
-```shell
+```bash
 python main.py --W 2 --A 2 --model_type 0 --refine ../../pruning/models_save/nin_finetune.pth
 ```
 
 - nin_gc(含分组卷积结构)
 
-```shell
+```bash
 python main.py --W 2 --A 2 --model_type 1 --refine ../../pruning/models_save/nin_gc_retrain.pth
 ```
 
@@ -421,8 +439,8 @@ python main.py --W 2 --A 2 --model_type 1 --refine ../../pruning/models_save/nin
 
 #### BN融合
 
-```shell
-cd compression/quantization/WbWtAb/bn_fuse
+```bash
+cd micronet/compression/quantization/wbwtab/bn_fuse
 ```
 
 --W 权重W量化取值(据量化训练时W量化取值(FP32/三值/二值)情况对应选择)
@@ -431,19 +449,19 @@ cd compression/quantization/WbWtAb/bn_fuse
 
 - Wb
   
-```shell
+```bash
 python bn_fuse.py --W 2
 ```
 
 - Wt
 
-```shell
+```bash
 python bn_fuse.py --W 3
 ```
 
 ##### 融合前后model对比测试
 
-```shell
+```bash
 python bn_fused_model_test.py
 ```
 
@@ -455,31 +473,31 @@ python bn_fused_model_test.py
 
 - cpu
 
-```shell
+```bash
 python main.py --cpu
 ```
 
 - gpu单卡
 
-```shell
+```bash
 python main.py --gpu_id 0
 ```
 
 或
 
-```shell
+```bash
 python main.py --gpu_id 1
 ```
 
 - gpu多卡
 
-```shell
+```bash
 python main.py --gpu_id 0,1
 ```
 
 或
 
-```shell
+```bash
 python main.py --gpu_id 0,1,2
 ```
 
@@ -495,19 +513,27 @@ python main.py --gpu_id 0,1,2
 - [tensorrt-基础](https://zhuanlan.zhihu.com/p/336256668)
 - [tensorrt-op/dynamic_shape](https://zhuanlan.zhihu.com/p/335829625)
 
-### 迁移
 
-#### 量化
+## 迁移
+
+### 量化
 
 *A model can be quantized(High-Bit(>2b)、Low-Bit(≤2b)/Ternary and Binary) by simply replacing ***op*** with ***quant_op***. For example, replacing ***nn.ConvNd*** and ***nn.Linear*** with ***QuantConvNd*** and ***QuantLinear***.*
 
-*LeNet example*
+#### LeNet example
+
+*quant_test.py*
 
 ```python
 import torch.nn as nn
 import torch.nn.functional as F
 
-from util_wxtx import QuantConv2d, QuantLinear # util_wxtx is quant_module, QuantConv2d and QuantLinear are quant_op
+# ``quantize`` is quant_module, ``QuantConv2d`` and ``QuantLinear`` are quant_op
+from micronet.compression.quantization.wbwtab.quantize import QuantConv2d as quant_conv_wbwtab
+from micronet.compression.quantization.wqaq.dorefa.quantize import QuantConv2d as quant_conv_dorefa
+from micronet.compression.quantization.wqaq.dorefa.quantize import QuantLinear as quant_linear_dorefa
+from micronet.compression.quantization.wqaq.iao.quantize import QuantConv2d as quant_conv_iao
+from micronet.compression.quantization.wqaq.iao.quantize import QuantLinear as quant_linear_iao
 
 class LeNet(nn.Module):
     def __init__(self):
@@ -526,13 +552,13 @@ class LeNet(nn.Module):
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
 
-class QuantLeNet(nn.Module):
+class QuantLeNetWbWtAb(nn.Module):
     def __init__(self):
-        super(QuantLeNet, self).__init__()
-        self.conv1 = QuantConv2d(1, 10, kernel_size=5)
-        self.conv2 = QuantConv2d(10, 20, kernel_size=5)
-        self.fc1 = QuantLinear(320, 50)
-        self.fc2 = QuantLinear(50, 10)
+        super(QuantLeNetWbWtAb, self).__init__()
+        self.conv1 = quant_conv_wbwtab(1, 10, kernel_size=5)
+        self.conv2 = quant_conv_wbwtab(10, 20, kernel_size=5)
+        self.fc1 = nn.Linear(320, 50)
+        self.fc2 = nn.Linear(50, 10)
 
     def forward(self, x):
         x = F.relu(F.max_pool2d(self.conv1(x), 2))
@@ -542,7 +568,55 @@ class QuantLeNet(nn.Module):
         x = F.dropout(x, training=self.training)
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
+
+class QuantLeNetDoReFa(nn.Module):
+    def __init__(self):
+        super(QuantLeNetDoReFa, self).__init__()
+        self.conv1 = quant_conv_dorefa(1, 10, kernel_size=5)
+        self.conv2 = quant_conv_dorefa(10, 20, kernel_size=5)
+        self.fc1 = quant_linear_dorefa(320, 50)
+        self.fc2 = quant_linear_dorefa(50, 10)
+
+    def forward(self, x):
+        x = F.relu(F.max_pool2d(self.conv1(x), 2))
+        x = F.relu(F.max_pool2d(self.conv2(x), 2))
+        x = x.view(-1, 320)
+        x = F.relu(self.fc1(x))
+        x = F.dropout(x, training=self.training)
+        x = self.fc2(x)
+        return F.log_softmax(x, dim=1)
+
+class QuantLeNetIAO(nn.Module):
+    def __init__(self):
+        super(QuantLeNetIAO, self).__init__()
+        self.conv1 = quant_conv_iao(1, 10, kernel_size=5)
+        self.conv2 = quant_conv_iao(10, 20, kernel_size=5)
+        self.fc1 = quant_linear_iao(320, 50)
+        self.fc2 = quant_linear_iao(50, 10)
+
+    def forward(self, x):
+        x = F.relu(F.max_pool2d(self.conv1(x), 2))
+        x = F.relu(F.max_pool2d(self.conv2(x), 2))
+        x = x.view(-1, 320)
+        x = F.relu(self.fc1(x))
+        x = F.dropout(x, training=self.training)
+        x = self.fc2(x)
+        return F.log_softmax(x, dim=1)
+
+lenet = LeNet()
+quant_lenet_wbwtab = QuantLeNetWbWtAb()
+quant_lenet_dorefa = QuantLeNetDoReFa()
+quant_lenet_iao = QuantLeNetIAO()
+print('quant_model is ready')
+print('micronet is ready')
 ```
+
+#### test
+```bash
+python quant_test.py
+```
+
+*when outputting "quant_model is ready", micronet is ready.*
 
 
 ## 模型压缩数据对比（仅供参考）

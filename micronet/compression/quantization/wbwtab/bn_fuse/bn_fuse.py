@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import nin_gc_inference
 import nin_gc_training
-from util_wbwtab import WeightTnnBin, QuantConv2d
+from quantize import WeightTnnBin, QuantConv2d
 
 # ******************** 是否保存模型完整参数 ********************
 #torch.set_printoptions(precision=8, edgeitems=sys.maxsize, linewidth=200, sci_mode=False)

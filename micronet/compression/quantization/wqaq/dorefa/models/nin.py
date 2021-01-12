@@ -3,7 +3,7 @@ sys.path.append("..")
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from util_wqaq import QuantConv2d
+from quantize import QuantConv2d
 
 class QuantConvBNReLU(nn.Module):
     def __init__(self,

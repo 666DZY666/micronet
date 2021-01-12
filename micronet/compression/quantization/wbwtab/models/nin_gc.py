@@ -1,7 +1,7 @@
 import sys
 sys.path.append("..")
 import torch.nn as nn
-from util_wbwtab import ActivationBin, QuantConv2d
+from quantize import ActivationBin, QuantConv2d
 
 # 通道混合
 def channel_shuffle(x, groups):
@@ -77,14 +77,14 @@ class Net(nn.Module):
             TnnBinConvBNReLU(cfg[2], cfg[3], kernel_size=3, stride=1, padding=1, groups=16, channel_shuffle=1, shuffle_groups=2, A=A, W=W),
             TnnBinConvBNReLU(cfg[3], cfg[4], kernel_size=1, stride=1, padding=0, groups=4, channel_shuffle=1, shuffle_groups=16, A=A, W=W),
             TnnBinConvBNReLU(cfg[4], cfg[5], kernel_size=1, stride=1, padding=0, groups=4, channel_shuffle=1, shuffle_groups=4, A=A, W=W),
-            nn.MaxPool2d(kernel_size=2, stride=2, padding=0),
+            nn.MaxPool2d(kernel_size=2, stride=2, padding=0),  
             
             TnnBinConvBNReLU(cfg[5], cfg[6], kernel_size=3, stride=1, padding=1, groups=32, channel_shuffle=1, shuffle_groups=4, A=A, W=W),
             TnnBinConvBNReLU(cfg[6], cfg[7], kernel_size=1, stride=1, padding=0, groups=8, channel_shuffle=1, shuffle_groups=32, A=A, W=W, last_relu=0, last_bin=1),#二值量化:last_relu=0, last_bin=1;全精度:last_relu=1, last_bin=0
             nn.Conv2d(cfg[7],  10, kernel_size=1, stride=1, padding=0),
             nn.BatchNorm2d(10),
             nn.ReLU(inplace=True),
-            nn.AvgPool2d(kernel_size=8, stride=1, padding=0),
+            nn.AvgPool2d(kernel_size=8, stride=1, padding=0)
         )
     # 模型运行
     def forward(self, x):

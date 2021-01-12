@@ -3,7 +3,7 @@ sys.path.append("..")
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from util_wqaq import QuantConv2d
+from quantize import QuantConv2d
 
 def channel_shuffle(x, groups):
     """shuffle channels of a 4-D Tensor"""
