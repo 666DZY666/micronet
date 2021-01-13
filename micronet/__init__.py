@@ -1,4 +1,4 @@
-__version__ = "0.1.1.rc"
+__version__ = "0.1.1.r"
 
 def test():
     import torch.nn as nn
