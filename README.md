@@ -24,6 +24,7 @@
 
 - 普通卷积和分组卷积结构
 - 权重W和特征A的训练中/后量化。训练中量化，W(32/16/8/4/2-bit, 三/二值) 和 A(32/16/8/4/2-bit, 二值)任意组合；训练后量化，采用tensorrt，支持8-bit
+- 对称/非对称、per-layer/per-channel量化，MinMaxObserver/MovingAverageMinMaxObserver/HistogramObserver(calibration)
 - 针对三/二值的一些tricks：W二值/三值缩放因子，W/grad（ste、saturate_ste、soft_ste）截断，A二值时采用B-A-C-P可比C-B-A-P获得更高acc等
 - 多种剪枝方式：正常、规整（比如model可剪枝为每层剩余filter个数为N(8,16等)的倍数）、分组卷积结构（剪枝后仍保证分组卷积结构）的通道剪枝
 - batch normalization融合及融合前后model对比测试：非量化普通BN融合（训练后，BN层参数 —> conv的权重w和偏置b）、针对特征(A)二值量化的BN融合（训练量化后，BN层参数 —> conv的偏置b)、High-Bit量化的BN融合（训练量化中，先融合再量化）
