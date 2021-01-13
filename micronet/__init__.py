@@ -1,6 +1,6 @@
-__version__ = "0.1.1.r"
+__version__ = "0.1.2.r"
 
-def test():
+def quant_test():
     import torch.nn as nn
     import torch.nn.functional as F
 

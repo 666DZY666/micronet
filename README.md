@@ -626,7 +626,7 @@ print('micronet is ready')
 
 #### test
 ```bash
-python -c "import micronet; micronet.test()"
+python -c "import micronet; micronet.quant_test()"
 ```
 
 *when outputting "quant_model is ready", micronet is ready.*
