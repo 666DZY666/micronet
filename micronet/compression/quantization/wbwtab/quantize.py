@@ -65,9 +65,9 @@ class Ternary(Function):
         return grad_input
 
 # ********************* A(特征)量化(二值) ***********************
-class ActivationBin(nn.Module):
+class ActivationQuantizer(nn.Module):
     def __init__(self, A):
-        super(ActivationBin, self).__init__()
+        super(ActivationQuantizer, self).__init__()
         self.A = A
         self.relu = nn.ReLU(inplace=True) 
     def binary(self, input):
@@ -86,9 +86,9 @@ def meancenter_clamp_convparams(w):
     w.data.sub_(mean)        # W中心化(C方向)
     w.data.clamp_(-1.0, 1.0) # W截断
     return w
-class WeightTnnBin(nn.Module):
+class WeightQuantizer(nn.Module):
     def __init__(self, W):
-        super(WeightTnnBin, self).__init__()
+        super(WeightQuantizer, self).__init__()
         self.W = W    
     def binary(self, input):
         output = BinaryWeight.apply(input)
@@ -147,8 +147,8 @@ class QuantConv2d(nn.Conv2d):
         super(QuantConv2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups,
                                           bias, padding_mode)
         # 实例化调用A和W量化器
-        self.activation_quantizer = ActivationBin(A=A)
-        self.weight_quantizer = WeightTnnBin(W=W)
+        self.activation_quantizer = ActivationQuantizer(A=A)
+        self.weight_quantizer = WeightQuantizer(W=W)
           
     def forward(self, input):
         # 量化A和W

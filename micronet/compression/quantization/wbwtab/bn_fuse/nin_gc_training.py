@@ -1,7 +1,7 @@
 import sys
 sys.path.append("..")
 import torch.nn as nn
-from quantize import ActivationBin, QuantConv2d
+from quantize import ActivationQuantizer, QuantConv2d
 
 # 通道混合
 def channel_shuffle(x, groups):
@@ -48,7 +48,7 @@ class TnnBinConvBNReLU(nn.Module):
                                         kernel_size, stride=stride, padding=padding, dilation=dilation, groups=groups, bias=bias, padding_mode=padding_mode, A=A, W=W)
         self.bn = nn.BatchNorm2d(out_channels, momentum=momentum)
         self.relu = nn.ReLU(inplace=True)
-        self.activation_bin = ActivationBin(A=A)
+        self.activation_bin = ActivationQuantizer(A=A)
     
     def forward(self, x):
         if self.channel_shuffle_flag:

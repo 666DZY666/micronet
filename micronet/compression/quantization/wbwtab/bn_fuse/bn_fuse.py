@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import nin_gc_inference
 import nin_gc_training
-from quantize import WeightTnnBin, QuantConv2d
+from quantize import WeightQuantizer, QuantConv2d
 
 # ******************** 是否保存模型完整参数 ********************
 #torch.set_printoptions(precision=8, edgeitems=sys.maxsize, linewidth=200, sci_mode=False)
@@ -90,7 +90,7 @@ if __name__=='__main__':
     args = parser.parse_args()
     print('==> Options:',args)
 
-    weight_quantizer = WeightTnnBin(W=args.W)  # 实例化W量化器
+    weight_quantizer = WeightQuantizer(W=args.W)  # 实例化W量化器
 
     print("************* 参数量化表示 + BN_fuse —— Beginning **************")
     # ********************** 模型加载 ************************
