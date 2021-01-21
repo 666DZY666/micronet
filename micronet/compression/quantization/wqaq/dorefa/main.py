@@ -188,7 +188,7 @@ if __name__=='__main__':
         model.load_state_dict(pretrained_model['state_dict'])
 
     print('***ori_model***\n', model)
-    model = quantize.prepare(model, a_bits=args.a_bits, w_bits=args.w_bits)
+    quantize.prepare(model, a_bits=args.a_bits, w_bits=args.w_bits)
     print('\n***quant_model***\n', model)
 
     if not args.cpu:
@@ -212,4 +212,3 @@ if __name__=='__main__':
         adjust_learning_rate(optimizer, epoch)
         train(epoch)
         test()
-        
