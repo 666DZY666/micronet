@@ -16,6 +16,8 @@ from models import nin_gc
 from models import nin
 import os
 
+import quantize
+
 def setup_seed(seed):
     torch.manual_seed(seed)                    
     #torch.cuda.manual_seed(seed)              
@@ -185,10 +187,13 @@ if __name__=='__main__':
         best_acc = pretrained_model['best_acc']
         model.load_state_dict(pretrained_model['state_dict'])
 
+    print('***ori_model***\n', model)
+    model = quantize.prepare(model, a_bits=args.a_bits, w_bits=args.w_bits)
+    print('\n***quant_model***\n', model)
+
     if not args.cpu:
         model.cuda()
         model = torch.nn.DataParallel(model, device_ids=range(torch.cuda.device_count()))
-    print(model)
 
     base_lr = float(args.lr)
     param_dict = dict(model.named_parameters())

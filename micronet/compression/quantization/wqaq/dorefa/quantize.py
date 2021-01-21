@@ -1,3 +1,6 @@
+
+import copy
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -137,4 +140,21 @@ class QuantLinear(nn.Linear):
         quant_weight = self.weight_quantizer(self.weight)
         output = F.linear(quant_input, quant_weight, self.bias)
         return output
-        
+
+def prepare(model, a_bits=8, w_bits=8):
+    first_layer = 0
+    for name, child in model.named_children():
+        if isinstance(child, nn.Conv2d):
+            if first_layer == 0:
+                first_layer += 1
+                quant_conv = QuantConv2d(child.in_channels, child.out_channels,
+                                         child.kernel_size, stride=child.stride, padding=child.padding, dilation=child.dilation, groups=child.groups, bias=True, a_bits=a_bits, w_bits=w_bits, first_layer=1)
+            else:
+                quant_conv = QuantConv2d(child.in_channels, child.out_channels,
+                                                   child.kernel_size, stride=child.stride, padding=child.padding, dilation=child.dilation, groups=child.groups, bias=True, a_bits=a_bits, w_bits=w_bits)
+            quant_conv.weight.data = child.weight
+            quant_conv.bias.data = child.bias
+            model._modules[name] = quant_conv
+        prepare(child)
+    return model
+    
