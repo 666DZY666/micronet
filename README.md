@@ -532,17 +532,17 @@ python main.py --gpu_id 0,1,2
 
 ### 量化
 
-*A model can be quantized(High-Bit(>2b)、Low-Bit(≤2b)/Ternary and Binary) by simply replacing ***op*** with ***quant_op***. For example, replacing ***nn.ConvNd*** and ***nn.Linear*** with ***QuantConvNd*** and ***QuantLinear***.*
-
 #### LeNet example
 
 ##### quant_test_manual.py
+
+*A model can be quantized(High-Bit(>2b)、Low-Bit(≤2b)/Ternary and Binary) by simply replacing ***op*** with ***quant_op***.*
 
 ```python
 import torch.nn as nn
 import torch.nn.functional as F
 
-# ``quantize`` is quant_module, ``QuantConv2d`` and ``QuantLinear`` are quant_op
+# ``quantize`` is quant_module, ``QuantConv2d``, ``QuantLinear``, ``QuantMaxPool2d``, ``QuantReLU`` are quant_op
 from micronet.compression.quantization.wbwtab.quantize import QuantConv2d as quant_conv_wbwtab
 from micronet.compression.quantization.wqaq.dorefa.quantize import QuantConv2d as quant_conv_dorefa
 from micronet.compression.quantization.wqaq.dorefa.quantize import QuantLinear as quant_linear_dorefa
@@ -642,6 +642,8 @@ print('\nmicronet is ready')
 ```
 
 ##### quant_test_auto.py
+
+*A model can be quantized(High-Bit(>2b)、Low-Bit(≤2b)/Ternary and Binary) by simply using ***micronet.compression.quantization.quantize.prepare(model)***.*
 
 ```python
 import torch.nn as nn
