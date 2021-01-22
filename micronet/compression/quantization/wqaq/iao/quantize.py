@@ -189,7 +189,7 @@ class QuantConv2d(nn.Conv2d):
                  q_type=0,
                  q_level=0,
                  first_layer=0,
-                 device='cuda',
+                 device='cpu',
                  weight_observer=0):
         super(QuantConv2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups,
                                           bias, padding_mode)
@@ -246,7 +246,7 @@ class QuantConvTranspose2d(nn.ConvTranspose2d):
                  a_bits=8,
                  w_bits=8,
                  q_type=0,
-                 device='cuda',
+                 device='cpu',
                  weight_observer=0):
         super(QuantConvTranspose2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, output_padding, 
                                                    dilation, groups, bias, padding_mode)
@@ -295,7 +295,7 @@ class QuantBNFuseConv2d(QuantConv2d):
                  q_type=0,
                  q_level=0,
                  first_layer=0,
-                 device='cuda',
+                 device='cpu',
                  weight_observer=0):
         super(QuantBNFuseConv2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups,
                                                 bias, padding_mode)
@@ -390,7 +390,7 @@ class QuantBNFuseConv2d(QuantConv2d):
         return output
 
 class QuantLinear(nn.Linear):
-    def __init__(self, in_features, out_features, bias=True, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cuda', weight_observer=0):
+    def __init__(self, in_features, out_features, bias=True, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu', weight_observer=0):
         super(QuantLinear, self).__init__(in_features, out_features, bias)
         if q_type == 0:
             self.activation_quantizer = SymmetricQuantizer(bits=a_bits, observer=MovingAverageMinMaxObserver(q_level='L', out_channels=None, device=device), activation_weight_flag=1, device=device)
@@ -423,7 +423,7 @@ class QuantLinear(nn.Linear):
         return output
         
 class QuantReLU(nn.ReLU):
-    def __init__(self, inplace=False, a_bits=8, q_type=0, device='cuda'):
+    def __init__(self, inplace=False, a_bits=8, q_type=0, device='cpu'):
         super(QuantReLU, self).__init__(inplace)
         if q_type == 0:
             self.activation_quantizer = SymmetricQuantizer(bits=a_bits, observer=MovingAverageMinMaxObserver(q_level='L', out_channels=None, device=device), activation_weight_flag=1, device=device)
@@ -436,7 +436,7 @@ class QuantReLU(nn.ReLU):
         return output
 
 class QuantSigmoid(nn.Sigmoid):
-    def __init__(self, a_bits=8, q_type=0, device='cuda'):
+    def __init__(self, a_bits=8, q_type=0, device='cpu'):
         super(QuantSigmoid, self).__init__()
         if q_type == 0:
             self.activation_quantizer = SymmetricQuantizer(bits=a_bits, observer=MovingAverageMinMaxObserver(q_level='L', out_channels=None, device=device), activation_weight_flag=1, device=device)
@@ -450,7 +450,7 @@ class QuantSigmoid(nn.Sigmoid):
 
 class QuantMaxPool2d(nn.MaxPool2d):
     def __init__(self, kernel_size, stride=None, padding=0, dilation=1,
-                 return_indices=False, ceil_mode=False, a_bits=8, q_type=0, device='cuda'):
+                 return_indices=False, ceil_mode=False, a_bits=8, q_type=0, device='cpu'):
         super(QuantMaxPool2d, self).__init__(kernel_size, stride, padding, dilation,
                                              return_indices, ceil_mode)
         if q_type == 0:
@@ -465,7 +465,7 @@ class QuantMaxPool2d(nn.MaxPool2d):
         
 class QuantAvgPool2d(nn.AvgPool2d):
     def __init__(self, kernel_size, stride=None, padding=0, ceil_mode=False,
-                 count_include_pad=True, divisor_override=None, a_bits=8, q_type=0, device='cuda'):
+                 count_include_pad=True, divisor_override=None, a_bits=8, q_type=0, device='cpu'):
         super(QuantAvgPool2d, self).__init__(kernel_size, stride, padding, ceil_mode,
                                              count_include_pad, divisor_override)
         if q_type == 0:
@@ -479,7 +479,7 @@ class QuantAvgPool2d(nn.AvgPool2d):
         return output
         
 class QuantAdaptiveAvgPool2d(nn.AdaptiveAvgPool2d):
-    def __init__(self, output_size, a_bits=8, q_type=0, device='cuda'):
+    def __init__(self, output_size, a_bits=8, q_type=0, device='cpu'):
         super(QuantAdaptiveAvgPool2d, self).__init__(output_size)
         if q_type == 0:
             self.activation_quantizer = SymmetricQuantizer(bits=a_bits, observer=MovingAverageMinMaxObserver(q_level='L', out_channels=None, device=device), activation_weight_flag=1, device=device)
@@ -491,7 +491,7 @@ class QuantAdaptiveAvgPool2d(nn.AdaptiveAvgPool2d):
         output = F.adaptive_avg_pool2d(quant_input, self.output_size)
         return output
 
-def add_quant_op(module, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cuda', weight_observer=0):
+def add_quant_op(module, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu', weight_observer=0):
     for name, child in module.named_children():
         if isinstance(child, nn.Conv2d):
             quant_conv = QuantConv2d(child.in_channels, child.out_channels,
@@ -528,7 +528,7 @@ def add_quant_op(module, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cuda',
         else:
             add_quant_op(child, a_bits=a_bits, w_bits=w_bits, q_type=q_type, q_level=q_level, device=device, weight_observer=weight_observer)
 
-def prepare(model, inplace=False, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cuda', weight_observer=0):
+def prepare(model, inplace=False, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu', weight_observer=0):
     if not inplace:
         model = copy.deepcopy(model)
     add_quant_op(model, a_bits=a_bits, w_bits=w_bits, q_type=q_type, q_level=q_level, device=device, weight_observer=weight_observer)

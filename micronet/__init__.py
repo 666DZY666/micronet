@@ -1,10 +1,10 @@
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 def quant_test_manual():
     import torch.nn as nn
     import torch.nn.functional as F
 
-    # ``quantize`` is quant_module, ``QuantConv2d`` and ``QuantLinear`` are quant_op
+    # ``quantize`` is quant_module, ``QuantConv2d``, ``QuantLinear``, ``QuantMaxPool2d``, ``QuantReLU`` are quant_op
     from micronet.compression.quantization.wbwtab.quantize import QuantConv2d as quant_conv_wbwtab
     from micronet.compression.quantization.wqaq.dorefa.quantize import QuantConv2d as quant_conv_dorefa
     from micronet.compression.quantization.wqaq.dorefa.quantize import QuantLinear as quant_linear_dorefa
@@ -73,10 +73,10 @@ def quant_test_manual():
     class QuantLeNetIAO(nn.Module):
         def __init__(self):
             super(QuantLeNetIAO, self).__init__()
-            self.conv1 = quant_conv_iao(1, 10, kernel_size=5, device='cpu')
-            self.conv2 = quant_conv_iao(10, 20, kernel_size=5, device='cpu')
-            self.fc1 = quant_linear_iao(320, 50, device='cpu')
-            self.fc2 = quant_linear_iao(50, 10, device='cpu')
+            self.conv1 = quant_conv_iao(1, 10, kernel_size=5)
+            self.conv2 = quant_conv_iao(10, 20, kernel_size=5)
+            self.fc1 = quant_linear_iao(320, 50)
+            self.fc2 = quant_linear_iao(50, 10)
             self.max_pool = quant_max_pool_iao(kernel_size=2)
             self.relu = quant_relu_iao(inplace=True)
 

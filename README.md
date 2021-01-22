@@ -611,10 +611,10 @@ class QuantLeNetDoReFa(nn.Module):
 class QuantLeNetIAO(nn.Module):
     def __init__(self):
         super(QuantLeNetIAO, self).__init__()
-        self.conv1 = quant_conv_iao(1, 10, kernel_size=5, device='cpu')
-        self.conv2 = quant_conv_iao(10, 20, kernel_size=5, device='cpu')
-        self.fc1 = quant_linear_iao(320, 50, device='cpu')
-        self.fc2 = quant_linear_iao(50, 10, device='cpu')
+        self.conv1 = quant_conv_iao(1, 10, kernel_size=5)
+        self.conv2 = quant_conv_iao(10, 20, kernel_size=5)
+        self.fc1 = quant_linear_iao(320, 50)
+        self.fc2 = quant_linear_iao(50, 10)
         self.max_pool = quant_max_pool_iao(kernel_size=2)
         self.relu = quant_relu_iao(inplace=True)
 
