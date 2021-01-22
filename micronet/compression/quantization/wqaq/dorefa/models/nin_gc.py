@@ -37,7 +37,7 @@ class ConvBNReLU(nn.Module):
         self.shuffle_groups = shuffle_groups 
 
         self.conv = nn.Conv2d(in_channels, out_channels,
-                                      kernel_size, stride=stride, padding=padding, dilation=dilation, groups=groups, bias=bias, padding_mode=padding_mode)
+                              kernel_size, stride=stride, padding=padding, dilation=dilation, groups=groups, bias=bias, padding_mode=padding_mode)
         self.bn = nn.BatchNorm2d(out_channels, momentum=momentum)
         self.relu = nn.ReLU(inplace=True)
 

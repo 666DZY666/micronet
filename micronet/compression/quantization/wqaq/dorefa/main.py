@@ -176,7 +176,8 @@ if __name__=='__main__':
         for m in model.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.xavier_uniform_(m.weight.data)
-                m.bias.data.zero_()
+                if m.bias is not None:
+                    m.bias.data.zero_()
             elif isinstance(m, nn.Linear):
                 m.weight.data.normal_(0, 0.01)
                 m.bias.data.zero_()
@@ -188,7 +189,7 @@ if __name__=='__main__':
         model.load_state_dict(pretrained_model['state_dict'])
 
     print('***ori_model***\n', model)
-    quantize.prepare(model, a_bits=args.a_bits, w_bits=args.w_bits)
+    quantize.prepare(model, inplace=True, a_bits=args.a_bits, w_bits=args.w_bits)
     print('\n***quant_model***\n', model)
 
     if not args.cpu:

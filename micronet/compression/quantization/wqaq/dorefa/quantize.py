@@ -1,4 +1,3 @@
-
 import copy
 
 import torch
@@ -141,20 +140,19 @@ class QuantLinear(nn.Linear):
         output = F.linear(quant_input, quant_weight, self.bias)
         return output
 
-def prepare(model, a_bits=8, w_bits=8):
-    first_layer = 0
-    for name, child in model.named_children():
+def add_quant_op(module, a_bits=8, w_bits=8):
+    for name, child in module.named_children():
         if isinstance(child, nn.Conv2d):
-            if first_layer == 0:
-                first_layer += 1
-                quant_conv = QuantConv2d(child.in_channels, child.out_channels,
-                                         child.kernel_size, stride=child.stride, padding=child.padding, dilation=child.dilation, groups=child.groups, bias=True, a_bits=a_bits, w_bits=w_bits, first_layer=1)
-            else:
-                quant_conv = QuantConv2d(child.in_channels, child.out_channels,
-                                                   child.kernel_size, stride=child.stride, padding=child.padding, dilation=child.dilation, groups=child.groups, bias=True, a_bits=a_bits, w_bits=w_bits)
+            quant_conv = QuantConv2d(child.in_channels, child.out_channels,
+                                     child.kernel_size, stride=child.stride, padding=child.padding, dilation=child.dilation, groups=child.groups, bias=True, a_bits=a_bits, w_bits=w_bits)
             quant_conv.weight.data = child.weight
             quant_conv.bias.data = child.bias
-            model._modules[name] = quant_conv
-        prepare(child)
+            module._modules[name] = quant_conv
+        else:
+            add_quant_op(child, a_bits=a_bits, w_bits=w_bits)
+
+def prepare(model, inplace=False, a_bits=8, w_bits=8):
+    if not inplace:
+        model = copy.deepcopy(model)
+    add_quant_op(model, a_bits=a_bits, w_bits=w_bits)
     return model
-    
