@@ -30,8 +30,7 @@ class ConvBNReLU(nn.Module):
                  padding_mode='zeros',
                  momentum=0.1,
                  channel_shuffle=0,
-                 shuffle_groups=1,
-                 first_layer=0):
+                 shuffle_groups=1):
         super(ConvBNReLU, self).__init__()
         self.channel_shuffle_flag = channel_shuffle
         self.shuffle_groups = shuffle_groups 

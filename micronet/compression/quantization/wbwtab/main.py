@@ -17,6 +17,8 @@ from models import nin
 #from models import nin_bn_conv
 import os
 
+import quantize
+
 # 随机种子——训练结果可复现
 def setup_seed(seed):
     torch.manual_seed(seed)                    
@@ -190,18 +192,18 @@ if __name__=='__main__':
         #checkpoint = torch.load('../prune/models_save/nin_refine.pth')
         checkpoint = torch.load(args.refine)
         if args.model_type == 0:
-            model = nin.Net(cfg=checkpoint['cfg'], A=args.A, W=args.W)
+            model = nin.Net(cfg=checkpoint['cfg'])
         else:
-            model = nin_gc.Net(cfg=checkpoint['cfg'], A=args.A, W=args.W)
+            model = nin_gc.Net(cfg=checkpoint['cfg'])
         model.load_state_dict(checkpoint['state_dict'])
         best_acc = 0
     else:
         print('******Initializing model******')
         # ******************** 在model的量化卷积中同时量化A(特征)和W(模型参数) ************************
         if args.model_type == 0:
-            model = nin.Net(A=args.A, W=args.W)
+            model = nin.Net()
         else:
-            model = nin_gc.Net(A=args.A, W=args.W)
+            model = nin_gc.Net()
         #model = nin_bn_conv.Net()
         best_acc = 0
         for m in model.modules():
@@ -218,12 +220,14 @@ if __name__=='__main__':
         best_acc = pretrained_model['best_acc']
         model.load_state_dict(pretrained_model['state_dict'])
 
+    print('***ori_model***\n', model)
+    quantize.prepare(model, inplace=True, A=args.A, W=args.W)
+    print('\n***quant_model***\n', model)
+
     # cpu、gpu
     if not args.cpu:
         model.cuda()
         model = torch.nn.DataParallel(model, device_ids=range(torch.cuda.device_count()))# gpu并行训练
-    # 打印模型结构
-    print(model)
 
     # 超参数
     base_lr = float(args.lr)

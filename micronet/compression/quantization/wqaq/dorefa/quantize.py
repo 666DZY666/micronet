@@ -117,7 +117,7 @@ class QuantConvTranspose2d(nn.ConvTranspose2d):
                  a_bits=8,
                  w_bits=8):
         super(QuantConvTranspose2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, output_padding, 
-                         dilation, groups, bias, padding_mode)
+                                                   dilation, groups, bias, padding_mode)
         self.activation_quantizer = ActivationQuantizer(a_bits=a_bits)
         self.weight_quantizer = WeightQuantizer(w_bits=w_bits) 
 

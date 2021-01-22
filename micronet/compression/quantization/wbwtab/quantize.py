@@ -1,3 +1,5 @@
+import copy
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -142,20 +144,63 @@ class QuantConv2d(nn.Conv2d):
                  groups=1,
                  bias=True,
                  padding_mode='zeros',
-                 A=2,
                  W=2):
         super(QuantConv2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups,
                                           bias, padding_mode)
-        # 实例化调用A和W量化器
-        self.activation_quantizer = ActivationQuantizer(A=A)
         self.weight_quantizer = WeightQuantizer(W=W)
           
     def forward(self, input):
-        # 量化A和W
-        bin_input = self.activation_quantizer(input)
         tnn_bin_weight = self.weight_quantizer(self.weight)    
-        # 用量化后的A和W做卷积
-        output = F.conv2d(bin_input, tnn_bin_weight, self.bias, self.stride, self.padding, self.dilation, 
+        output = F.conv2d(input, tnn_bin_weight, self.bias, self.stride, self.padding, self.dilation, 
                           self.groups)
         return output
+
+class QuantConvTranspose2d(nn.ConvTranspose2d):
+    def __init__(self,
+                 in_channels,
+                 out_channels,
+                 kernel_size,
+                 stride=1,
+                 padding=0,
+                 output_padding=0,
+                 dilation=1,
+                 groups=1,
+                 bias=True,
+                 padding_mode='zeros',
+                 W=2):
+        super(QuantConvTranspose2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, output_padding, 
+                                                   dilation, groups, bias, padding_mode)
+        self.weight_quantizer = WeightQuantizer(W=W)
+
+    def forward(self, input):
+        tnn_bin_weight = self.weight_quantizer(self.weight)
+        output = F.conv_transpose2d(input, tnn_bin_weight, self.bias, self.stride, self.padding, self.output_padding,
+                                    self.groups, self.dilation)
+        return output
+
+def add_quant_op(module, A=2, W=2):
+    for name, child in module.named_children():
+        if isinstance(child, nn.Conv2d):
+            quant_conv = QuantConv2d(child.in_channels, child.out_channels,
+                                     child.kernel_size, stride=child.stride, padding=child.padding, dilation=child.dilation, groups=child.groups, bias=True, padding_mode=child.padding_mode, W=W)
+            quant_conv.weight.data = child.weight
+            quant_conv.bias.data = child.bias
+            module._modules[name] = quant_conv
+        elif isinstance(child, nn.ConvTranspose2d):
+            quant_conv_transpose = QuantConvTranspose2d(child.in_channels, child.out_channels,
+                                                        child.kernel_size, stride=child.stride, padding=child.padding, output_padding=child.output_padding, dilation=child.dilation, groups=child.groups, bias=True, padding_mode=child.padding_mode, W=W)
+            quant_conv_transpose.weight.data = child.weight
+            quant_conv_transpose.bias.data = child.bias
+            module._modules[name] = quant_conv_transpose
+        elif isinstance(child, nn.ReLU):
+            quant_relu = ActivationQuantizer(A=A)
+            module._modules[name] = quant_relu
+        else:
+            add_quant_op(child, A=A, W=W)
+
+def prepare(model, inplace=False, A=2, W=2):
+    if not inplace:
+        model = copy.deepcopy(model)
+    add_quant_op(model, A=A, W=W)
+    return model
         

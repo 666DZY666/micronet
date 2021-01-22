@@ -249,7 +249,7 @@ class QuantConvTranspose2d(nn.ConvTranspose2d):
                  device='cuda',
                  weight_observer=0):
         super(QuantConvTranspose2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, output_padding, 
-                         dilation, groups, bias, padding_mode)
+                                                   dilation, groups, bias, padding_mode)
         if q_type == 0:
             self.activation_quantizer = SymmetricQuantizer(bits=a_bits, observer=MovingAverageMinMaxObserver(q_level='L', out_channels=None, device=device), activation_weight_flag=1, device=device)
             if weight_observer == 0:
