@@ -544,6 +544,7 @@ import torch.nn.functional as F
 
 # ``quantize`` is quant_module, ``QuantConv2d``, ``QuantLinear``, ``QuantMaxPool2d``, ``QuantReLU`` are quant_op
 from micronet.compression.quantization.wbwtab.quantize import QuantConv2d as quant_conv_wbwtab
+from micronet.compression.quantization.wbwtab.quantize import ActivationQuantizer as quant_relu_wbwtab
 from micronet.compression.quantization.wqaq.dorefa.quantize import QuantConv2d as quant_conv_dorefa
 from micronet.compression.quantization.wqaq.dorefa.quantize import QuantLinear as quant_linear_dorefa
 from micronet.compression.quantization.wqaq.iao.quantize import QuantConv2d as quant_conv_iao
@@ -578,7 +579,7 @@ class QuantLeNetWbWtAb(nn.Module):
         self.fc1 = nn.Linear(320, 50)
         self.fc2 = nn.Linear(50, 10)
         self.max_pool = nn.MaxPool2d(kernel_size=2)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = quant_relu_wbwtab()
 
     def forward(self, x):
         x = self.relu(self.max_pool(self.conv1(x)))

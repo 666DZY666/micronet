@@ -68,7 +68,7 @@ class Ternary(Function):
 
 # ********************* A(特征)量化(二值) ***********************
 class ActivationQuantizer(nn.Module):
-    def __init__(self, A):
+    def __init__(self, A=2):
         super(ActivationQuantizer, self).__init__()
         self.A = A
         self.relu = nn.ReLU(inplace=True) 
@@ -89,7 +89,7 @@ def meancenter_clamp_convparams(w):
     w.data.clamp_(-1.0, 1.0) # W截断
     return w
 class WeightQuantizer(nn.Module):
-    def __init__(self, W):
+    def __init__(self, W=2):
         super(WeightQuantizer, self).__init__()
         self.W = W    
     def binary(self, input):
