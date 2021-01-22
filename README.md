@@ -632,13 +632,13 @@ quant_lenet_wbwtab = QuantLeNetWbWtAb()
 quant_lenet_dorefa = QuantLeNetDoReFa()
 quant_lenet_iao = QuantLeNetIAO()
 
-print('\n***ori_model***\n', lenet)
+print('***ori_model***\n', lenet)
 print('\n***quant_model_wbwtab***\n', quant_lenet_wbwtab)
 print('\n***quant_model_dorefa***\n', quant_lenet_dorefa)
 print('\n***quant_model_iao***\n', quant_lenet_iao)
 
 print('\nquant_model is ready')
-print('\nmicronet is ready')
+print('micronet is ready')
 ```
 
 ##### quant_test_auto.py
@@ -677,13 +677,13 @@ quant_lenet_wbwtab = quant_wbwtab.prepare(lenet, inplace=False)
 quant_lenet_dorefa = quant_dorefa.prepare(lenet, inplace=False)
 quant_lenet_iao = quant_iao.prepare(lenet, inplace=False)
 
-print('\n***ori_model***\n', lenet)
+print('***ori_model***\n', lenet)
 print('\n***quant_model_wbwtab***\n', quant_lenet_wbwtab)
 print('\n***quant_model_dorefa***\n', quant_lenet_dorefa)
 print('\n***quant_model_iao***\n', quant_lenet_iao)
 
 print('\nquant_model is ready')
-print('\nmicronet is ready')
+print('micronet is ready')
 ```
 
 #### test

@@ -1,4 +1,4 @@
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 
 def quant_test_manual():
     import torch.nn as nn
@@ -94,13 +94,13 @@ def quant_test_manual():
     quant_lenet_dorefa = QuantLeNetDoReFa()
     quant_lenet_iao = QuantLeNetIAO()
 
-    print('\n***ori_model***\n', lenet)
+    print('***ori_model***\n', lenet)
     print('\n***quant_model_wbwtab***\n', quant_lenet_wbwtab)
     print('\n***quant_model_dorefa***\n', quant_lenet_dorefa)
     print('\n***quant_model_iao***\n', quant_lenet_iao)
 
     print('\nquant_model is ready')
-    print('\nmicronet is ready')
+    print('micronet is ready')
 
 def quant_test_auto():
     import torch.nn as nn
@@ -134,11 +134,11 @@ def quant_test_auto():
     quant_lenet_dorefa = quant_dorefa.prepare(lenet, inplace=False)
     quant_lenet_iao = quant_iao.prepare(lenet, inplace=False)
 
-    print('\n***ori_model***\n', lenet)
+    print('***ori_model***\n', lenet)
     print('\n***quant_model_wbwtab***\n', quant_lenet_wbwtab)
     print('\n***quant_model_dorefa***\n', quant_lenet_dorefa)
     print('\n***quant_model_iao***\n', quant_lenet_iao)
 
     print('\nquant_model is ready')
-    print('\nmicronet is ready')
+    print('micronet is ready')
     
