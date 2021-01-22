@@ -144,10 +144,21 @@ def add_quant_op(module, a_bits=8, w_bits=8):
     for name, child in module.named_children():
         if isinstance(child, nn.Conv2d):
             quant_conv = QuantConv2d(child.in_channels, child.out_channels,
-                                     child.kernel_size, stride=child.stride, padding=child.padding, dilation=child.dilation, groups=child.groups, bias=True, a_bits=a_bits, w_bits=w_bits)
+                                     child.kernel_size, stride=child.stride, padding=child.padding, dilation=child.dilation, groups=child.groups, bias=True, padding_mode=child.padding_mode, a_bits=a_bits, w_bits=w_bits)
             quant_conv.weight.data = child.weight
             quant_conv.bias.data = child.bias
             module._modules[name] = quant_conv
+        elif isinstance(child, nn.ConvTranspose2d):
+            quant_conv_transpose = QuantConvTranspose2d(child.in_channels, child.out_channels,
+                                                        child.kernel_size, stride=child.stride, padding=child.padding, output_padding=child.output_padding, dilation=child.dilation, groups=child.groups, bias=True, padding_mode=child.padding_mode, a_bits=a_bits, w_bits=w_bits)
+            quant_conv_transpose.weight.data = child.weight
+            quant_conv_transpose.bias.data = child.bias
+            module._modules[name] = quant_conv_transpose
+        elif isinstance(child, nn.Linear):
+            quant_linear = QuantLinear(child.in_features, child.out_features, bias=True, a_bits=a_bits, w_bits=w_bits)
+            quant_linear.weight.data = child.weight
+            quant_linear.bias.data = child.bias
+            module._modules[name] = quant_linear
         else:
             add_quant_op(child, a_bits=a_bits, w_bits=w_bits)
 

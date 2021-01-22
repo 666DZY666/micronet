@@ -161,17 +161,17 @@ if __name__=='__main__':
         #checkpoint = torch.load('../prune/models_save/nin_refine.pth')
         checkpoint = torch.load(args.refine)
         if args.model_type == 0:
-            model = nin.Net(cfg=checkpoint['cfg'], a_bits=args.a_bits, w_bits=args.w_bits)
+            model = nin.Net(cfg=checkpoint['cfg'])
         else:
-            model = nin_gc.Net(cfg=checkpoint['cfg'], a_bits=args.a_bits, w_bits=args.w_bits)
+            model = nin_gc.Net(cfg=checkpoint['cfg'])
         model.load_state_dict(checkpoint['state_dict'])
         best_acc = 0
     else:
         print('******Initializing model******')
         if args.model_type == 0:
-            model = nin.Net(a_bits=args.a_bits, w_bits=args.w_bits)
+            model = nin.Net()
         else:
-            model = nin_gc.Net(a_bits=args.a_bits, w_bits=args.w_bits)
+            model = nin_gc.Net()
         best_acc = 0
         for m in model.modules():
             if isinstance(m, nn.Conv2d):

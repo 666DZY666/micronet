@@ -50,7 +50,7 @@ class ConvBNReLU(nn.Module):
         return x
 
 class Net(nn.Module):
-    def __init__(self, cfg = None, a_bits=8, w_bits=8):
+    def __init__(self, cfg = None):
         super(Net, self).__init__()
         if cfg is None:
             cfg = [256, 256, 256, 512, 512, 512, 1024, 1024]

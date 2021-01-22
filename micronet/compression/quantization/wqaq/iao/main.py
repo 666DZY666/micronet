@@ -16,6 +16,8 @@ from models import nin_gc
 from models import nin
 import os
 
+import quantize
+
 def setup_seed(seed):
     torch.manual_seed(seed)                    
     #torch.cuda.manual_seed(seed)              
@@ -178,9 +180,9 @@ if __name__=='__main__':
         #checkpoint = torch.load('../prune/models_save/nin_refine.pth')
         checkpoint = torch.load(args.refine)
         if args.model_type == 0:
-            model = nin.Net(cfg=checkpoint['cfg'], a_bits=args.a_bits, w_bits=args.w_bits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level, device=device, weight_observer=args.weight_observer)
+            model = nin.Net(cfg=checkpoint['cfg'])
         else:
-            model = nin_gc.Net(cfg=checkpoint['cfg'], a_bits=args.a_bits, w_bits=args.w_bits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level, device=device, weight_observer=args.weight_observer)
+            model = nin_gc.Net(cfg=checkpoint['cfg'])
         model_dict = model.state_dict()
         update_state_dict = {k:v for k,v in checkpoint['state_dict'].items() if k in model_dict.keys()}  
         model_dict.update(update_state_dict)
@@ -190,9 +192,9 @@ if __name__=='__main__':
     else:
         print('******Initializing model******')
         if args.model_type == 0:
-            model = nin.Net(a_bits=args.a_bits, w_bits=args.w_bits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level, device=device, weight_observer=args.weight_observer)
+            model = nin.Net()
         else:
-            model = nin_gc.Net(a_bits=args.a_bits, w_bits=args.w_bits, bn_fuse=args.bn_fuse, q_type=args.q_type, q_level=args.q_level, device=device, weight_observer=args.weight_observer)
+            model = nin_gc.Net()
         best_acc = 0
         for m in model.modules():
             if isinstance(m, nn.Conv2d):
@@ -208,6 +210,10 @@ if __name__=='__main__':
         pretrained_model = torch.load(args.resume)
         best_acc = pretrained_model['best_acc']
         model.load_state_dict(pretrained_model['state_dict'])
+
+    print('***ori_model***\n', model)
+    quantize.prepare(model, inplace=True, a_bits=args.a_bits, w_bits=args.w_bits, q_type=args.q_type, q_level=args.q_level, device=device, weight_observer=args.weight_observer)
+    print('\n***quant_model***\n', model)
 
     if not args.cpu:
         model.cuda()
