@@ -147,6 +147,7 @@ micronet
 - 1.8, 1、improve quant_para save. Now, only save scale and zero_point; 2、add optional weight_observer(MinMaxObserver or MovingAverageMinMaxObserver)
 - **1.11**, fix bug in binary_a(1/0) and binary_w preprocessing
 - **1.12**, add "pip install"
+- **1.22**, add auto_insert_quant_op(this still needs to be improved)
 
 
 ## 环境要求
@@ -535,7 +536,7 @@ python main.py --gpu_id 0,1,2
 
 #### LeNet example
 
-*quant_test.py*
+##### quant_test_manual.py
 
 ```python
 import torch.nn as nn
@@ -547,6 +548,8 @@ from micronet.compression.quantization.wqaq.dorefa.quantize import QuantConv2d a
 from micronet.compression.quantization.wqaq.dorefa.quantize import QuantLinear as quant_linear_dorefa
 from micronet.compression.quantization.wqaq.iao.quantize import QuantConv2d as quant_conv_iao
 from micronet.compression.quantization.wqaq.iao.quantize import QuantLinear as quant_linear_iao
+from micronet.compression.quantization.wqaq.iao.quantize import QuantMaxPool2d as quant_max_pool_iao
+from micronet.compression.quantization.wqaq.iao.quantize import QuantReLU as quant_relu_iao
 
 class LeNet(nn.Module):
     def __init__(self):
@@ -555,12 +558,14 @@ class LeNet(nn.Module):
         self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
         self.fc1 = nn.Linear(320, 50)
         self.fc2 = nn.Linear(50, 10)
-
+        self.max_pool = nn.MaxPool2d(kernel_size=2)
+        self.relu = nn.ReLU(inplace=True)
+        
     def forward(self, x):
-        x = F.relu(F.max_pool2d(self.conv1(x), 2))
-        x = F.relu(F.max_pool2d(self.conv2(x), 2))
+        x = self.relu(self.max_pool(self.conv1(x)))
+        x = self.relu(self.max_pool(self.conv2(x)))
         x = x.view(-1, 320)
-        x = F.relu(self.fc1(x))
+        x = self.relu(self.fc1(x))
         x = F.dropout(x, training=self.training)
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
@@ -572,12 +577,14 @@ class QuantLeNetWbWtAb(nn.Module):
         self.conv2 = quant_conv_wbwtab(10, 20, kernel_size=5)
         self.fc1 = nn.Linear(320, 50)
         self.fc2 = nn.Linear(50, 10)
+        self.max_pool = nn.MaxPool2d(kernel_size=2)
+        self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
-        x = F.relu(F.max_pool2d(self.conv1(x), 2))
-        x = F.relu(F.max_pool2d(self.conv2(x), 2))
+        x = self.relu(self.max_pool(self.conv1(x)))
+        x = self.relu(self.max_pool(self.conv2(x)))
         x = x.view(-1, 320)
-        x = F.relu(self.fc1(x))
+        x = self.relu(self.fc1(x))
         x = F.dropout(x, training=self.training)
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
@@ -589,12 +596,14 @@ class QuantLeNetDoReFa(nn.Module):
         self.conv2 = quant_conv_dorefa(10, 20, kernel_size=5)
         self.fc1 = quant_linear_dorefa(320, 50)
         self.fc2 = quant_linear_dorefa(50, 10)
+        self.max_pool = nn.MaxPool2d(kernel_size=2)
+        self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
-        x = F.relu(F.max_pool2d(self.conv1(x), 2))
-        x = F.relu(F.max_pool2d(self.conv2(x), 2))
+        x = self.relu(self.max_pool(self.conv1(x)))
+        x = self.relu(self.max_pool(self.conv2(x)))
         x = x.view(-1, 320)
-        x = F.relu(self.fc1(x))
+        x = self.relu(self.fc1(x))
         x = F.dropout(x, training=self.training)
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
@@ -606,12 +615,14 @@ class QuantLeNetIAO(nn.Module):
         self.conv2 = quant_conv_iao(10, 20, kernel_size=5, device='cpu')
         self.fc1 = quant_linear_iao(320, 50, device='cpu')
         self.fc2 = quant_linear_iao(50, 10, device='cpu')
+        self.max_pool = quant_max_pool_iao(kernel_size=2)
+        self.relu = quant_relu_iao(inplace=True)
 
     def forward(self, x):
-        x = F.relu(F.max_pool2d(self.conv1(x), 2))
-        x = F.relu(F.max_pool2d(self.conv2(x), 2))
+        x = self.relu(self.max_pool(self.conv1(x)))
+        x = self.relu(self.max_pool(self.conv2(x)))
         x = x.view(-1, 320)
-        x = F.relu(self.fc1(x))
+        x = self.relu(self.fc1(x))
         x = F.dropout(x, training=self.training)
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
@@ -620,13 +631,69 @@ lenet = LeNet()
 quant_lenet_wbwtab = QuantLeNetWbWtAb()
 quant_lenet_dorefa = QuantLeNetDoReFa()
 quant_lenet_iao = QuantLeNetIAO()
-print('quant_model is ready')
-print('micronet is ready')
+
+print('\n***ori_model***\n', lenet)
+print('\n***quant_model_wbwtab***\n', quant_lenet_wbwtab)
+print('\n***quant_model_dorefa***\n', quant_lenet_dorefa)
+print('\n***quant_model_iao***\n', quant_lenet_iao)
+
+print('\nquant_model is ready')
+print('\nmicronet is ready')
+```
+
+##### quant_test_auto.py
+
+```python
+import torch.nn as nn
+import torch.nn.functional as F
+
+import micronet
+
+class LeNet(nn.Module):
+    def __init__(self):
+        super(LeNet, self).__init__()
+        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
+        self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
+        self.fc1 = nn.Linear(320, 50)
+        self.fc2 = nn.Linear(50, 10)
+        self.max_pool = nn.MaxPool2d(kernel_size=2)
+        self.relu = nn.ReLU(inplace=True)
+        
+    def forward(self, x):
+        x = self.relu(self.max_pool(self.conv1(x)))
+        x = self.relu(self.max_pool(self.conv2(x)))
+        x = x.view(-1, 320)
+        x = self.relu(self.fc1(x))
+        x = F.dropout(x, training=self.training)
+        x = self.fc2(x)
+        return F.log_softmax(x, dim=1)
+
+lenet = LeNet()
+quant_lenet_wbwtab = micronet.compression.quantization.wbwtab.quantize.prepare(lenet, inplace=False)
+quant_lenet_dorefa = micronet.compression.quantization.wqaq.dorefa.quantize.prepare(lenet, inplace=False)
+quant_lenet_iao = micronet.compression.quantization.wqaq.iao.quantize.prepare(lenet, inplace=False)
+
+print('\n***ori_model***\n', lenet)
+print('\n***quant_model_wbwtab***\n', quant_lenet_wbwtab)
+print('\n***quant_model_dorefa***\n', quant_lenet_dorefa)
+print('\n***quant_model_iao***\n', quant_lenet_iao)
+
+print('\nquant_model is ready')
+print('\nmicronet is ready')
 ```
 
 #### test
+
+##### quant_test_manual
+
 ```bash
-python -c "import micronet; micronet.quant_test()"
+python -c "import micronet; micronet.quant_test_manual()"
+```
+
+##### quant_test_auto
+
+```bash
+python -c "import micronet; micronet.quant_test_auto()"
 ```
 
 *when outputting "quant_model is ready", micronet is ready.*
