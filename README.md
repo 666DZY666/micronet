@@ -649,7 +649,9 @@ print('\nmicronet is ready')
 import torch.nn as nn
 import torch.nn.functional as F
 
-import micronet
+import micronet.compression.quantization.wbwtab.quantize as quant_wbwtab
+import micronet.compression.quantization.wqaq.dorefa.quantize as quant_dorefa
+import micronet.compression.quantization.wqaq.iao.quantize as quant_iao
 
 class LeNet(nn.Module):
     def __init__(self):
@@ -671,9 +673,9 @@ class LeNet(nn.Module):
         return F.log_softmax(x, dim=1)
 
 lenet = LeNet()
-quant_lenet_wbwtab = micronet.compression.quantization.wbwtab.quantize.prepare(lenet, inplace=False)
-quant_lenet_dorefa = micronet.compression.quantization.wqaq.dorefa.quantize.prepare(lenet, inplace=False)
-quant_lenet_iao = micronet.compression.quantization.wqaq.iao.quantize.prepare(lenet, inplace=False)
+quant_lenet_wbwtab = quant_wbwtab.prepare(lenet, inplace=False)
+quant_lenet_dorefa = quant_dorefa.prepare(lenet, inplace=False)
+quant_lenet_iao = quant_iao.prepare(lenet, inplace=False)
 
 print('\n***ori_model***\n', lenet)
 print('\n***quant_model_wbwtab***\n', quant_lenet_wbwtab)
