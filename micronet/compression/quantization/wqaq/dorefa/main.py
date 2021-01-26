@@ -147,13 +147,13 @@ if __name__=='__main__':
     transform_test = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])
-
+    
     trainset = torchvision.datasets.CIFAR10(root = args.data, train = True, download = True, transform = transform_train)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=args.train_batch_size, shuffle=True, num_workers=args.num_workers) # 训练集数据
 
     testset = torchvision.datasets.CIFAR10(root = args.data, train = False, download = True, transform = transform_test)
     testloader = torch.utils.data.DataLoader(testset, batch_size=args.eval_batch_size, shuffle=False, num_workers=args.num_workers) # 测试集数据
-
+    
     classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
     if args.refine:
@@ -166,6 +166,9 @@ if __name__=='__main__':
             model = nin_gc.Net(cfg=checkpoint['cfg'])
         model.load_state_dict(checkpoint['state_dict'])
         best_acc = 0
+        print('***ori_model***\n', model)
+        quantize.prepare(model, inplace=True, a_bits=args.a_bits, w_bits=args.w_bits)
+        print('\n***quant_model***\n', model)
     else:
         print('******Initializing model******')
         if args.model_type == 0:
@@ -181,16 +184,16 @@ if __name__=='__main__':
             elif isinstance(m, nn.Linear):
                 m.weight.data.normal_(0, 0.01)
                 m.bias.data.zero_()
+        print('***ori_model***\n', model)
+        quantize.prepare(model, inplace=True, a_bits=args.a_bits, w_bits=args.w_bits)
+        print('\n***quant_model***\n', model)
     if args.resume:
         print('******Reume model******')
         #pretrained_model = torch.load('models_save/nin_gc.pth')
         pretrained_model = torch.load(args.resume)
         best_acc = pretrained_model['best_acc']
         model.load_state_dict(pretrained_model['state_dict'])
-
-    print('***ori_model***\n', model)
-    quantize.prepare(model, inplace=True, a_bits=args.a_bits, w_bits=args.w_bits)
-    print('\n***quant_model***\n', model)
+        print('\n***quant_model***\n', model)
 
     if not args.cpu:
         model.cuda()

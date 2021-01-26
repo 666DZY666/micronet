@@ -140,30 +140,38 @@ class QuantLinear(nn.Linear):
         output = F.linear(quant_input, quant_weight, self.bias)
         return output
 
-def add_quant_op(module, a_bits=8, w_bits=8):
+def add_quant_op(module, layer_counter, a_bits=8, w_bits=8):
     for name, child in module.named_children():
         if isinstance(child, nn.Conv2d):
-            quant_conv = QuantConv2d(child.in_channels, child.out_channels,
-                                     child.kernel_size, stride=child.stride, padding=child.padding, dilation=child.dilation, groups=child.groups, bias=True, padding_mode=child.padding_mode, a_bits=a_bits, w_bits=w_bits)
-            quant_conv.weight.data = child.weight
-            quant_conv.bias.data = child.bias
-            module._modules[name] = quant_conv
+            layer_counter[0] += 1
+            if layer_counter[0] > 1:
+                quant_conv = QuantConv2d(child.in_channels, child.out_channels,
+                                        child.kernel_size, stride=child.stride, padding=child.padding, dilation=child.dilation, groups=child.groups, bias=True, padding_mode=child.padding_mode, a_bits=a_bits, w_bits=w_bits)
+                quant_conv.weight.data = child.weight
+                quant_conv.bias.data = child.bias
+                module._modules[name] = quant_conv
         elif isinstance(child, nn.ConvTranspose2d):
-            quant_conv_transpose = QuantConvTranspose2d(child.in_channels, child.out_channels,
-                                                        child.kernel_size, stride=child.stride, padding=child.padding, output_padding=child.output_padding, dilation=child.dilation, groups=child.groups, bias=True, padding_mode=child.padding_mode, a_bits=a_bits, w_bits=w_bits)
-            quant_conv_transpose.weight.data = child.weight
-            quant_conv_transpose.bias.data = child.bias
-            module._modules[name] = quant_conv_transpose
+            layer_counter[0] += 1
+            if layer_counter[0] > 1:
+                quant_conv_transpose = QuantConvTranspose2d(child.in_channels, child.out_channels,
+                                                            child.kernel_size, stride=child.stride, padding=child.padding, output_padding=child.output_padding, dilation=child.dilation, groups=child.groups, bias=True, padding_mode=child.padding_mode, a_bits=a_bits, w_bits=w_bits)
+                quant_conv_transpose.weight.data = child.weight
+                quant_conv_transpose.bias.data = child.bias
+                module._modules[name] = quant_conv_transpose
         elif isinstance(child, nn.Linear):
-            quant_linear = QuantLinear(child.in_features, child.out_features, bias=True, a_bits=a_bits, w_bits=w_bits)
-            quant_linear.weight.data = child.weight
-            quant_linear.bias.data = child.bias
-            module._modules[name] = quant_linear
+            layer_counter[0] += 1
+            if layer_counter[0] > 1:
+                quant_linear = QuantLinear(child.in_features, child.out_features, bias=True, a_bits=a_bits, w_bits=w_bits)
+                quant_linear.weight.data = child.weight
+                quant_linear.bias.data = child.bias
+                module._modules[name] = quant_linear
         else:
-            add_quant_op(child, a_bits=a_bits, w_bits=w_bits)
+            add_quant_op(child, layer_counter, a_bits=a_bits, w_bits=w_bits)
 
 def prepare(model, inplace=False, a_bits=8, w_bits=8):
     if not inplace:
         model = copy.deepcopy(model)
-    add_quant_op(model, a_bits=a_bits, w_bits=w_bits)
+    layer_counter = [0]
+    add_quant_op(model, layer_counter, a_bits=a_bits, w_bits=w_bits)
     return model
+    
