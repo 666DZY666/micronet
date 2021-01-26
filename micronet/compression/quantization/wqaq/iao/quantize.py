@@ -114,7 +114,7 @@ class Quantizer(nn.Module):
         self.device = device
         self.register_buffer('scale', torch.ones((1), dtype=torch.float32))           # scale
         self.register_buffer('zero_point', torch.zeros((1), dtype=torch.float32))     # zero_point
-        self.register_buffer('eps', torch.tensor([torch.finfo(torch.float32).eps]))   # eps
+        self.register_buffer('eps', torch.tensor([torch.finfo(torch.float32).eps]))   # eps(1.1921e-07)
 
     def update_params(self):
         raise NotImplementedError
@@ -188,7 +188,6 @@ class QuantConv2d(nn.Conv2d):
                  w_bits=8,
                  q_type=0,
                  q_level=0,
-                 first_layer=0,
                  device='cpu',
                  weight_observer=0):
         super(QuantConv2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups,
@@ -218,13 +217,10 @@ class QuantConv2d(nn.Conv2d):
                     self.weight_quantizer = AsymmetricQuantizer(bits=w_bits, observer=MovingAverageMinMaxObserver(q_level='C', out_channels=out_channels, device=device), activation_weight_flag=2, device=device)
                 else:
                     self.weight_quantizer = AsymmetricQuantizer(bits=w_bits, observer=MovingAverageMinMaxObserver(q_level='L', out_channels=None, device=device), activation_weight_flag=2, device=device)
-        self.first_layer = first_layer
 
     def forward(self, input):
         # 量化A和W
-        if not self.first_layer:
-            input = self.activation_quantizer(input)
-        quant_input = input
+        quant_input = self.activation_quantizer(input)
         quant_weight = self.weight_quantizer(self.weight) 
         # 量化卷积
         output = F.conv2d(quant_input, quant_weight, self.bias, self.stride, self.padding, self.dilation,
@@ -294,7 +290,6 @@ class QuantBNFuseConv2d(QuantConv2d):
                  w_bits=8,
                  q_type=0,
                  q_level=0,
-                 first_layer=0,
                  device='cpu',
                  weight_observer=0):
         super(QuantBNFuseConv2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups,
@@ -334,7 +329,6 @@ class QuantBNFuseConv2d(QuantConv2d):
                     self.weight_quantizer = AsymmetricQuantizer(bits=w_bits, observer=MovingAverageMinMaxObserver(q_level='C', out_channels=out_channels, device=device), activation_weight_flag=2, device=device)
                 else:
                     self.weight_quantizer = AsymmetricQuantizer(bits=w_bits, observer=MovingAverageMinMaxObserver(q_level='L', out_channels=None, device=device), activation_weight_flag=2, device=device)
-        self.first_layer = first_layer
        
     def forward(self, input):
         # 训练态
@@ -373,9 +367,7 @@ class QuantBNFuseConv2d(QuantConv2d):
             weight = self.weight * reshape_to_weight(self.gamma / torch.sqrt(self.running_var + self.eps))  # w融running
         
         # 量化A和bn融合后的W
-        if not self.first_layer:
-            input = self.activation_quantizer(input)
-        quant_input = input
+        quant_input = self.activation_quantizer(input)
         quant_weight = self.weight_quantizer(weight) 
         # 量化卷积
         if self.training:  # 训练态
