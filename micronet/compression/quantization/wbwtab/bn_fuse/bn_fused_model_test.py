@@ -14,11 +14,11 @@ import argparse
 import numpy as np
 import time
 import nin_gc_inference
-from bn_fuse import DummyModule
+from bn_fuse import Identity
 
 # 量化模型测试
-def test_quan_model():
-    quan_model.eval()
+def test_quant_model():
+    quant_model.eval()
     test_loss = 0
     average_test_loss = 0
     correct = 0
@@ -29,7 +29,7 @@ def test_quan_model():
             data, target = data.cuda(), target.cuda()
         data, target = Variable(data), Variable(target)
                                     
-        output = quan_model(data)
+        output = quant_model(data)
 
         test_loss += criterion(output, target).data.item()
         pred = output.data.max(1, keepdim=True)[1]
@@ -41,13 +41,13 @@ def test_quan_model():
     acc = 100. * float(correct) / len(testloader.dataset)
     average_test_loss = test_loss / (len(testloader.dataset) / args.eval_batch_size)
 
-    print('\nquan_model: Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%), inference_time:{:.4f}ms, FPS:{:.4f}'.format(
+    print('\nquant_model: Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%), inference_time:{:.4f}ms, FPS:{:.4f}'.format(
         average_test_loss, correct, len(testloader.dataset), acc, inference_time * 1000, FPS))
     return
 
 # 量化BN融合模型测试
-def test_quan_bn_fused_model():
-    quan_bn_fused_model.eval()
+def test_quant_bn_fused_model():
+    quant_bn_fused_model.eval()
     test_loss_bn_fused = 0
     average_test_loss_bn_fused = 0
     correct_bn_fused = 0
@@ -58,7 +58,7 @@ def test_quan_bn_fused_model():
             data, target = data.cuda(), target.cuda()
         data, target = Variable(data), Variable(target)
                                     
-        output_bn_fused = quan_bn_fused_model(data)
+        output_bn_fused = quant_bn_fused_model(data)
 
         test_loss_bn_fused += criterion(output_bn_fused, target).data.item()
         pred_bn_fused = output_bn_fused.data.max(1, keepdim=True)[1]
@@ -70,7 +70,7 @@ def test_quan_bn_fused_model():
     acc_bn_fused = 100. * float(correct_bn_fused) / len(testloader.dataset)
     average_test_loss_bn_fused = test_loss_bn_fused / (len(testloader.dataset) / args.eval_batch_size)
 
-    print('\nquan_bn_fused_model: Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%), inference_time:{:.4f}ms, FPS:{:.4f}'.format(
+    print('\nquant_bn_fused_model: Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%), inference_time:{:.4f}ms, FPS:{:.4f}'.format(
         average_test_loss_bn_fused, correct_bn_fused, len(testloader.dataset), acc_bn_fused, inference_time * 1000, FPS))
     return
 
@@ -108,22 +108,21 @@ if __name__=='__main__':
 
     # define classes
     classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
-
-    quan_model = nin_gc_inference.Net()
-    quan_model.load_state_dict(torch.load('models_save/quan_model_para.pth'))   # 加载量化模型
-    quan_bn_fused_model = torch.load('models_save/quan_bn_fused_model.pth') # 加载量化BN融合模型
-    quan_model.eval()
-    quan_bn_fused_model.eval()
+    
+    quant_model = torch.load('models_save/quant_model.pth')                   # 加载量化模型
+    quant_bn_fused_model = torch.load('models_save/quant_bn_fused_model.pth') # 加载量化BN融合模型
+    quant_model.eval()
+    quant_bn_fused_model.eval()
     if not args.cpu:
-        quan_model.cuda()
-        quan_bn_fused_model.cuda()
-        quan_model = torch.nn.DataParallel(quan_model, device_ids=range(torch.cuda.device_count()))
-        quan_bn_fused_model = torch.nn.DataParallel(quan_bn_fused_model, device_ids=range(torch.cuda.device_count()))
+        quant_model.cuda()
+        quant_bn_fused_model.cuda()
+        quant_model = torch.nn.DataParallel(quant_model, device_ids=range(torch.cuda.device_count()))
+        quant_bn_fused_model = torch.nn.DataParallel(quant_bn_fused_model, device_ids=range(torch.cuda.device_count()))
 
     criterion = nn.CrossEntropyLoss()
     
     print("********* bn_fused_model_test start *********")
     # 融合前后模型对比测试,输出acc和FPS,由结果可知:BN融合成功,实现无损加速
     for epoch in range(1, args.epochs):
-        test_quan_model()            # 量化模型测试
-        test_quan_bn_fused_model() # 量化BN融合模型测试
+        test_quant_model()            # 量化模型测试
+        test_quant_bn_fused_model() # 量化BN融合模型测试
