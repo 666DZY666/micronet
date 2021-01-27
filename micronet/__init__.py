@@ -1,4 +1,4 @@
-__version__ = "0.2.6"
+__version__ = "1.0.0"
 
 def quant_test_manual():
     import torch.nn as nn

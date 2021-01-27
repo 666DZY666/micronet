@@ -148,6 +148,7 @@ micronet
 - **1.11**, fix bug in binary_a(1/0) and binary_w preprocessing
 - **1.12**, add "pip install"
 - **1.22**, add auto_insert_quant_op(this still needs to be improved)
+- **1.27**, improve auto_insert_quant_op(Now you can easily use quantization, as "quant_test_auto.py")
 
 
 ## 环境要求
@@ -189,6 +190,8 @@ python -c "import micronet; print(micronet.__version__)"
 ### 压缩
 
 #### 量化
+
+*--refine,可加载预训练浮点模型参数,在其基础上做量化*
 
 ##### W（FP32/三/二值）、A（FP32/二值）
 
