@@ -13,8 +13,6 @@ import torchvision.transforms as transforms
 import argparse
 import numpy as np
 import time
-import nin_gc_inference
-from bn_fuse import Identity
 
 # 量化模型测试
 def test_quant_model():
@@ -70,7 +68,7 @@ def test_quant_bn_fused_model():
     acc_bn_fused = 100. * float(correct_bn_fused) / len(testloader.dataset)
     average_test_loss_bn_fused = test_loss_bn_fused / (len(testloader.dataset) / args.eval_batch_size)
 
-    print('\nquant_bn_fused_model: Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%), inference_time:{:.4f}ms, FPS:{:.4f}'.format(
+    print('quant_bn_fused_model: Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%), inference_time:{:.4f}ms, FPS:{:.4f}'.format(
         average_test_loss_bn_fused, correct_bn_fused, len(testloader.dataset), acc_bn_fused, inference_time * 1000, FPS))
     return
 

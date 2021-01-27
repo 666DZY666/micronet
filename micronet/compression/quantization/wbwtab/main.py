@@ -4,18 +4,18 @@ from __future__ import print_function
 
 import sys
 import math
+import os
 import argparse
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.autograd import Variable
 import torchvision
 import torchvision.transforms as transforms
+from torch.autograd import Variable
+from torch.nn import init
 from models import nin_gc
 from models import nin
-#from models import nin_bn_conv
-import os
 
 import quantize
 
@@ -129,12 +129,15 @@ if __name__=='__main__':
     # weight_dacay
     parser.add_argument('--wd', action='store', default=0,
             help='nin_gc:0, nin:1e-5')
+    # prune_refine
+    parser.add_argument('--prune_refine', default='', type=str, metavar='PATH',
+            help='the path to the prune_refine model')
+    # refine
+    parser.add_argument('--refine', default='', type=str, metavar='PATH',
+            help='the path to the float_refine model')
     # resume
     parser.add_argument('--resume', default='', type=str, metavar='PATH',
             help='the path to the resume model')
-    # refine
-    parser.add_argument('--refine', default='', type=str, metavar='PATH',
-            help='the path to the refine(prune) model')
     # evaluate
     parser.add_argument('--evaluate', action='store_true',
             help='evaluate the model')
@@ -187,10 +190,10 @@ if __name__=='__main__':
     classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
     # model
-    if args.refine:
-        print('******Refine model******')
+    if args.prune_refine:
+        print('******Prune Refine model******')
         #checkpoint = torch.load('../prune/models_save/nin_refine.pth')
-        checkpoint = torch.load(args.refine)
+        checkpoint = torch.load(args.prune_refine)
         if args.model_type == 0:
             model = nin.Net(cfg=checkpoint['cfg'])
         else:
@@ -200,31 +203,50 @@ if __name__=='__main__':
         print('***ori_model***\n', model)
         quantize.prepare(model, inplace=True, A=args.A, W=args.W)
         print('\n***quant_model***\n', model)
-    else:
-        print('******Initializing model******')
-        # ******************** 在model的量化卷积中同时量化A(特征)和W(模型参数) ************************
+    elif args.refine:
+        print('******Float Refine model******')
+        #checkpoint = torch.load('models_save/nin.pth')
+        state_dict = torch.load(args.refine)
         if args.model_type == 0:
             model = nin.Net()
         else:
             model = nin_gc.Net()
-        #model = nin_bn_conv.Net()
+        model.load_state_dict(state_dict)
         best_acc = 0
-        for m in model.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.xavier_uniform_(m.weight.data)
-                m.bias.data.zero_()
-            elif isinstance(m, nn.Linear):
-                m.weight.data.normal_(0, 0.01)
-                m.bias.data.zero_()
         print('***ori_model***\n', model)
         quantize.prepare(model, inplace=True, A=args.A, W=args.W)
         print('\n***quant_model***\n', model)
-    if args.resume:
+    elif args.resume:
         print('******Reume model******')
-        #pretrained_model = torch.load('models_save/nin_gc.pth')
-        pretrained_model = torch.load(args.resume)
-        best_acc = pretrained_model['best_acc']
-        model.load_state_dict(pretrained_model['state_dict'])
+        #checkpoint = torch.load('models_save/nin.pth')
+        checkpoint = torch.load(args.resume)
+        if args.model_type == 0:
+            model = nin.Net()
+        else:
+            model = nin_gc.Net()
+        model.load_state_dict(checkpoint['state_dict'])
+        best_acc = checkpoint['best_acc']
+        print('***ori_model***\n', model)
+        quantize.prepare(model, inplace=True, A=args.A, W=args.W)
+        print('\n***quant_model***\n', model)
+    else:
+        print('******Initializing model******')
+        if args.model_type == 0:
+            model = nin.Net()
+        else:
+            model = nin_gc.Net()
+        best_acc = 0
+        for m in model.modules():
+            if isinstance(m, nn.Conv2d):
+                init.xavier_uniform_(m.weight)
+                if m.bias is not None:
+                    init.zeros_(m.bias)
+            elif isinstance(m, nn.Linear):
+                init.normal_(m.weight, 0, 0.01)
+                if m.bias is not None:
+                    init.zeros_(m.bias)
+        print('***ori_model***\n', model)
+        quantize.prepare(model, inplace=True, A=args.A, W=args.W)
         print('\n***quant_model***\n', model)
 
     # cpu、gpu

@@ -145,25 +145,36 @@ def add_quant_op(module, layer_counter, a_bits=8, w_bits=8):
         if isinstance(child, nn.Conv2d):
             layer_counter[0] += 1
             if layer_counter[0] > 1:
-                quant_conv = QuantConv2d(child.in_channels, child.out_channels,
-                                        child.kernel_size, stride=child.stride, padding=child.padding, dilation=child.dilation, groups=child.groups, bias=True, padding_mode=child.padding_mode, a_bits=a_bits, w_bits=w_bits)
+                if child.bias is not None:
+                    quant_conv = QuantConv2d(child.in_channels, child.out_channels,
+                                             child.kernel_size, stride=child.stride, padding=child.padding, dilation=child.dilation, groups=child.groups, bias=True, padding_mode=child.padding_mode, a_bits=a_bits, w_bits=w_bits)
+                    quant_conv.bias.data = child.bias
+                else:
+                    quant_conv = QuantConv2d(child.in_channels, child.out_channels,
+                                             child.kernel_size, stride=child.stride, padding=child.padding, dilation=child.dilation, groups=child.groups, bias=False, padding_mode=child.padding_mode, a_bits=a_bits, w_bits=w_bits)
                 quant_conv.weight.data = child.weight
-                quant_conv.bias.data = child.bias
                 module._modules[name] = quant_conv
         elif isinstance(child, nn.ConvTranspose2d):
             layer_counter[0] += 1
             if layer_counter[0] > 1:
-                quant_conv_transpose = QuantConvTranspose2d(child.in_channels, child.out_channels,
-                                                            child.kernel_size, stride=child.stride, padding=child.padding, output_padding=child.output_padding, dilation=child.dilation, groups=child.groups, bias=True, padding_mode=child.padding_mode, a_bits=a_bits, w_bits=w_bits)
+                if child.bias is not None:
+                    quant_conv_transpose = QuantConvTranspose2d(child.in_channels, child.out_channels,
+                                                                child.kernel_size, stride=child.stride, padding=child.padding, output_padding=child.output_padding, dilation=child.dilation, groups=child.groups, bias=True, padding_mode=child.padding_mode, a_bits=a_bits, w_bits=w_bits)
+                    quant_conv_transpose.bias.data = child.bias
+                else:
+                    quant_conv_transpose = QuantConvTranspose2d(child.in_channels, child.out_channels,
+                                                                child.kernel_size, stride=child.stride, padding=child.padding, output_padding=child.output_padding, dilation=child.dilation, groups=child.groups, bias=False, padding_mode=child.padding_mode, a_bits=a_bits, w_bits=w_bits)
                 quant_conv_transpose.weight.data = child.weight
-                quant_conv_transpose.bias.data = child.bias
                 module._modules[name] = quant_conv_transpose
         elif isinstance(child, nn.Linear):
             layer_counter[0] += 1
             if layer_counter[0] > 1:
-                quant_linear = QuantLinear(child.in_features, child.out_features, bias=True, a_bits=a_bits, w_bits=w_bits)
+                if child.bias is not None:
+                    quant_linear = QuantLinear(child.in_features, child.out_features, bias=True, a_bits=a_bits, w_bits=w_bits)
+                    quant_linear.bias.data = child.bias
+                else:
+                    quant_linear = QuantLinear(child.in_features, child.out_features, bias=False, a_bits=a_bits, w_bits=w_bits)
                 quant_linear.weight.data = child.weight
-                quant_linear.bias.data = child.bias
                 module._modules[name] = quant_linear
         else:
             add_quant_op(child, layer_counter, a_bits=a_bits, w_bits=w_bits)

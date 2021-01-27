@@ -38,6 +38,7 @@ class MinMaxObserver(ObserverBase):
     def __init__(self, q_level, device, out_channels):
         super(MinMaxObserver, self).__init__(q_level, device)
         self.num_flag = 0
+        self.out_channels = out_channels
         if self.q_level == 'L':            
             self.min_val = torch.zeros((1), dtype=torch.float32, device=self.device)
             self.max_val = torch.zeros((1), dtype=torch.float32, device=self.device)
@@ -67,6 +68,7 @@ class MovingAverageMinMaxObserver(ObserverBase):
         super(MovingAverageMinMaxObserver, self).__init__(q_level, device)
         self.momentum = momentum
         self.num_flag = 0
+        self.out_channels = out_channels
         if self.q_level == 'L':            
             self.min_val = torch.zeros((1), dtype=torch.float32, device=self.device)
             self.max_val = torch.zeros((1), dtype=torch.float32, device=self.device)
@@ -112,9 +114,17 @@ class Quantizer(nn.Module):
         self.observer = observer
         self.activation_weight_flag = activation_weight_flag
         self.device = device
-        self.register_buffer('scale', torch.ones((1), dtype=torch.float32))           # scale
-        self.register_buffer('zero_point', torch.zeros((1), dtype=torch.float32))     # zero_point
-        self.register_buffer('eps', torch.tensor([torch.finfo(torch.float32).eps]))   # eps(1.1921e-07)
+        #scale/zero_point/eps
+        if self.observer.q_level == 'L':            
+            self.register_buffer('scale', torch.ones((1), dtype=torch.float32))
+            self.register_buffer('zero_point', torch.zeros((1), dtype=torch.float32))
+        elif self.observer.q_level == 'C':      
+            self.register_buffer('scale', torch.ones((self.observer.out_channels, 1, 1, 1), dtype=torch.float32))
+            self.register_buffer('zero_point', torch.zeros((self.observer.out_channels, 1, 1, 1), dtype=torch.float32))
+        elif self.observer.q_level == 'FC':         
+            self.register_buffer('scale', torch.ones((self.observer.out_channels, 1), dtype=torch.float32))
+            self.register_buffer('zero_point', torch.zeros((self.observer.out_channels, 1), dtype=torch.float32))
+        self.register_buffer('eps', torch.tensor([torch.finfo(torch.float32).eps])) # eps(1.1921e-07)
 
     def update_params(self):
         raise NotImplementedError
@@ -301,7 +311,7 @@ class QuantBNFuseConv2d(QuantConv2d):
         self.beta = Parameter(torch.Tensor(out_channels))
         self.register_buffer('running_mean', torch.zeros((out_channels), dtype=torch.float32))
         self.register_buffer('running_var', torch.ones((out_channels), dtype=torch.float32))
-        init.ones_(self.gamma)
+        init.uniform_(self.gamma)
         init.zeros_(self.beta)
         
         # 实例化量化器（A-layer级，W-channel级）
@@ -352,32 +362,31 @@ class QuantBNFuseConv2d(QuantConv2d):
                 self.running_var.copy_(running_var)
             # BN融合
             if self.bias is not None:  
-              bias = reshape_to_bias(self.beta + (self.bias -  batch_mean) * (self.gamma / torch.sqrt(batch_var + self.eps)))
+              bias_fused = reshape_to_bias(self.beta + (self.bias -  batch_mean) * (self.gamma / torch.sqrt(batch_var + self.eps)))
             else:
-              bias = reshape_to_bias(self.beta - batch_mean  * (self.gamma / torch.sqrt(batch_var + self.eps)))# b融batch
-            weight = self.weight * reshape_to_weight(self.gamma / torch.sqrt(self.running_var + self.eps))     # w融running
+              bias_fused = reshape_to_bias(self.beta - batch_mean  * (self.gamma / torch.sqrt(batch_var + self.eps)))# b融batch
+            weight_fused = self.weight * reshape_to_weight(self.gamma / torch.sqrt(self.running_var + self.eps))     # w融running
         # 测试态
         else:
-            #print(self.running_mean, self.running_var)
             # BN融合
             if self.bias is not None:
-              bias = reshape_to_bias(self.beta + (self.bias - self.running_mean) * (self.gamma / torch.sqrt(self.running_var + self.eps)))
+              bias_fused = reshape_to_bias(self.beta + (self.bias - self.running_mean) * (self.gamma / torch.sqrt(self.running_var + self.eps)))
             else:
-              bias = reshape_to_bias(self.beta - self.running_mean * (self.gamma / torch.sqrt(self.running_var + self.eps)))  # b融running
-            weight = self.weight * reshape_to_weight(self.gamma / torch.sqrt(self.running_var + self.eps))  # w融running
+              bias_fused = reshape_to_bias(self.beta - self.running_mean * (self.gamma / torch.sqrt(self.running_var + self.eps)))  # b融running
+            weight_fused = self.weight * reshape_to_weight(self.gamma / torch.sqrt(self.running_var + self.eps))  # w融running
         
         # 量化A和bn融合后的W
         quant_input = self.activation_quantizer(input)
-        quant_weight = self.weight_quantizer(weight) 
+        quant_weight = self.weight_quantizer(weight_fused) 
         # 量化卷积
         if self.training:  # 训练态
           output = F.conv2d(quant_input, quant_weight, None, self.stride, self.padding, self.dilation,
                             self.groups) # 注意，这里不加bias（self.bias为None）
           # （这里将训练态下，卷积中w融合running参数的效果转为融合batch参数的效果）running ——> batch
           output *= reshape_to_activation(torch.sqrt(self.running_var + self.eps) / torch.sqrt(batch_var + self.eps))
-          output += reshape_to_activation(bias)
+          output += reshape_to_activation(bias_fused)
         else:  # 测试态
-          output = F.conv2d(quant_input, quant_weight, bias, self.stride, self.padding, self.dilation,
+          output = F.conv2d(quant_input, quant_weight, bias_fused, self.stride, self.padding, self.dilation,
                             self.groups) # 注意，这里加bias，做完整的conv+bn
         return output
 
@@ -483,24 +492,55 @@ class QuantAdaptiveAvgPool2d(nn.AdaptiveAvgPool2d):
         output = F.adaptive_avg_pool2d(quant_input, self.output_size)
         return output
 
-def add_quant_op(module, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu', weight_observer=0):
+def add_quant_op(module, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu', weight_observer=0, bn_fuse=0):
     for name, child in module.named_children():
         if isinstance(child, nn.Conv2d):
-            quant_conv = QuantConv2d(child.in_channels, child.out_channels,
-                                     child.kernel_size, stride=child.stride, padding=child.padding, dilation=child.dilation, groups=child.groups, bias=True, padding_mode=child.padding_mode, a_bits=a_bits, w_bits=w_bits, q_type=q_type, q_level=q_level, device=device, weight_observer=weight_observer)
-            quant_conv.weight.data = child.weight
-            quant_conv.bias.data = child.bias
-            module._modules[name] = quant_conv
+            if bn_fuse:
+                conv_name_temp = name
+                conv_child_temp = child
+            else:
+                if child.bias is not None:
+                    quant_conv = QuantConv2d(child.in_channels, child.out_channels,
+                                             child.kernel_size, stride=child.stride, padding=child.padding, dilation=child.dilation, groups=child.groups, bias=True, padding_mode=child.padding_mode, a_bits=a_bits, w_bits=w_bits, q_type=q_type, q_level=q_level, device=device, weight_observer=weight_observer)
+                    quant_conv.bias.data = child.bias
+                else:
+                    quant_conv = QuantConv2d(child.in_channels, child.out_channels,
+                                             child.kernel_size, stride=child.stride, padding=child.padding, dilation=child.dilation, groups=child.groups, bias=False, padding_mode=child.padding_mode, a_bits=a_bits, w_bits=w_bits, q_type=q_type, q_level=q_level, device=device, weight_observer=weight_observer)
+                quant_conv.weight.data = child.weight
+                module._modules[name] = quant_conv
+        elif isinstance(child, nn.BatchNorm2d):
+            if bn_fuse:
+                if conv_child_temp.bias is not None:
+                    quant_bn_fuse_conv = QuantBNFuseConv2d(conv_child_temp.in_channels, conv_child_temp.out_channels,
+                                                           conv_child_temp.kernel_size, stride=conv_child_temp.stride, padding=conv_child_temp.padding, dilation=conv_child_temp.dilation, groups=conv_child_temp.groups, bias=True, padding_mode=conv_child_temp.padding_mode, eps=child.eps, momentum=child.momentum, a_bits=a_bits, w_bits=w_bits, q_type=q_type, q_level=q_level, device=device, weight_observer=weight_observer)
+                    quant_bn_fuse_conv.bias.data = conv_child_temp.bias
+                else:
+                    quant_bn_fuse_conv = QuantBNFuseConv2d(conv_child_temp.in_channels, conv_child_temp.out_channels,
+                                                           conv_child_temp.kernel_size, stride=conv_child_temp.stride, padding=conv_child_temp.padding, dilation=conv_child_temp.dilation, groups=conv_child_temp.groups, bias=False, padding_mode=conv_child_temp.padding_mode, eps=child.eps, momentum=child.momentum, a_bits=a_bits, w_bits=w_bits, q_type=q_type, q_level=q_level, device=device, weight_observer=weight_observer)
+                quant_bn_fuse_conv.weight.data = conv_child_temp.weight
+                quant_bn_fuse_conv.gamma.data = child.weight
+                quant_bn_fuse_conv.beta.data = child.bias
+                quant_bn_fuse_conv.running_mean.copy_(child.running_mean)
+                quant_bn_fuse_conv.running_var.copy_(child.running_var)
+                module._modules[conv_name_temp] = quant_bn_fuse_conv
+                module._modules[name] = nn.Identity()
         elif isinstance(child, nn.ConvTranspose2d):
-            quant_conv_transpose = QuantConvTranspose2d(child.in_channels, child.out_channels,
-                                                        child.kernel_size, stride=child.stride, padding=child.padding, output_padding=child.output_padding, dilation=child.dilation, groups=child.groups, bias=True, padding_mode=child.padding_mode, a_bits=a_bits, w_bits=w_bits, q_type=q_type, device=device, weight_observer=weight_observer)
+            if child.bias is not None:
+                quant_conv_transpose = QuantConvTranspose2d(child.in_channels, child.out_channels,
+                                                            child.kernel_size, stride=child.stride, padding=child.padding, output_padding=child.output_padding, dilation=child.dilation, groups=child.groups, bias=True, padding_mode=child.padding_mode, a_bits=a_bits, w_bits=w_bits, q_type=q_type, device=device, weight_observer=weight_observer)
+                quant_conv_transpose.bias.data = child.bias
+            else:
+                quant_conv_transpose = QuantConvTranspose2d(child.in_channels, child.out_channels,
+                                                            child.kernel_size, stride=child.stride, padding=child.padding, output_padding=child.output_padding, dilation=child.dilation, groups=child.groups, bias=False, padding_mode=child.padding_mode, a_bits=a_bits, w_bits=w_bits, q_type=q_type, device=device, weight_observer=weight_observer)
             quant_conv_transpose.weight.data = child.weight
-            quant_conv_transpose.bias.data = child.bias
             module._modules[name] = quant_conv_transpose
         elif isinstance(child, nn.Linear):
-            quant_linear = QuantLinear(child.in_features, child.out_features, bias=True, a_bits=a_bits, w_bits=w_bits, q_type=q_type, q_level=q_level, device=device, weight_observer=weight_observer)
+            if child.bias is not None:
+                quant_linear = QuantLinear(child.in_features, child.out_features, bias=True, a_bits=a_bits, w_bits=w_bits, q_type=q_type, q_level=q_level, device=device, weight_observer=weight_observer)
+                quant_linear.bias.data = child.bias
+            else:
+                quant_linear = QuantLinear(child.in_features, child.out_features, bias=False, a_bits=a_bits, w_bits=w_bits, q_type=q_type, q_level=q_level, device=device, weight_observer=weight_observer)
             quant_linear.weight.data = child.weight
-            quant_linear.bias.data = child.bias
             module._modules[name] = quant_linear
         elif isinstance(child, nn.ReLU):
             quant_relu = QuantReLU(inplace=child.inplace, a_bits=a_bits, q_type=q_type, device=device)
@@ -518,12 +558,12 @@ def add_quant_op(module, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu', 
             quant_adaptive_avg_pool = QuantAdaptiveAvgPool2d(output_size=child.output_size, a_bits=a_bits, q_type=q_type, device=device)
             module._modules[name] = quant_adaptive_avg_pool
         else:
-            add_quant_op(child, a_bits=a_bits, w_bits=w_bits, q_type=q_type, q_level=q_level, device=device, weight_observer=weight_observer)
+            add_quant_op(child, a_bits=a_bits, w_bits=w_bits, q_type=q_type, q_level=q_level, device=device, weight_observer=weight_observer, bn_fuse=bn_fuse)
 
-def prepare(model, inplace=False, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu', weight_observer=0):
+def prepare(model, inplace=False, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu', weight_observer=0, bn_fuse=0):
     if not inplace:
         model = copy.deepcopy(model)
-    add_quant_op(model, a_bits=a_bits, w_bits=w_bits, q_type=q_type, q_level=q_level, device=device, weight_observer=weight_observer)
+    add_quant_op(model, a_bits=a_bits, w_bits=w_bits, q_type=q_type, q_level=q_level, device=device, weight_observer=weight_observer, bn_fuse=bn_fuse)
     return model
 
 '''

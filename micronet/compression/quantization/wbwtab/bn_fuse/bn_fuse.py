@@ -12,14 +12,6 @@ import quantize
 # ******************** 是否保存模型完整参数 ********************
 #torch.set_printoptions(precision=8, edgeitems=sys.maxsize, linewidth=200, sci_mode=False)
 
-# 原BN替代层
-class Identity(nn.Module):
-    def __init__(self):
-        super(Identity, self).__init__()
-
-    def forward(self, x):
-        return x
-
 # BN融合
 def bn_fuse(conv, bn):
     # 可以进行“针对特征(A)二值的BN融合”的BN层位置
@@ -66,18 +58,14 @@ def bn_fuse(conv, bn):
 
 # 模型BN融合
 def model_bn_fuse(model):
-    children = list(model.named_children())
-    name_temp = None
-    child_temp = None
-    for name, child in children:
-        if isinstance(child, nn.BatchNorm2d):
-            bn_fused_conv = bn_fuse(child_temp, child) # BN融合
-            model._modules[name_temp] = bn_fused_conv
-            model._modules[name] = Identity()
-            child_temp = None
-        elif isinstance(child, nn.Conv2d):
-            name_temp = name
-            child_temp = child
+    for name, child in model.named_children():
+        if isinstance(child, nn.Conv2d):
+            conv_name_temp = name
+            conv_child_temp = child
+        elif isinstance(child, nn.BatchNorm2d):
+            bn_fused_conv = bn_fuse(conv_child_temp, child) # BN融合
+            model._modules[conv_name_temp] = bn_fused_conv
+            model._modules[name] = nn.Identity()
         else:
             model_bn_fuse(child)
     return model
@@ -129,7 +117,9 @@ if __name__=='__main__':
     bn_counter = 0
     model_1.load_state_dict(torch.load('models_save/quant_model_para.pth'))
     torch.save(model_1, 'models_save/quant_model.pth')                    # 保存量化模型(结构+参数)
+    print('***quant_model***\n', model_1)
     quant_bn_fused_model = model_bn_fuse(model_1) #  模型BN融合
+    print('\n***quant_bn_fused_model***\n', model_1)
     torch.save(quant_bn_fused_model, 'models_save/quant_bn_fused_model.pth')                   # 保存量化融合模型(结构+参数)
     torch.save(quant_bn_fused_model.state_dict(), 'models_save/quant_bn_fused_model_para.pth') # 保存量化融合模型参数
     model_array = np.array(quant_bn_fused_model)
@@ -137,6 +127,7 @@ if __name__=='__main__':
     np.savetxt('models_save/quant_bn_fused_model.txt', [model_array], fmt = '%s', delimiter=',')
     np.savetxt('models_save/quant_bn_fused_model_para.txt', [model_para_array], fmt = '%s', delimiter=',')
     print("************* bn_fuse - 完成 **************")
+
 
     # *********************** 转换预测试(dataset测试在bn_fused_model_test.py中进行) *************************
     quant_model = nin_gc_inference.Net()
