@@ -29,9 +29,6 @@ parser.add_argument('--model', default='models_save/nin_preprune.pth', type=str,
 # 剪枝后保存的model
 parser.add_argument('--save', default='models_save/nin_prune.pth', type=str, metavar='PATH',
         help='path to save prune model (default: none)')
-# 后续量化类型选择(三/二值、高位)
-parser.add_argument('--quant_type', type=int, default=0,
-        help='quant_type:0-tnn_bin_model, 1-quant_model')
 args = parser.parse_args()
 base_number = args.normal_regular
 layers = args.layers
@@ -41,7 +38,7 @@ if base_number <= 0:
     print('\r\n!base_number is error!\r\n')
     base_number = 1
 
-model = nin.Net(quant_type=args.quant_type)
+model = nin.Net()
 if args.model:
     if os.path.isfile(args.model):
         print("=> loading checkpoint '{}'".format(args.model))
@@ -150,7 +147,7 @@ if not args.cpu:
 test()
 
 #********************************剪枝*********************************
-newmodel = nin.Net(cfg, quant_type=args.quant_type)
+newmodel = nin.Net(cfg)
 if not args.cpu:
     newmodel.cuda()
 layer_id_in_cfg = 0

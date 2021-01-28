@@ -20,14 +20,11 @@ parser.add_argument('--layers', type=int, default=9,
         help='layers (default: 9)')
 parser.add_argument('--model', default='models_save/nin_gc_preprune.pth', type=str, metavar='PATH',
         help='path to raw trained model (default: none)')
-# 后续量化类型选择(三/二值、高位)
-parser.add_argument('--quant_type', type=int, default=0,
-        help='quant_type:0-tnn_bin_model, 1-quant_model')
 args = parser.parse_args()
 layers = args.layers
 print(args)
 
-model = nin_gc.Net(quant_type=args.quant_type)
+model = nin_gc.Net()
 if args.model:
     if os.path.isfile(args.model):
         print("=> loading checkpoint '{}'".format(args.model))
@@ -161,7 +158,7 @@ if not args.cpu:
 test()
 
 #*****************************剪枝后model结构********************************
-newmodel = nin_gc.Net(cfg, quant_type=args.quant_type)
+newmodel = nin_gc.Net(cfg)
 print('新模型: ', newmodel)
 
 #*****************************剪枝前后model对比********************************

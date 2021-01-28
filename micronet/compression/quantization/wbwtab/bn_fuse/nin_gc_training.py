@@ -1,8 +1,5 @@
-import sys
-sys.path.append("..")
 import torch.nn as nn
 
-# 通道混合
 def channel_shuffle(x, groups):
     """shuffle channels of a 4-D Tensor"""
     batch_size, channels, height, width = x.size()
@@ -16,9 +13,7 @@ def channel_shuffle(x, groups):
     x = x.view(batch_size, channels, height, width)
     return x
 
-# ********************* 量化(三/二值)模块 ************************
 class ConvBNReLU(nn.Module):
-    # 参数：groups-卷积分组数、channel_shuffle-通道混合标志、shuffle_groups-通道混合数（本层需与上一层分组数保持一致)、last_relu｜last_bin-尾层卷积输入是否二值(二值:last_relu=0,last_bin=1)
     def __init__(self,
                  in_channels,
                  out_channels,
@@ -29,18 +24,19 @@ class ConvBNReLU(nn.Module):
                  groups=1,
                  bias=True,
                  padding_mode='zeros',
+                 eps=1e-5,
                  momentum=0.1,
                  channel_shuffle=0,
                  shuffle_groups=1):
         super(ConvBNReLU, self).__init__()
         self.channel_shuffle_flag = channel_shuffle
         self.shuffle_groups = shuffle_groups
-        
+
         self.conv = nn.Conv2d(in_channels, out_channels,
                               kernel_size, stride=stride, padding=padding, dilation=dilation, groups=groups, bias=bias, padding_mode=padding_mode)
-        self.bn = nn.BatchNorm2d(out_channels, momentum=momentum)
+        self.bn = nn.BatchNorm2d(out_channels, eps=eps, momentum=momentum)
         self.relu = nn.ReLU(inplace=True)
-    
+
     def forward(self, x):
         if self.channel_shuffle_flag:
             x = channel_shuffle(x, groups=self.shuffle_groups)
@@ -52,7 +48,6 @@ class ConvBNReLU(nn.Module):
 class Net(nn.Module):
     def __init__(self, cfg = None):
         super(Net, self).__init__()
-        # 模型结构与搭建
         if cfg is None:
             cfg = [256, 256, 256, 512, 512, 512, 1024, 1024]
         self.model = nn.Sequential(
@@ -64,14 +59,14 @@ class Net(nn.Module):
             ConvBNReLU(cfg[2], cfg[3], kernel_size=3, stride=1, padding=1, groups=16, channel_shuffle=1, shuffle_groups=2),
             ConvBNReLU(cfg[3], cfg[4], kernel_size=1, stride=1, padding=0, groups=4, channel_shuffle=1, shuffle_groups=16),
             ConvBNReLU(cfg[4], cfg[5], kernel_size=1, stride=1, padding=0, groups=4, channel_shuffle=1, shuffle_groups=4),
-            nn.MaxPool2d(kernel_size=2, stride=2, padding=0),  
-            
+            nn.MaxPool2d(kernel_size=2, stride=2, padding=0),
+
             ConvBNReLU(cfg[5], cfg[6], kernel_size=3, stride=1, padding=1, groups=32, channel_shuffle=1, shuffle_groups=4),
             ConvBNReLU(cfg[6], cfg[7], kernel_size=1, stride=1, padding=0, groups=8, channel_shuffle=1, shuffle_groups=32),
-            ConvBNReLU(cfg[7],  10, kernel_size=1, stride=1, padding=0),
+            ConvBNReLU(cfg[7], 10, kernel_size=1, stride=1, padding=0),
             nn.AvgPool2d(kernel_size=8, stride=1, padding=0)
         )
-    # 模型运行
+
     def forward(self, x):
         x = self.model(x)
         x = x.view(x.size(0), -1)

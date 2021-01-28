@@ -1,5 +1,3 @@
-import sys
-sys.path.append("..")
 import torch.nn as nn
 
 def channel_shuffle(x, groups):
