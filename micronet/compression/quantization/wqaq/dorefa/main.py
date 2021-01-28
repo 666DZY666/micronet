@@ -3,6 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 import sys
+sys.path.append("../../../..")
 import math
 import os
 import argparse
@@ -14,8 +15,7 @@ import torchvision
 import torchvision.transforms as transforms
 from torch.autograd import Variable
 from torch.nn import init
-from models import nin_gc
-from models import nin
+from models import nin_gc, nin
 
 import quantize
 

@@ -193,7 +193,7 @@ python -c "import micronet; print(micronet.__version__)"
 
 *--refine,可加载预训练浮点模型参数,在其基础上做量化*
 
-##### W（FP32/三/二值）、A（FP32/二值）
+##### wbwtab
 
 --W --A, 权重W和特征A量化取值
 
@@ -225,7 +225,7 @@ python main.py --W 3 --A 2
 python main.py --W 3 --A 32
 ```
 
-##### W（FP32/16/8/4/2-bit）、A（FP32/16/8/4/2-bit）
+##### wqaq
 
 --w_bits --a_bits, 权重W和特征A量化位数
 
@@ -328,8 +328,6 @@ python main.py --q_type 1 --q_level 1 --bn_fuse 1 --gpu_id 0
 cd micronet/compression/pruning
 ```
 
-*可选: --quant_type 后续量化类型选择(0-三/二值, 1-高位), 默认为0*
-
 ##### 稀疏训练
 
 -sr 稀疏标志, --s 稀疏率(需根据dataset、model情况具体调整), --model_type 模型类型(0-nin, 1-nin_gc)
@@ -376,12 +374,12 @@ python gc_prune.py --percent 0.4 --model models_save/nin_gc_sparse.pth
 
 ##### 微调
 
---refine 剪枝后的model路径（在其基础上做微调）
+--prune_refine 剪枝后的model路径（在其基础上做微调）
 
 - nin
 
 ```bash
-python main.py --model_type 0 --refine models_save/nin_prune.pth
+python main.py --model_type 0 --prune_refine models_save/nin_prune.pth
 ```
 
 - nin_gc
@@ -391,16 +389,14 @@ python main.py --model_type 0 --refine models_save/nin_prune.pth
 *如*
 
 ```bash
-python main.py --model_type 1 --gc_refine 154 162 144 304 320 320 608 584
+python main.py --model_type 1 --gc_prune_refine 154 162 144 304 320 320 608 584
 ```
 
 #### 剪枝 —> 量化（注意剪枝率和量化率平衡）
 
 *剪枝完成后，加载保存的模型参数在其基础上再做量化*
 
-##### 剪枝 —> 量化（16/8/4/2-bit）（剪枝率偏大、量化率偏小）
-
-*对应剪枝中 --quant_type 1*
+##### 剪枝 —> 量化（高位）（剪枝率偏大、量化率偏小）
 
 ```bash
 cd micronet/compression/quantization/wqaq/dorefa
@@ -411,76 +407,77 @@ cd micronet/compression/quantization/wqaq/dorefa
 ```bash
 cd micronet/compression/quantization/wqaq/iao
 ```
-
 *--gpu_id 0*
 
-###### W8A8
+###### w8a8
 
 - nin(正常卷积结构)
 
 ```bash
-python main.py --w_bits 8 --a_bits 8 --model_type 0 --refine ../../../pruning/models_save/nin_finetune.pth
+python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_refine ../../../pruning/models_save/nin_finetune.pth
 ```
 
 - nin_gc(含分组卷积结构)
 
 ```bash
-python main.py --w_bits 8 --a_bits 8 --model_type 1 --refine ../../../pruning/models_save/nin_gc_retrain.pth
+python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_refine ../../../pruning/models_save/nin_gc_retrain.pth
 ```
 
 ###### 其他可选量化配置类比
 
-##### 剪枝 —> 量化（三/二值）（剪枝率偏小、量化率偏大）
-
-*对应剪枝中 --quant_type 0*
+##### 剪枝 —> 量化（低位）（剪枝率偏小、量化率偏大）
 
 ```bash
 cd micronet/compression/quantization/wbwtab
 ```
 
-###### WbAb
+###### wbab
 
 - nin(正常卷积结构)
 
 ```bash
-python main.py --W 2 --A 2 --model_type 0 --refine ../../pruning/models_save/nin_finetune.pth
+python main.py --W 2 --A 2 --model_type 0 --prune_refine ../../pruning/models_save/nin_finetune.pth
 ```
 
 - nin_gc(含分组卷积结构)
 
 ```bash
-python main.py --W 2 --A 2 --model_type 1 --refine ../../pruning/models_save/nin_gc_retrain.pth
+python main.py --W 2 --A 2 --model_type 1 --prune_refine ../../pruning/models_save/nin_gc_retrain.pth
 ```
 
 ###### 其他取值情况类比
 
+
 #### BN融合
+
+##### wbwtab
 
 ```bash
 cd micronet/compression/quantization/wbwtab/bn_fuse
 ```
 
---W 权重W量化取值(据量化训练时W量化取值(FP32/三值/二值)情况对应选择)
+--W 权重W量化取值(据量化训练时W量化取值(三值/二值)情况对应选择)
 
-##### 融合并保存融合前后model
+###### 融合并保存融合前后model
 
-- Wb
+- wb
   
 ```bash
 python bn_fuse.py --W 2
 ```
 
-- Wt
+- wt
 
 ```bash
 python bn_fuse.py --W 3
 ```
 
-##### 融合前后model对比测试
+###### 融合前后model对比测试
 
 ```bash
 python bn_fused_model_test.py
 ```
+
 
 #### 设备选取
 

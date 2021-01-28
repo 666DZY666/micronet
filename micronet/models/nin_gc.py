@@ -1,8 +1,6 @@
 import sys
 sys.path.append("..")
-import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 def channel_shuffle(x, groups):
     """shuffle channels of a 4-D Tensor"""
@@ -28,16 +26,17 @@ class ConvBNReLU(nn.Module):
                  groups=1,
                  bias=True,
                  padding_mode='zeros',
+                 eps=1e-5,
                  momentum=0.1,
                  channel_shuffle=0,
                  shuffle_groups=1):
         super(ConvBNReLU, self).__init__()
         self.channel_shuffle_flag = channel_shuffle
-        self.shuffle_groups = shuffle_groups 
+        self.shuffle_groups = shuffle_groups
 
         self.conv = nn.Conv2d(in_channels, out_channels,
                               kernel_size, stride=stride, padding=padding, dilation=dilation, groups=groups, bias=bias, padding_mode=padding_mode)
-        self.bn = nn.BatchNorm2d(out_channels, momentum=momentum)
+        self.bn = nn.BatchNorm2d(out_channels, eps=eps, momentum=momentum)
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
@@ -74,3 +73,4 @@ class Net(nn.Module):
         x = self.model(x)
         x = x.view(x.size(0), -1)
         return x
+        

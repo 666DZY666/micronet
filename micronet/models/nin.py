@@ -2,9 +2,7 @@ import sys
 sys.path.append("..")
 import torch.nn as nn
 
-# *********************量化(三值、二值)卷积*********************
 class ConvBNReLU(nn.Module):
-    # 参数：last_relu-尾层卷积输入激活
     def __init__(self,
                  in_channels,
                  out_channels,
@@ -15,11 +13,13 @@ class ConvBNReLU(nn.Module):
                  groups=1,
                  bias=True,
                  padding_mode='zeros',
+                 eps=1e-5,
                  momentum=0.1):
         super(ConvBNReLU, self).__init__()
+
         self.conv = nn.Conv2d(in_channels, out_channels,
                               kernel_size, stride=stride, padding=padding, dilation=dilation, groups=groups, bias=bias, padding_mode=padding_mode)
-        self.bn = nn.BatchNorm2d(out_channels, momentum=momentum)
+        self.bn = nn.BatchNorm2d(out_channels, eps=eps, momentum=momentum)
         self.relu = nn.ReLU(inplace=True)
 
     def forward(self, x):
@@ -29,9 +29,8 @@ class ConvBNReLU(nn.Module):
         return x
 
 class Net(nn.Module):
-    def __init__(self, cfg=None):
+    def __init__(self, cfg = None):
         super(Net, self).__init__()
-        # 模型结构与搭建
         if cfg is None:
             cfg = [192, 160, 96, 192, 192, 192, 192, 192]
         self.model = nn.Sequential(
@@ -47,7 +46,7 @@ class Net(nn.Module):
 
             ConvBNReLU(cfg[5], cfg[6], kernel_size=3, stride=1, padding=1),
             ConvBNReLU(cfg[6], cfg[7], kernel_size=1, stride=1, padding=0),
-            ConvBNReLU(cfg[7],  10, kernel_size=1, stride=1, padding=0),
+            ConvBNReLU(cfg[7], 10, kernel_size=1, stride=1, padding=0),
             nn.AvgPool2d(kernel_size=8, stride=1, padding=0)
         )
 

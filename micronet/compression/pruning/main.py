@@ -3,18 +3,19 @@ from __future__ import division
 from __future__ import print_function
 
 import sys
+sys.path.append("../..")
 import math
+import os
 import argparse
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.autograd import Variable
 import torchvision
 import torchvision.transforms as transforms
-from models import nin
-from models import nin_gc
-import os
+from torch.autograd import Variable
+from torch.nn import init
+from models import nin_gc, nin
 
 def setup_seed(seed):
     torch.manual_seed(seed)                    
@@ -37,14 +38,14 @@ def save_state(model, best_acc):
     if args.model_type == 0:
         if args.sr:
             torch.save(state, 'models_save/nin_sparse.pth')
-        elif args.refine:
+        elif args.prune_refine:
             torch.save({'cfg': cfg, 'best_acc': best_acc, 'state_dict': state['state_dict']}, 'models_save/nin_finetune.pth')
         else:
             torch.save(state, 'models_save/nin.pth')
     else:
         if args.sr:
             torch.save(state, 'models_save/nin_gc_sparse.pth')
-        elif args.gc_refine:
+        elif args.gc_prune_refine:
             torch.save({'cfg': cfg, 'best_acc': best_acc, 'state_dict': state['state_dict']}, 'models_save/nin_gc_retrain.pth')
         else:
             torch.save(state, 'models_save/nin_gc.pth')
@@ -54,7 +55,7 @@ def updateBN():
     for m in model.modules():
         if isinstance(m, nn.BatchNorm2d):
             if hasattr(m.weight, 'data'):
-                m.weight.grad.data.add_(args.s*torch.sign(m.weight.data)) #L1正则
+                m.weight.grad.data.add_(args.s * torch.sign(m.weight.data)) # L1正则
 
 def train(epoch):
     model.train()
@@ -130,10 +131,18 @@ if __name__=='__main__':
             help='the intial learning rate')
     parser.add_argument('--wd', action='store', default=1e-7,
             help='nin_gc:0, nin:1e-5')
+    # prune_refine
+    parser.add_argument('--prune_refine', default='', type=str, metavar='PATH',
+            help='the path to the prune_refine model')
+    # refine
+    parser.add_argument('--refine', default='', type=str, metavar='PATH',
+            help='the path to the float_refine model')
+    # resume
     parser.add_argument('--resume', default='', type=str, metavar='PATH',
             help='the path to the resume model')
-    parser.add_argument('--refine', default='', type=str, metavar='PATH',
-            help='the path to the refine(prune) model')
+    # gc_prune_refine的cfg
+    parser.add_argument('--gc_prune_refine', nargs='+', type=int,
+            help='gc_prune_refine-cfg')
     parser.add_argument('--evaluate', action='store_true',
             help='evaluate the model')
     parser.add_argument('--train_batch_size', type=int, default=50)
@@ -147,15 +156,9 @@ if __name__=='__main__':
     # s(稀疏率)
     parser.add_argument('--s', type=float, default=0.0001,
             help='nin:0.0001, nin_gc:0.001')
-    # 后续量化类型选择(三/二值、高位)
-    parser.add_argument('--quant_type', type=int, default=0,
-            help='quant_type:0-tnn_bin_model, 1-quant_model')
     # 模型结构选择
     parser.add_argument('--model_type', type=int, default=1,
-            help='model type:0-nin,1-nin_gc')
-    # gc_refine的cfg
-    parser.add_argument('--gc_refine', nargs='+', type=int,
-            help='gc_refine-cfg')   
+            help='model type:0-nin,1-nin_gc')   
     args = parser.parse_args()
     print('==> Options:',args)
 
@@ -184,44 +187,58 @@ if __name__=='__main__':
     # define classes
     classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
 
-    if args.refine:
-        print('******Refine model******')
+    if args.prune_refine:
+        print('******Prune Refine model******')
         #checkpoint = torch.load('models_save/nin_prune.pth')
-        checkpoint = torch.load(args.refine)
+        checkpoint = torch.load(args.prune_refine)
         cfg = checkpoint['cfg']
-        model = nin.Net(cfg=checkpoint['cfg'], quant_type=args.quant_type)
+        model = nin.Net(cfg=checkpoint['cfg'])
         model.load_state_dict(checkpoint['state_dict'])
         best_acc = 0
+    elif args.refine:
+        print('******Float Refine model******')
+        #checkpoint = torch.load('models_save/nin.pth')
+        state_dict = torch.load(args.refine)
+        if args.model_type == 0:
+            model = nin.Net()
+        else:
+            model = nin_gc.Net()
+        model.load_state_dict(state_dict)
+        best_acc = 0
+    elif args.resume:
+        print('******Reume model******')
+        #checkpoint = torch.load('models_save/nin.pth')
+        #checkpoint = torch.load('models_save/nin_sparse.pth')
+        checkpoint = torch.load(args.resume)
+        if args.model_type == 0:
+            model = nin.Net()
+        else:
+            model = nin_gc.Net()
+        model.load_state_dict(checkpoint['state_dict'])
+        best_acc = checkpoint['best_acc']
     else:
         # nin_gc_retrain
-        if args.gc_refine:
-            print('******Refine model******')
-            cfg = args.gc_refine  
-            model = nin_gc.Net(cfg=cfg, quant_type=args.quant_type)
+        if args.gc_prune_refine:
+            print('******GCPrune Refine model******')
+            cfg = args.gc_prune_refine  
+            model = nin_gc.Net(cfg=cfg)
         else:
             print('******Initializing model******')
             if args.model_type == 0:
-                model = nin.Net(quant_type=args.quant_type)
+                model = nin.Net()
             else:
-                model = nin_gc.Net(quant_type=args.quant_type)
-
+                model = nin_gc.Net()
         best_acc = 0
         for m in model.modules():
             if isinstance(m, nn.Conv2d):
-                nn.init.xavier_uniform_(m.weight.data)
-                m.bias.data.zero_()
+                init.xavier_uniform_(m.weight)
+                if m.bias is not None:
+                    init.zeros_(m.bias)
             elif isinstance(m, nn.Linear):
-                m.weight.data.normal_(0, 0.01)
-                m.bias.data.zero_()
-    if args.resume:
-        print('******Reume model******')
-        #pretrained_model = torch.load('models_save/nin.pth')
-        #pretrained_model = torch.load('models_save/nin_sparse.pth')
-        #pretrained_model = torch.load('models_save/nin_finetune.pth')
-        pretrained_model = torch.load(args.resume)
-        best_acc = pretrained_model['best_acc']
-        model.load_state_dict(pretrained_model['state_dict'])
-
+                init.normal_(m.weight, 0, 0.01)
+                if m.bias is not None:
+                    init.zeros_(m.bias)
+    
     if not args.cpu:
         model.cuda()
         model = torch.nn.DataParallel(model, device_ids=range(torch.cuda.device_count()))
