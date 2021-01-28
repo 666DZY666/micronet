@@ -46,10 +46,6 @@ micronet
 │   │   ├── __init__.py
 │   │   ├── gc_prune.py
 │   │   ├── main.py
-│   │   ├── models
-│   │   │   ├── __init__.py
-│   │   │   ├── nin.py
-│   │   │   └── nin_gc.py
 │   │   ├── models_save
 │   │   │   └── models_save.txt
 │   │   └── normal_regular_prune.py
@@ -66,11 +62,6 @@ micronet
 │       │   │   ├── nin_gc_inference.py
 │       │   │   └── nin_gc_training.py
 │       │   ├── main.py
-│       │   ├── models
-│       │   │   ├── __init__.py
-│       │   │   ├── nin.py
-│       │   │   ├── nin_bn_conv.py
-│       │   │   └── nin_gc.py
 │       │   ├── models_save
 │       │   │   └── models_save.txt
 │       │   └── quantize.py
@@ -79,20 +70,12 @@ micronet
 │           ├── dorefa
 │           │   ├── __init__.py
 │           │   ├── main.py
-│           │   ├── models
-│           │   │   ├── __init__.py
-│           │   │   ├── nin.py
-│           │   │   └── nin_gc.py
 │           │   ├── models_save
 │           │   │   └── models_save.txt
 │           │   └── quantize.py
 │           └── iao
 │               ├── __init__.py
 │               ├── main.py
-│               ├── models
-│               │   ├── __init__.py
-│               │   ├── nin.py
-│               │   └── nin_gc.py
 │               ├── models_save
 │               │   └── models_save.txt
 │               └── quantize.py
@@ -113,6 +96,10 @@ micronet
 │       │   └── calibration_seg.cache
 │       ├── test_trt.py
 │       └── util_trt.py
+├── models
+│   ├── __init__.py
+│   ├── nin.py
+│   └── nin_gc.py
 └── readme_imgs
     ├── code_structure.jpg
     └── micronet.xmind
@@ -149,6 +136,7 @@ micronet
 - **1.12**, add "pip install"
 - **1.22**, add auto_insert_quant_op(this still needs to be improved)
 - **1.27**, improve auto_insert_quant_op(Now you can easily use quantization, as "quant_test_auto.py")
+- 1.28, 1、fix prune-quantization pipeline and code; 2、improve code structure
 
 
 ## 环境要求
