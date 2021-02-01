@@ -438,6 +438,8 @@ python main.py --W 2 --A 2 --model_type 1 --prune_refine ../../pruning/models_sa
 
 #### BN融合
 
+*--prune_quant, 剪枝_量化模型*
+
 ##### wbwtab
 
 ```bash
@@ -454,10 +456,22 @@ cd micronet/compression/quantization/wbwtab/bn_fuse
 python bn_fuse.py --W 2
 ```
 
+*剪枝_量化模型*
+
+```bash
+python bn_fuse.py --W 2 --prune_quant
+```
+
 - wt
 
 ```bash
 python bn_fuse.py --W 3
+```
+
+*剪枝_量化模型*
+
+```bash
+python bn_fuse.py --W 3 --prune_quant
 ```
 
 ###### 融合前后model对比测试
