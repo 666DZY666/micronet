@@ -5,7 +5,7 @@ import argparse
 import torch
 import torch.nn as nn
 import nin_gc_inference
-import nin_gc_training
+import nin_gc_train
 
 import quantize
 
@@ -79,19 +79,28 @@ if __name__=='__main__':
     # W —— 三值/二值(据训练时W量化(三/二值)情况而定)
     parser.add_argument('--W', type=int, default=2,
             help='Wb:2, Wt:3')
+    # prune_quant
+    parser.add_argument('--prune_quant', action='store_true',
+            help='this is prune_quant model')
     args = parser.parse_args()
     print('==> Options:',args)
 
     weight_quantizer = quantize.WeightQuantizer(W=args.W)  # 实例化W量化器
 
     # ********************** 模型加载 ************************
-    model_0 = nin_gc_training.Net()
-    quantize.prepare(model_0, inplace=True)
-    model_1 = nin_gc_inference.Net()
+    if args.prune_quant:
+        print('******Prune Quant model******')
+        model_0 = nin_gc_train.Net(cfg=torch.load('../models_save/nin_gc.pth')['cfg'])
+        model_1 = nin_gc_inference.Net(cfg=torch.load('../models_save/nin_gc.pth')['cfg'])
+    else:
+        model_0 = nin_gc_train.Net()
+        model_1 = nin_gc_inference.Net()
     if not args.cpu:
         model_0.load_state_dict(torch.load('../models_save/nin_gc.pth')['state_dict'])
     else:
         model_0.load_state_dict(torch.load('../models_save/nin_gc.pth', map_location='cpu')['state_dict'])
+    quantize.prepare(model_0, inplace=True)
+    
     # ********************** W全精度表示 ************************
     torch.save(model_0, 'models_save/model.pth')
     torch.save(model_0.state_dict(), 'models_save/model_para.pth')
@@ -99,6 +108,7 @@ if __name__=='__main__':
     model_para_array = np.array(model_0.state_dict())
     np.savetxt('models_save/model.txt', [model_array], fmt = '%s', delimiter=',')
     np.savetxt('models_save/model_para.txt', [model_para_array], fmt = '%s', delimiter=',')
+    
     # ********************** W量化表示(据训练时W量化(三/二值)情况而定) *************************
     bn_fuse_num = 0
     for m in model_0.modules():
@@ -128,20 +138,18 @@ if __name__=='__main__':
     np.savetxt('models_save/quant_bn_fused_model_para.txt', [model_para_array], fmt = '%s', delimiter=',')
     print("************* bn_fuse - 完成 **************")
 
-
-    # *********************** 转换预测试(dataset测试在bn_fused_model_test.py中进行) *************************
-    quant_model = nin_gc_inference.Net()
-    quant_model.load_state_dict(torch.load('models_save/quant_model_para.pth'))    # 加载量化模型
+    # *********************** 量化融合预测试(dataset测试在bn_fused_model_test.py中进行) *************************
+    quant_model = torch.load('models_save/quant_model.pth')  # 加载量化模型
     quant_model.eval()
     quant_bn_fused_model.eval()
     softmax = nn.Softmax(dim=1)
     f = 0
     epochs = 100
-    print("\r\n************* 转换预测试 **************")
+    print("\r\n************* 量化融合预测试 **************")
     for i in range(0, epochs):
         p = torch.rand([1, 3, 32, 32])
-        out = softmax(quant_model(p))                       # 量化模型测试
-        out_bn_fused = softmax(quant_bn_fused_model(p)) # 量化融合模型测试
+        out = softmax(quant_model(p))                        # 量化模型测试
+        out_bn_fused = softmax(quant_bn_fused_model(p))      # 量化融合模型测试
         #print(out_bn_fused)
         if(out.argmax() == out_bn_fused.argmax()):
             f += 1

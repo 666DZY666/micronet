@@ -40,9 +40,15 @@ def save_state(model, best_acc):
             state['state_dict'][key.replace('module.', '')] = \
                     state['state_dict'].pop(key)
     if args.model_type == 0:
-        torch.save(state, 'models_save/nin.pth')
+        if args.prune_refine:
+            torch.save({'cfg': cfg, 'best_acc': best_acc, 'state_dict': state['state_dict']}, 'models_save/nin.pth')
+        else:
+            torch.save(state, 'models_save/nin.pth')
     else:
-        torch.save(state, 'models_save/nin_gc.pth')
+        if args.prune_refine:
+            torch.save({'cfg': cfg, 'best_acc': best_acc, 'state_dict': state['state_dict']}, 'models_save/nin_gc.pth')
+        else:
+            torch.save(state, 'models_save/nin_gc.pth')
 
 # 训练lr调整
 def adjust_learning_rate(optimizer, epoch):
@@ -194,6 +200,7 @@ if __name__=='__main__':
         print('******Prune Refine model******')
         #checkpoint = torch.load('../prune/models_save/nin_refine.pth')
         checkpoint = torch.load(args.prune_refine)
+        cfg = checkpoint['cfg']
         if args.model_type == 0:
             model = nin.Net(cfg=checkpoint['cfg'])
         else:
