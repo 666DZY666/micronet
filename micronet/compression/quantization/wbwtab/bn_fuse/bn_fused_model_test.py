@@ -3,23 +3,27 @@ from __future__ import division
 from __future__ import print_function
 
 import sys
+sys.path.append("..")
+sys.path.append("../../../..")
 import os
 import math
-import torch
-import torch.nn as nn
-from torch.autograd import Variable
-import torchvision
-import torchvision.transforms as transforms
+import time
 import argparse
 import numpy as np
-import time
+import torch
+import torch.nn as nn
+import torchvision
+import torchvision.transforms as transforms
+from torch.autograd import Variable
 
-# 量化模型测试
-def test_quant_model():
-    quant_model.eval()
-    test_loss = 0
-    average_test_loss = 0
-    correct = 0
+import quantize
+
+# quant_model_train test
+def test_quant_model_train():
+    quant_model_train.eval()
+    quant_test_loss = 0
+    average_quant_test_loss = 0
+    quant_correct = 0
   
     start_time = time.time()
     for data, target in testloader:
@@ -27,28 +31,28 @@ def test_quant_model():
             data, target = data.cuda(), target.cuda()
         data, target = Variable(data), Variable(target)
                                     
-        output = quant_model(data)
+        quant_output = quant_model_train(data)
 
-        test_loss += criterion(output, target).data.item()
-        pred = output.data.max(1, keepdim=True)[1]
-        correct += pred.eq(target.data.view_as(pred)).cpu().sum()
+        quant_test_loss += criterion(quant_output, target).data.item()
+        quant_pred = quant_output.data.max(1, keepdim=True)[1]
+        quant_correct += quant_pred.eq(target.data.view_as(quant_pred)).cpu().sum()
     end_time = time.time()
     inference_time = end_time - start_time
     FPS = len(testloader.dataset) / inference_time
 
-    acc = 100. * float(correct) / len(testloader.dataset)
-    average_test_loss = test_loss / (len(testloader.dataset) / args.eval_batch_size)
+    quant_acc = 100. * float(quant_correct) / len(testloader.dataset)
+    average_quant_test_loss = quant_test_loss / (len(testloader.dataset) / args.eval_batch_size)
 
-    print('\nquant_model: Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%), inference_time:{:.4f}ms, FPS:{:.4f}'.format(
-        average_test_loss, correct, len(testloader.dataset), acc, inference_time * 1000, FPS))
+    print('\nquant_model_train: Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%), inference_time:{:.4f}ms, FPS:{:.4f}'.format(
+        average_quant_test_loss, quant_correct, len(testloader.dataset), quant_acc, inference_time * 1000, FPS))
     return
 
-# 量化BN融合模型测试
-def test_quant_bn_fused_model():
-    quant_bn_fused_model.eval()
-    test_loss_bn_fused = 0
-    average_test_loss_bn_fused = 0
-    correct_bn_fused = 0
+# quant_bn_fused_model_inference test
+def test_quant_bn_fused_model_inference():
+    quant_bn_fused_model_inference.eval()
+    quant_bn_fused_test_loss = 0
+    average_quant_bn_fused_test_loss = 0
+    quant_bn_fused_correct = 0
 
     start_time = time.time()
     for data, target in testloader:
@@ -56,20 +60,20 @@ def test_quant_bn_fused_model():
             data, target = data.cuda(), target.cuda()
         data, target = Variable(data), Variable(target)
                                     
-        output_bn_fused = quant_bn_fused_model(data)
+        quant_bn_fused_output = quant_bn_fused_model_inference(data)
 
-        test_loss_bn_fused += criterion(output_bn_fused, target).data.item()
-        pred_bn_fused = output_bn_fused.data.max(1, keepdim=True)[1]
-        correct_bn_fused += pred_bn_fused.eq(target.data.view_as(pred_bn_fused)).cpu().sum()
+        quant_bn_fused_test_loss += criterion(quant_bn_fused_output, target).data.item()
+        quant_bn_fused_pred = quant_bn_fused_output.data.max(1, keepdim=True)[1]
+        quant_bn_fused_correct += quant_bn_fused_pred.eq(target.data.view_as(quant_bn_fused_pred)).cpu().sum()
     end_time = time.time()
     inference_time = end_time - start_time
     FPS = len(testloader.dataset) / inference_time
 
-    acc_bn_fused = 100. * float(correct_bn_fused) / len(testloader.dataset)
-    average_test_loss_bn_fused = test_loss_bn_fused / (len(testloader.dataset) / args.eval_batch_size)
+    quant_bn_fused_acc = 100. * float(quant_bn_fused_correct) / len(testloader.dataset)
+    average_quant_bn_fused_test_loss = quant_bn_fused_test_loss / (len(testloader.dataset) / args.eval_batch_size)
 
-    print('quant_bn_fused_model: Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%), inference_time:{:.4f}ms, FPS:{:.4f}'.format(
-        average_test_loss_bn_fused, correct_bn_fused, len(testloader.dataset), acc_bn_fused, inference_time * 1000, FPS))
+    print('quant_bn_fused_model_inference: Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%), inference_time:{:.4f}ms, FPS:{:.4f}'.format(
+        average_quant_bn_fused_test_loss, quant_bn_fused_correct, len(testloader.dataset), quant_bn_fused_acc, inference_time * 1000, FPS))
     return
 
 if __name__=='__main__':
@@ -84,6 +88,9 @@ if __name__=='__main__':
     parser.add_argument('--num_workers', type=int, default=2)
     parser.add_argument('--epochs', type=int, default=300, metavar='N',
             help='number of epochs to train (default: 160)')
+    # W —— 三值/二值(据训练时W量化(三/二值)情况而定)
+    parser.add_argument('--W', type=int, default=2,
+            help='Wb:2, Wt:3')
     args = parser.parse_args()
     print('==> Options:',args)
 
@@ -107,20 +114,28 @@ if __name__=='__main__':
     # define classes
     classes = ('plane', 'car', 'bird', 'cat', 'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
     
-    quant_model = torch.load('models_save/quant_model.pth')                   # 加载量化模型
-    quant_bn_fused_model = torch.load('models_save/quant_bn_fused_model.pth') # 加载量化BN融合模型
-    quant_model.eval()
-    quant_bn_fused_model.eval()
+    # quant_model_train
+    ori_model = torch.load('models_save/model.pth')                
+    quant_model_train = quantize.prepare(ori_model, inplace=False, W=args.W, A=2)
+
+    # quant_bn_fused_model_inference
+    bn_fused_model = torch.load('models_save/bn_fused_model.pth')
+    quant_bn_fused_model_inference = quantize.prepare(bn_fused_model, inplace=False, W=32, A=2)
+    weight_quantizer = quantize.WeightQuantizer(W=args.W)
+    for m in quant_bn_fused_model_inference.modules():
+        if isinstance(m, quantize.QuantConv2d):
+            m.weight.data = weight_quantizer(m.weight)
+
+    # test
     if not args.cpu:
-        quant_model.cuda()
-        quant_bn_fused_model.cuda()
-        quant_model = torch.nn.DataParallel(quant_model, device_ids=range(torch.cuda.device_count()))
-        quant_bn_fused_model = torch.nn.DataParallel(quant_bn_fused_model, device_ids=range(torch.cuda.device_count()))
+        quant_model_train.cuda()
+        quant_bn_fused_model_inference.cuda()
+        quant_model_train = torch.nn.DataParallel(quant_model_train, device_ids=range(torch.cuda.device_count()))
+        quant_bn_fused_model_inference = torch.nn.DataParallel(quant_bn_fused_model_inference, device_ids=range(torch.cuda.device_count()))
 
     criterion = nn.CrossEntropyLoss()
-    
-    print("********* bn_fused_model_test start *********")
-    # 融合前后模型对比测试,输出acc和FPS,由结果可知:BN融合成功,实现无损加速
+
+    print("********* quant_bn_fused_model_inference test *********")
     for epoch in range(1, args.epochs):
-        test_quant_model()            # 量化模型测试
-        test_quant_bn_fused_model() # 量化BN融合模型测试
+        test_quant_model_train()            
+        test_quant_bn_fused_model_inference() 

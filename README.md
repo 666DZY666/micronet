@@ -137,6 +137,7 @@ micronet
 - **1.22**, add auto_insert_quant_op(this still needs to be improved)
 - **1.27**, improve auto_insert_quant_op(Now you can easily use quantization, as "quant_test_auto.py")
 - 1.28, 1、fix prune-quantization pipeline and code; 2、improve code structure
+- **2.1**, improve wbwtab_bn_fuse
 
 
 ## 环境要求
@@ -438,46 +439,39 @@ python main.py --W 2 --A 2 --model_type 1 --prune_refine ../../pruning/models_sa
 
 #### BN融合
 
-*--prune_quant, 剪枝_量化模型*
-
 ##### wbwtab
 
 ```bash
 cd micronet/compression/quantization/wbwtab/bn_fuse
 ```
 
---W 权重W量化取值(据量化训练时W量化取值(三值/二值)情况对应选择)
+###### 融合并保存融合前后model(model和bn_fused_model)
 
-###### 融合并保存融合前后model
-
-- wb
-  
+- quant_model
 ```bash
-python bn_fuse.py --W 2
+python bn_fuse.py 
 ```
 
-*剪枝_量化模型*
+- prune_quant_model
 
 ```bash
-python bn_fuse.py --W 2 --prune_quant
+python bn_fuse.py --prune_quant
+```
+
+###### 融合前后model对比测试(quant_model_train和quant_bn_fused_model_inference)
+
+--W 权重W量化取值(据量化训练时W量化取值(三值/二值)情况对应选择)
+
+- wb
+
+```bash
+python bn_fused_model_test.py --W 2
 ```
 
 - wt
 
 ```bash
-python bn_fuse.py --W 3
-```
-
-*剪枝_量化模型*
-
-```bash
-python bn_fuse.py --W 3 --prune_quant
-```
-
-###### 融合前后model对比测试
-
-```bash
-python bn_fused_model_test.py
+python bn_fused_model_test.py --W 3
 ```
 
 
