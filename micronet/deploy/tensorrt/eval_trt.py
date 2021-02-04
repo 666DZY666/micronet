@@ -7,6 +7,7 @@ import torch.nn as nn
 import util_trt
 from calibrator import SegBatchStream
 
+
 # trt eval function
 def evaluate_trt(segmentation_module_trt, loader, cfg, gpu, result_queue_trt):
     #pbar = tqdm(total=len(loader))
@@ -48,9 +49,10 @@ def evaluate_trt(segmentation_module_trt, loader, cfg, gpu, result_queue_trt):
                 (batch_data['img_ori'], seg_label, batch_data['info']),
                 pred,
                 os.path.join(cfg.DIR, 'result'),
-                scores.squeeze(0)[1,:,:].squeeze(0).cpu().numpy()
+                scores.squeeze(0)[1, :, :].squeeze(0).cpu().numpy()
             )
-        #pbar.update(1)
+        # pbar.update(1)
+
 
 def main(cfg, gpu):
     # Dataset and Loader
@@ -77,7 +79,7 @@ def main(cfg, gpu):
         segSize=None)
     net_resnet.load_state_dict(torch.load(cfg.MODEL.weights_seg, map_location=lambda storage, loc: storage), strict=True)
 
-    # torch2onnx 
+    # torch2onnx
     input_name = ['input']
     output_name = ['output']
     onnx_model_fixed = 'models_save/model_seg_fixed.onnx'
@@ -89,43 +91,57 @@ def main(cfg, gpu):
     dummy_input_dynamic = torch.rand(batch_size, *img_size_dynamic)
     dynamic_axes = {'input': {2: "height", 3: "width"}}
     print('\n*** torch to onnx begin ***')
-      # fixed_onnx
-    torch.onnx.export(net_resnet, dummy_input_fixed, onnx_model_fixed, verbose=True, 
-        input_names=input_name, output_names=output_name, opset_version=10)
-      # dynamic_onnx
-    torch.onnx.export(net_resnet, dummy_input_dynamic, onnx_model_dynamic, verbose=True, 
-        input_names=input_name, output_names=output_name, opset_version=10, dynamic_axes=dynamic_axes)
+    # fixed_onnx
+    torch.onnx.export(net_resnet, dummy_input_fixed, onnx_model_fixed,
+                      verbose=True, input_names=input_name,
+                      output_names=output_name, opset_version=10)
+    # dynamic_onnx
+    torch.onnx.export(net_resnet, dummy_input_dynamic, onnx_model_dynamic,
+                      verbose=True, input_names=input_name,
+                      output_names=output_name, opset_version=10,
+                      dynamic_axes=dynamic_axes)
     print('*** torch to onnx completed ***\n')
+
     # onnx2trt
     fp16_mode = False
-    int8_mode = True 
+    int8_mode = True
     transform = None
     print('*** onnx to tensorrt begin ***')
     max_calibration_size = 100    # 校准集数量
     calibration_batche_size = 16  # 校准batch_size
     max_calibration_batches = max_calibration_size / calibration_batche_size
-      # calibration
+    # calibration
     calibration_stream = SegBatchStream(dataset_val, transform, calibration_batche_size, img_size_fixed, max_batches=max_calibration_batches)
     engine_model_fixed = "models_save/model_seg_fixed.trt"
     engine_model_dynamic = "models_save/model_seg_dynamic.trt"
     calibration_table = 'models_save/calibration_seg.cache'
-      # fixed_engine,校准产生校准表
-    engine_fixed = util_trt.get_engine(batch_size, onnx_model_fixed, engine_model_fixed, fp16_mode=fp16_mode, 
-        int8_mode=int8_mode, calibration_stream=calibration_stream, calibration_table_path=calibration_table, save_engine=True, dynamic=False)
+    # fixed_engine,校准产生校准表
+    engine_fixed = util_trt.get_engine(batch_size, onnx_model_fixed,
+                                       engine_model_fixed,
+                                       fp16_mode=fp16_mode,
+                                       int8_mode=int8_mode,
+                                       calibration_stream=calibration_stream,
+                                       calibration_table_path=calibration_table,
+                                       save_engine=True, dynamic=False)
     assert engine_fixed, 'Broken engine_fixed'
     print('*** engine_fixed completed ***\n')
-      # dynamic_engine,加载fixed_engine生成的校准表,用于inference
-    engine_dynamic = util_trt.get_engine(batch_size, onnx_model_dynamic, engine_model_dynamic, fp16_mode=fp16_mode, 
-        int8_mode=int8_mode, calibration_stream=calibration_stream, calibration_table_path=calibration_table, save_engine=True, dynamic=True)
+    # dynamic_engine,加载fixed_engine生成的校准表,用于inference
+    engine_dynamic = util_trt.get_engine(batch_size, onnx_model_dynamic,
+                                         engine_model_dynamic,
+                                         fp16_mode=fp16_mode,
+                                         int8_mode=int8_mode,
+                                         calibration_stream=calibration_stream,
+                                         calibration_table_path=calibration_table,
+                                         save_engine=True, dynamic=True)
     assert engine_dynamic, 'Broken engine_dynamic'
     print('*** engine_dynamic completed ***\n')
     print('*** onnx to tensorrt completed ***\n')
-      # context and buffer
-    context = engine_dynamic.create_execution_context() 
-      # choose an optimization profile
+    # context and buffer
+    context = engine_dynamic.create_execution_context()
+    # choose an optimization profile
     context.active_optimization_profile = 0
     buffers = util_trt.allocate_buffers_v2(engine_dynamic, 1200, 1200)
-    
+
     # trt eval
     crit = nn.NLLLoss(ignore_index=-1)
     segmentation_module_trt = SegmentationModule_v2_trt(context, buffers, crit, use_softmax=True, binding_id=0)
@@ -139,7 +155,7 @@ def main(cfg, gpu):
     print('*** trt_model ***')
     print('Mean IoU: {:.4f}, Accuracy: {:.2f}%'
           .format(iou_trt.mean(), acc_meter_trt.average()*100))
-    
+
+
 if __name__ == '__main__':
     main(cfg, args.gpu)
-    

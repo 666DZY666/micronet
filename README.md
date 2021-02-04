@@ -58,10 +58,8 @@ micronet
 │       │   ├── bn_fuse
 │       │   │   ├── bn_fuse.py
 │       │   │   ├── bn_fused_model_test.py
-│       │   │   ├── models_save
-│       │   │   │   └── models_save.txt
-│       │   │   ├── nin_gc_inference.py
-│       │   │   └── nin_gc_training.py
+│       │   │   └── models_save
+│       │   │       └── models_save.txt
 │       │   ├── main.py
 │       │   ├── models_save
 │       │   │   └── models_save.txt
@@ -73,9 +71,19 @@ micronet
 │           │   ├── main.py
 │           │   ├── models_save
 │           │   │   └── models_save.txt
+│           │   ├── quant_model_test
+│           │   │   ├── models_save
+│           │   │   │   └── models_save.txt
+│           │   │   ├── quant_model_para.py
+│           │   │   └── quant_model_test.py
 │           │   └── quantize.py
 │           └── iao
 │               ├── __init__.py
+│               ├── bn_fuse
+│               │   ├── bn_fuse.py
+│               │   ├── bn_fused_model_test.py
+│               │   └── models_save
+│               │       └── models_save.txt
 │               ├── main.py
 │               ├── models_save
 │               │   └── models_save.txt

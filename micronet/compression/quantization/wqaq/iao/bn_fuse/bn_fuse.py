@@ -30,7 +30,7 @@ def bn_fuse(bn_conv):
     b_fused = b.clone()
     # ******************* bn融合 *******************
     w_fused = w * (gamma / std).reshape([bn_conv.out_channels, 1, 1, 1])
-    b_fused = beta + (b - mean) * (gamma / std) 
+    b_fused = beta + (b - mean) * (gamma / std)
     bn_fused_conv = quantize.QuantConv2d(bn_conv.in_channels,
                                          bn_conv.out_channels,
                                          bn_conv.kernel_size,
@@ -56,6 +56,7 @@ def bn_fuse(bn_conv):
     bn_fused_conv.weight_quantizer.eps = bn_conv.weight_quantizer.eps
     return bn_fused_conv
 
+
 def bn_fuse_module(module):
     for name, child in module.named_children():
         if isinstance(child, quantize.QuantBNFuseConv2d):
@@ -64,28 +65,30 @@ def bn_fuse_module(module):
         else:
             bn_fuse_module(child)
 
+
 def model_bn_fuse(model, inplace=False):
     if not inplace:
         model = copy.deepcopy(model)
     bn_fuse_module(model)
     return model
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--cpu', action='store_true',
-            help='set if only CPU is available')
+                        help='set if only CPU is available')
     parser.add_argument('--prune_quant', action='store_true',
-            help='this is prune_quant model')
+                        help='this is prune_quant model')
     parser.add_argument('--model_type', type=int, default=1,
-            help='model type:0-nin,1-nin_gc')
+                        help='model type:0-nin,1-nin_gc')
     parser.add_argument('--w_bits', type=int, default=8)
     parser.add_argument('--a_bits', type=int, default=8)
     parser.add_argument('--q_type', type=int, default=0,
-            help='quant_type:0-symmetric, 1-asymmetric')
+                        help='quant_type:0-symmetric, 1-asymmetric')
     parser.add_argument('--q_level', type=int, default=0,
-            help='quant_level:0-per_channel, 1-per_layer')
+                        help='quant_level:0-per_channel, 1-per_layer')
     args = parser.parse_args()
-    print('==> Options:',args)
+    print('==> Options:', args)
 
     if not args.cpu:
         device = 'cuda'
@@ -108,8 +111,14 @@ if __name__=='__main__':
             checkpoint = torch.load('../models_save/nin_gc_bn_fused.pth')
             quant_bn_fused_model_train = nin_gc.Net()
     quant_bn_fused_model_inference = copy.deepcopy(quant_bn_fused_model_train)
-    quantize.prepare(quant_bn_fused_model_train, inplace=True, a_bits=args.a_bits, w_bits=args.w_bits, q_type=args.q_type, q_level=args.q_level, device=device, bn_fuse=1)
-    quantize.prepare(quant_bn_fused_model_inference, inplace=True, a_bits=args.a_bits, w_bits=args.w_bits, q_type=args.q_type, q_level=args.q_level, device=device, bn_fuse=1, quant_inference=True)
+    quantize.prepare(quant_bn_fused_model_train, inplace=True,
+                     a_bits=args.a_bits, w_bits=args.w_bits,
+                     q_type=args.q_type, q_level=args.q_level,
+                     device=device, bn_fuse=1)
+    quantize.prepare(quant_bn_fused_model_inference, inplace=True,
+                     a_bits=args.a_bits, w_bits=args.w_bits,
+                     q_type=args.q_type, q_level=args.q_level,
+                     device=device, bn_fuse=1, quant_inference=True)
     quant_bn_fused_model_train.load_state_dict(checkpoint['state_dict'])
     quant_bn_fused_model_inference.load_state_dict(checkpoint['state_dict'])
 
@@ -118,18 +127,18 @@ if __name__=='__main__':
     torch.save(quant_bn_fused_model_train.state_dict(), 'models_save/quant_bn_fused_model_train_para.pth')
     model_array = np.array(quant_bn_fused_model_train)
     model_para_array = np.array(quant_bn_fused_model_train.state_dict())
-    np.savetxt('models_save/quant_bn_fused_model_train.txt', [model_array], fmt = '%s', delimiter=',')
-    np.savetxt('models_save/quant_bn_fused_model_train_para.txt', [model_para_array], fmt = '%s', delimiter=',')
-    
+    np.savetxt('models_save/quant_bn_fused_model_train.txt', [model_array], fmt='%s', delimiter=',')
+    np.savetxt('models_save/quant_bn_fused_model_train_para.txt', [model_para_array], fmt='%s', delimiter=',')
+
     # ********************* quant_bn_fused_model_inference **********************
-    model_bn_fuse(quant_bn_fused_model_inference, inplace=True) # bn融合
+    model_bn_fuse(quant_bn_fused_model_inference, inplace=True)  # bn融合
     print('***quant_bn_fused_model_train***\n', quant_bn_fused_model_train)
     print('\n***quant_bn_fused_model_inference***\n', quant_bn_fused_model_inference)
-    torch.save(quant_bn_fused_model_inference, 'models_save/quant_bn_fused_model_inference.pth')                   
-    torch.save(quant_bn_fused_model_inference.state_dict(), 'models_save/quant_bn_fused_model_inference_para.pth') 
+    torch.save(quant_bn_fused_model_inference, 'models_save/quant_bn_fused_model_inference.pth')
+    torch.save(quant_bn_fused_model_inference.state_dict(), 'models_save/quant_bn_fused_model_inference_para.pth')
     model_array = np.array(quant_bn_fused_model_inference)
     model_para_array = np.array(quant_bn_fused_model_inference.state_dict())
-    np.savetxt('models_save/quant_bn_fused_model_inference.txt', [model_array], fmt = '%s', delimiter=',')
-    np.savetxt('models_save/quant_bn_fused_model_inference_para.txt', [model_para_array], fmt = '%s', delimiter=',')
+    np.savetxt('models_save/quant_bn_fused_model_inference.txt', [model_array], fmt='%s', delimiter=',')
+    np.savetxt('models_save/quant_bn_fused_model_inference_para.txt', [model_para_array], fmt='%s', delimiter=',')
     print("************* bn_fuse 完成 **************")
     print("************* bn_fused_model 已保存 **************")

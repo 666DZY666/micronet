@@ -2,33 +2,34 @@ import sys
 sys.path.append("../..")
 import os
 import argparse
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
 from torchvision import datasets, transforms
 from models import nin
-import numpy as np
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data', action='store', default='../../data',
-        help='dataset path')
+                    help='dataset path')
 parser.add_argument('--cpu', action='store_true',
-        help='disables CUDA training')
+                    help='disables CUDA training')
 # percent(剪枝率)
 parser.add_argument('--percent', type=float, default=0.5,
-        help='nin:0.5')
+                    help='nin:0.5')
 # 正常|规整剪枝标志
 parser.add_argument('--normal_regular', type=int, default=1,
-        help='--normal_regular_flag (default: normal)')
+                    help='--normal_regular_flag (default: normal)')
 # model层数
 parser.add_argument('--layers', type=int, default=9,
-        help='layers (default: 9)')
+                    help='layers (default: 9)')
 # 稀疏训练后的model
 parser.add_argument('--model', default='models_save/nin_preprune.pth', type=str, metavar='PATH',
-        help='path to raw trained model (default: none)')
+                    help='path to raw trained model (default: none)')
 # 剪枝后保存的model
 parser.add_argument('--save', default='models_save/nin_prune.pth', type=str, metavar='PATH',
-        help='path to save prune model (default: none)')
+                    help='path to save prune model (default: none)')
 args = parser.parse_args()
 base_number = args.normal_regular
 layers = args.layers
@@ -49,10 +50,10 @@ print('旧模型: ', model)
 total = 0
 i = 0
 for m in model.modules():
-        if isinstance(m, nn.BatchNorm2d):
-            if i < layers - 1:
-                i += 1
-                total += m.weight.data.shape[0]
+    if isinstance(m, nn.BatchNorm2d):
+        if i < layers - 1:
+            i += 1
+            total += m.weight.data.shape[0]
 
 # 确定剪枝的全局阈值
 bn = torch.zeros(total)
@@ -71,7 +72,7 @@ if thre_index == total:
     thre_index = total - 1
 thre_0 = y[thre_index]
 
-#********************************预剪枝*********************************
+# ********************************预剪枝*********************************
 pruned = 0
 cfg_0 = []
 cfg = []
@@ -89,7 +90,7 @@ for k, m in enumerate(model.modules()):
             if remain_channels == 0:
                 print('\r\n!please turn down the prune_ratio!\r\n')
                 remain_channels = 1
-                mask[int(torch.argmax(weight_copy))]=1
+                mask[int(torch.argmax(weight_copy))] = 1
 
             # ******************规整剪枝******************
             v = 0
@@ -106,7 +107,7 @@ for k, m in enumerate(model.modules()):
                     if remain_channels > m.weight.data.size()[0]:
                         remain_channels = m.weight.data.size()[0]
                     remain_channels = torch.tensor(remain_channels)
-                        
+
                     y, j = torch.sort(weight_copy.abs())
                     thre_1 = y[-remain_channels]
                     mask = weight_copy.abs().ge(thre_1).float()
@@ -117,20 +118,20 @@ for k, m in enumerate(model.modules()):
             cfg.append(int(remain_channels))
             cfg_mask.append(mask.clone())
             print('layer_index: {:d} \t total_channel: {:d} \t remaining_channel: {:d} \t pruned_ratio: {:f}'.
-                format(k, mask.shape[0], int(torch.sum(mask)), (mask.shape[0] - torch.sum(mask)) / mask.shape[0]))
+                  format(k, mask.shape[0], int(torch.sum(mask)), (mask.shape[0] - torch.sum(mask)) / mask.shape[0]))
 pruned_ratio = float(pruned/total)
 print('\r\n!预剪枝完成!')
 print('total_pruned_ratio: ', pruned_ratio)
-#********************************预剪枝后model测试*********************************
+
+# ********************************预剪枝后model测试*********************************
 def test():
-    test_loader = torch.utils.data.DataLoader(
-        datasets.CIFAR10(root = args.data, train=False, transform=transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])),
-        batch_size = 64, shuffle=False, num_workers=1)
+    test_loader = torch.utils.data.DataLoader(datasets.CIFAR10(root=args.data, train=False, transform=transforms.Compose([
+                                              transforms.ToTensor(),
+                                              transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))])),
+                                              batch_size=64, shuffle=False, num_workers=1)
     model.eval()
     correct = 0
-    
+
     for data, target in test_loader:
         if not args.cpu:
             data, target = data.cuda(), target.cuda()
@@ -146,7 +147,7 @@ if not args.cpu:
     model.cuda()
 test()
 
-#********************************剪枝*********************************
+# ********************************剪枝*********************************
 newmodel = nin.Net(cfg)
 if not args.cpu:
     newmodel.cuda()
@@ -167,7 +168,7 @@ for [m0, m1] in zip(model.modules(), newmodel.modules()):
             m1.running_var = m0.running_var[idx1].clone()
             layer_id_in_cfg += 1
             start_mask = end_mask.clone()
-            if layer_id_in_cfg < len(cfg_mask):  
+            if layer_id_in_cfg < len(cfg_mask):
                 end_mask = cfg_mask[layer_id_in_cfg]
         else:
             m1.weight.data = m0.weight.data.clone()
@@ -196,17 +197,19 @@ for [m0, m1] in zip(model.modules(), newmodel.modules()):
         if idx0.size == 1:
             idx0 = np.resize(idx0, (1,))
         m1.weight.data = m0.weight.data[:, idx0].clone()
-#******************************剪枝后model测试*********************************
+
+# ******************************剪枝后model测试*********************************
 print('新模型: ', newmodel)
 print('**********剪枝后新模型测试*********')
 model = newmodel
 test()
-#******************************剪枝后model保存*********************************
+
+# ******************************剪枝后model保存*********************************
 print('**********剪枝后新模型保存*********')
 torch.save({'cfg': cfg, 'state_dict': newmodel.state_dict()}, args.save)
 print('**********保存成功*********\r\n')
 
-#*****************************剪枝前后model对比********************************
+# *****************************剪枝前后model对比********************************
 print('************旧模型结构************')
 print(cfg_0)
 print('************新模型结构************')

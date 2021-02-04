@@ -14,10 +14,11 @@ logger = logging.getLogger(__name__)
 ctypes.pythonapi.PyCapsule_GetPointer.restype = ctypes.c_char_p
 ctypes.pythonapi.PyCapsule_GetPointer.argtypes = [ctypes.py_object, ctypes.c_char_p]
 
+
 # calibrator
 class Calibrator(trt.IInt8EntropyCalibrator2):
     def __init__(self, input_layers, stream, cache_file=""):
-        trt.IInt8EntropyCalibrator2.__init__(self)       
+        trt.IInt8EntropyCalibrator2.__init__(self)
         self.input_layers = input_layers
         self.stream = stream
         self.d_input = cuda.mem_alloc(self.stream.calibration_data.nbytes)
@@ -29,13 +30,13 @@ class Calibrator(trt.IInt8EntropyCalibrator2):
 
     def get_batch(self, bindings, names):
         batch = self.stream.next_batch()
-        if not batch.size:   
+        if not batch.size:
             return None
 
         cuda.memcpy_htod(self.d_input, batch)
         for i in self.input_layers[0]:
             assert names[0] != i
-        
+
         bindings[0] = int(self.d_input)
         return bindings
 
@@ -59,25 +60,27 @@ class ImageBatchStream():
         self.batch_size = batch_size
         self.max_batches = max_batches
         self.dataset = dataset
-          
-        self.calibration_data = np.zeros((batch_size,) + img_size, dtype=np.float32) # This is a data holder for the calibration
+
+        # This is a data holder for the calibration
+        self.calibration_data = np.zeros((batch_size,) + img_size, dtype=np.float32)
         self.batch_count = 0
-        
+
     def reset(self):
         self.batch_count = 0
-      
+
     def next_batch(self):
         if self.batch_count < self.max_batches:
-            for i in range(self.batch_size): 
-                x = self.dataset[i + self.batch_size * self.batch_count]  
+            for i in range(self.batch_size):
+                x = self.dataset[i + self.batch_size * self.batch_count]
                 x = util_trt.to_numpy(x).astype(dtype=np.float32)
                 if self.transform:
-                    x = self.transform(x) 
+                    x = self.transform(x)
                 self.calibration_data[i] = x.data
             self.batch_count += 1
-            return np.ascontiguousarray(self.calibration_data, dtype=np.float32) 
+            return np.ascontiguousarray(self.calibration_data, dtype=np.float32)
         else:
             return np.array([])
+
 '''
   # ocr
 class OCRBatchStream():
@@ -128,7 +131,8 @@ class OCRBatchStream():
         else:
             return np.array([])
 '''
-  # segmentation
+
+# segmentation
 class SegBatchStream():
     def __init__(self, dataset, transform, batch_size, img_size, max_batches):
         self.transform = transform
@@ -136,13 +140,14 @@ class SegBatchStream():
         self.img_size = img_size
         self.max_batches = max_batches
         self.dataset = dataset
-          
-        self.calibration_data = np.zeros((self.batch_size, *self.img_size), dtype=np.float32) # This is a data holder for the calibration
+
+        # This is a data holder for the calibration
+        self.calibration_data = np.zeros((self.batch_size, *self.img_size), dtype=np.float32)
         self.batch_count = 0
-        
+
     def reset(self):
-      self.batch_count = 0
-      
+        self.batch_count = 0
+
     def next_batch(self):
         if self.batch_count < self.max_batches:
             for i in range(self.batch_size):
@@ -150,10 +155,9 @@ class SegBatchStream():
                 x = F.interpolate(x, size=(self.img_size[1], self.img_size[2]))
                 x = util_trt.to_numpy(x).astype(dtype=np.float32)
                 if self.transform:
-                    x = self.transform(x) 
+                    x = self.transform(x)
                 self.calibration_data[i] = x.data
             self.batch_count += 1
-            return np.ascontiguousarray(self.calibration_data, dtype=np.float32) 
+            return np.ascontiguousarray(self.calibration_data, dtype=np.float32)
         else:
             return np.array([])
-            
