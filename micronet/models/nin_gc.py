@@ -1,5 +1,6 @@
 import torch.nn as nn
 
+
 def channel_shuffle(x, groups):
     """shuffle channels of a 4-D Tensor"""
     batch_size, channels, height, width = x.size()
@@ -12,6 +13,7 @@ def channel_shuffle(x, groups):
     # reshape into orignal
     x = x.view(batch_size, channels, height, width)
     return x
+
 
 class ConvBNReLU(nn.Module):
     def __init__(self,
@@ -45,24 +47,32 @@ class ConvBNReLU(nn.Module):
         x = self.relu(x)
         return x
 
+
 class Net(nn.Module):
-    def __init__(self, cfg = None):
+    def __init__(self, cfg=None):
         super(Net, self).__init__()
         if cfg is None:
             cfg = [256, 256, 256, 512, 512, 512, 1024, 1024]
         self.model = nn.Sequential(
             ConvBNReLU(3, cfg[0], kernel_size=5, stride=1, padding=2),
-            ConvBNReLU(cfg[0], cfg[1], kernel_size=1, stride=1, padding=0, groups=2, channel_shuffle=0),
-            ConvBNReLU(cfg[1], cfg[2], kernel_size=1, stride=1, padding=0, groups=2, channel_shuffle=1, shuffle_groups=2),
+            ConvBNReLU(cfg[0], cfg[1], kernel_size=1, stride=1,
+                       padding=0, groups=2, channel_shuffle=0),
+            ConvBNReLU(cfg[1], cfg[2], kernel_size=1, stride=1,
+                       padding=0, groups=2, channel_shuffle=1, shuffle_groups=2),
             nn.MaxPool2d(kernel_size=2, stride=2, padding=0),
 
-            ConvBNReLU(cfg[2], cfg[3], kernel_size=3, stride=1, padding=1, groups=16, channel_shuffle=1, shuffle_groups=2),
-            ConvBNReLU(cfg[3], cfg[4], kernel_size=1, stride=1, padding=0, groups=4, channel_shuffle=1, shuffle_groups=16),
-            ConvBNReLU(cfg[4], cfg[5], kernel_size=1, stride=1, padding=0, groups=4, channel_shuffle=1, shuffle_groups=4),
+            ConvBNReLU(cfg[2], cfg[3], kernel_size=3, stride=1, padding=1,
+                       groups=16, channel_shuffle=1, shuffle_groups=2),
+            ConvBNReLU(cfg[3], cfg[4], kernel_size=1, stride=1, padding=0,
+                       groups=4, channel_shuffle=1, shuffle_groups=16),
+            ConvBNReLU(cfg[4], cfg[5], kernel_size=1, stride=1,
+                       padding=0, groups=4, channel_shuffle=1, shuffle_groups=4),
             nn.MaxPool2d(kernel_size=2, stride=2, padding=0),
 
-            ConvBNReLU(cfg[5], cfg[6], kernel_size=3, stride=1, padding=1, groups=32, channel_shuffle=1, shuffle_groups=4),
-            ConvBNReLU(cfg[6], cfg[7], kernel_size=1, stride=1, padding=0, groups=8, channel_shuffle=1, shuffle_groups=32),
+            ConvBNReLU(cfg[5], cfg[6], kernel_size=3, stride=1, padding=1,
+                       groups=32, channel_shuffle=1, shuffle_groups=4),
+            ConvBNReLU(cfg[6], cfg[7], kernel_size=1, stride=1, padding=0,
+                       groups=8, channel_shuffle=1, shuffle_groups=32),
             ConvBNReLU(cfg[7], 10, kernel_size=1, stride=1, padding=0),
             nn.AvgPool2d(kernel_size=8, stride=1, padding=0)
         )
@@ -71,4 +81,3 @@ class Net(nn.Module):
         x = self.model(x)
         x = x.view(x.size(0), -1)
         return x
-        

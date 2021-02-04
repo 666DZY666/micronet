@@ -116,7 +116,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--cpu', action='store_true',
                         help='set if only CPU is available')
-    # gpu_id
     parser.add_argument('--gpu_id', action='store', default='',
                         help='gpu_id')
     parser.add_argument('--data', action='store', default='../../../../data',
@@ -134,8 +133,6 @@ if __name__ == '__main__':
     # resume
     parser.add_argument('--resume', default='', type=str, metavar='PATH',
                         help='the path to the resume model')
-    parser.add_argument('--evaluate', action='store_true',
-                        help='evaluate the model')
     parser.add_argument('--train_batch_size', type=int, default=50)
     parser.add_argument('--eval_batch_size', type=int, default=256)
     parser.add_argument('--num_workers', type=int, default=2)
@@ -146,7 +143,6 @@ if __name__ == '__main__':
     # W/A — bits
     parser.add_argument('--w_bits', type=int, default=8)
     parser.add_argument('--a_bits', type=int, default=8)
-    # 模型结构选择
     parser.add_argument('--model_type', type=int, default=1,
                         help='model type:0-nin,1-nin_gc')
     args = parser.parse_args()
@@ -170,12 +166,12 @@ if __name__ == '__main__':
     trainset = torchvision.datasets.CIFAR10(root=args.data, train=True, download=True,
                                             transform=transform_train)
     trainloader = torch.utils.data.DataLoader(trainset, batch_size=args.train_batch_size,
-                                              shuffle=True, num_workers=args.num_workers)  # 训练集数据
+                                              shuffle=True, num_workers=args.num_workers)  
 
     testset = torchvision.datasets.CIFAR10(root=args.data, train=False, download=True,
                                            transform=transform_test)
     testloader = torch.utils.data.DataLoader(testset, batch_size=args.eval_batch_size,
-                                             shuffle=False, num_workers=args.num_workers)  # 测试集数据
+                                             shuffle=False, num_workers=args.num_workers)  
 
     classes = ('plane', 'car', 'bird', 'cat', 'deer',
                'dog', 'frog', 'horse', 'ship', 'truck')
@@ -243,10 +239,6 @@ if __name__ == '__main__':
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(params, lr=base_lr, weight_decay=args.wd)
-
-    if args.evaluate:
-        test()
-        exit(0)
 
     for epoch in range(args.start_epochs, args.end_epochs):
         adjust_learning_rate(optimizer, epoch)

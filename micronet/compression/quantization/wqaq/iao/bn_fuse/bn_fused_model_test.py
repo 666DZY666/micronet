@@ -20,7 +20,6 @@ import quantize
 
 
 # quant_bn_fused_model_train test
-
 def test_quant_bn_fused_model_train():
     quant_bn_fused_model_train_test_loss = 0
     quant_bn_fused_model_train_correct = 0
@@ -116,7 +115,6 @@ if __name__ == '__main__':
     testloader = torch.utils.data.DataLoader(testset, batch_size=args.eval_batch_size,
                                              shuffle=False, num_workers=args.num_workers)
 
-    # define classes
     classes = ('plane', 'car', 'bird', 'cat', 'deer',
                'dog', 'frog', 'horse', 'ship', 'truck')
 

@@ -87,19 +87,16 @@ class QuantConv2d(nn.Conv2d):
         super(QuantConv2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups,
                                           bias, padding_mode)
         self.quant_inference = quant_inference
-        # 实例化调用A和W量化器
         self.activation_quantizer = ActivationQuantizer(a_bits=a_bits)
         self.weight_quantizer = WeightQuantizer(w_bits=w_bits)
 
     def forward(self, input):
-        # 量化A和W
         quant_input = self.activation_quantizer(input)
         quant_input = input
         if not self.quant_inference:
             quant_weight = self.weight_quantizer(self.weight)
         else:
             quant_weight = self.weight
-        # 量化卷积
         output = F.conv2d(quant_input, quant_weight, self.bias, self.stride, self.padding, self.dilation,
                           self.groups)
         return output

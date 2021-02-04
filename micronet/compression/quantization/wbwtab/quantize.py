@@ -90,8 +90,6 @@ def meancenter_clamp_convparams(w):
     w.data.sub_(mean)        # W中心化(C方向)
     w.data.clamp_(-1.0, 1.0)  # W截断
     return w
-
-
 class WeightQuantizer(nn.Module):
     def __init__(self, W=2):
         super(WeightQuantizer, self).__init__()
@@ -118,7 +116,7 @@ class WeightQuantizer(nn.Module):
                 output = self.binary(output)
                 # ************** W * α **************
                 output = output * alpha  # 若不需要α(缩放因子)，注释掉即可
-                # **************************************** W三值 *****************************************
+            # **************************************** W三值 *****************************************
             elif self.W == 3:
                 output_fp = input.clone()
                 # ************** W —— +-1、0 **************
@@ -139,7 +137,6 @@ class WeightQuantizer(nn.Module):
         return output
 
 
-# ********************* 量化卷积（同时量化A/W，并做卷积） ***********************
 class QuantConv2d(nn.Conv2d):
     def __init__(self,
                  in_channels,

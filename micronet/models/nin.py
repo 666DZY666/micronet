@@ -1,5 +1,6 @@
 import torch.nn as nn
 
+
 class ConvBNReLU(nn.Module):
     def __init__(self,
                  in_channels,
@@ -26,8 +27,9 @@ class ConvBNReLU(nn.Module):
         x = self.relu(x)
         return x
 
+
 class Net(nn.Module):
-    def __init__(self, cfg = None):
+    def __init__(self, cfg=None):
         super(Net, self).__init__()
         if cfg is None:
             cfg = [192, 160, 96, 192, 192, 192, 192, 192]

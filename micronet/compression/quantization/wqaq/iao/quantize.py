@@ -205,7 +205,6 @@ class QuantConv2d(nn.Conv2d):
         super(QuantConv2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups,
                                           bias, padding_mode)
         self.quant_inference = quant_inference
-        # 实例化量化器（A-layer级，W-channel级）
         if q_type == 0:
             self.activation_quantizer = SymmetricQuantizer(bits=a_bits, observer=MovingAverageMinMaxObserver(
                                                            q_level='L', out_channels=None, device=device), activation_weight_flag=1)
@@ -242,13 +241,11 @@ class QuantConv2d(nn.Conv2d):
                                                                 q_level='L', out_channels=None, device=device), activation_weight_flag=2)
 
     def forward(self, input):
-        # 量化A和W
         quant_input = self.activation_quantizer(input)
         if not self.quant_inference:
             quant_weight = self.weight_quantizer(self.weight)
         else:
             quant_weight = self.weight
-        # 量化卷积
         output = F.conv2d(quant_input, quant_weight, self.bias, self.stride, self.padding, self.dilation,
                           self.groups)
         return output
@@ -343,7 +340,6 @@ class QuantBNFuseConv2d(QuantConv2d):
         init.uniform_(self.gamma)
         init.zeros_(self.beta)
 
-        # 实例化量化器（A-layer级，W-channel级）
         if q_type == 0:
             self.activation_quantizer = SymmetricQuantizer(bits=a_bits, observer=MovingAverageMinMaxObserver(
                                                            q_level='L', out_channels=None, device=device), activation_weight_flag=1)

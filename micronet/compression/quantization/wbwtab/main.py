@@ -146,9 +146,6 @@ if __name__ == '__main__':
     # resume
     parser.add_argument('--resume', default='', type=str, metavar='PATH',
                         help='the path to the resume model')
-    # evaluate
-    parser.add_argument('--evaluate', action='store_true',
-                        help='evaluate the model')
     # batch_size、num_workers
     parser.add_argument('--train_batch_size', type=int, default=50)
     parser.add_argument('--eval_batch_size', type=int, default=256)
@@ -270,11 +267,6 @@ if __name__ == '__main__':
     criterion = nn.CrossEntropyLoss()
     # 优化器
     optimizer = optim.Adam(params, lr=base_lr, weight_decay=args.wd)
-
-    # 测试模型
-    if args.evaluate:
-        test()
-        exit(0)
 
     # 训练模型
     for epoch in range(args.start_epochs, args.end_epochs):

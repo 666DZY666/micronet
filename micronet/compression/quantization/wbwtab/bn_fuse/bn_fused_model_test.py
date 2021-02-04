@@ -113,7 +113,6 @@ if __name__ == '__main__':
     testloader = torch.utils.data.DataLoader(testset, batch_size=args.eval_batch_size,
                                              shuffle=False, num_workers=args.num_workers)
 
-    # define classes
     classes = ('plane', 'car', 'bird', 'cat', 'deer',
                'dog', 'frog', 'horse', 'ship', 'truck')
 
