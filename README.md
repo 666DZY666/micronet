@@ -147,7 +147,7 @@ micronet
 - **1.27**, improve auto_insert_quant_op(now you can easily use quantization, as [quant_test_auto](#quant_test_auto.py))
 - 1.28, 1、fix prune-quantization pipeline and code; 2、improve code structure
 - **2.1**, improve wbwtab_bn_fuse
-- **2.4**, 1、add wqaq_bn_fuse; 2、add quant_model_inference_simulation
+- **2.4**, 1、add wqaq_bn_fuse; 2、add quant_model_inference_simulation; 3、improve code format
 
 
 ## 环境要求
