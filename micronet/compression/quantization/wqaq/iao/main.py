@@ -38,7 +38,10 @@ def save_state(model, best_acc):
             state['state_dict'][key.replace('module.', '')] = \
                     state['state_dict'].pop(key)
     if args.model_type == 0:
-        torch.save(state, 'models_save/nin.pth')
+        if args.bn_fuse == 1:
+            torch.save(state, 'models_save/nin_bn_fused.pth')
+        else:
+            torch.save(state, 'models_save/nin.pth')
     else:
         if args.bn_fuse == 1:
             torch.save(state, 'models_save/nin_gc_bn_fused.pth')

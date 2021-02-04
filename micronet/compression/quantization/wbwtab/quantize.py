@@ -144,13 +144,18 @@ class QuantConv2d(nn.Conv2d):
                  groups=1,
                  bias=True,
                  padding_mode='zeros',
-                 W=2):
+                 W=2,
+                 quant_inference=False):
         super(QuantConv2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups,
                                           bias, padding_mode)
+        self.quant_inference = quant_inference
         self.weight_quantizer = WeightQuantizer(W=W)
-          
+        
     def forward(self, input):
-        tnn_bin_weight = self.weight_quantizer(self.weight)    
+        if not self.quant_inference:
+            tnn_bin_weight = self.weight_quantizer(self.weight) 
+        else:
+            tnn_bin_weight = self.weight
         output = F.conv2d(input, tnn_bin_weight, self.bias, self.stride, self.padding, self.dilation, 
                           self.groups)
         return output
@@ -167,29 +172,34 @@ class QuantConvTranspose2d(nn.ConvTranspose2d):
                  groups=1,
                  bias=True,
                  padding_mode='zeros',
-                 W=2):
+                 W=2,
+                 quant_inference=False):
         super(QuantConvTranspose2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, output_padding, 
                                                    dilation, groups, bias, padding_mode)
+        self.quant_inference = quant_inference
         self.weight_quantizer = WeightQuantizer(W=W)
 
     def forward(self, input):
-        tnn_bin_weight = self.weight_quantizer(self.weight)
+        if not self.quant_inference:
+            tnn_bin_weight = self.weight_quantizer(self.weight) 
+        else:
+            tnn_bin_weight = self.weight
         output = F.conv_transpose2d(input, tnn_bin_weight, self.bias, self.stride, self.padding, self.output_padding,
                                     self.groups, self.dilation)
         return output
 
-def add_quant_op(module, layer_counter, layer_num, A=2, W=2):
+def add_quant_op(module, layer_counter, layer_num, A=2, W=2, quant_inference=False):
     for name, child in module.named_children():
         if isinstance(child, nn.Conv2d):
             layer_counter[0] += 1
             if layer_counter[0] > 1 and layer_counter[0] < layer_num:
                 if child.bias is not None:
                     quant_conv = QuantConv2d(child.in_channels, child.out_channels,
-                                             child.kernel_size, stride=child.stride, padding=child.padding, dilation=child.dilation, groups=child.groups, bias=True, padding_mode=child.padding_mode, W=W)
+                                             child.kernel_size, stride=child.stride, padding=child.padding, dilation=child.dilation, groups=child.groups, bias=True, padding_mode=child.padding_mode, W=W, quant_inference=quant_inference)
                     quant_conv.bias.data = child.bias
                 else:
                     quant_conv = QuantConv2d(child.in_channels, child.out_channels,
-                                             child.kernel_size, stride=child.stride, padding=child.padding, dilation=child.dilation, groups=child.groups, bias=False, padding_mode=child.padding_mode, W=W)
+                                             child.kernel_size, stride=child.stride, padding=child.padding, dilation=child.dilation, groups=child.groups, bias=False, padding_mode=child.padding_mode, W=W, quant_inference=quant_inference)
                 quant_conv.weight.data = child.weight
                 module._modules[name] = quant_conv
         elif isinstance(child, nn.ConvTranspose2d):
@@ -197,11 +207,11 @@ def add_quant_op(module, layer_counter, layer_num, A=2, W=2):
             if layer_counter[0] > 1 and layer_counter[0] < layer_num:
                 if child.bias is not None:
                     quant_conv_transpose = QuantConvTranspose2d(child.in_channels, child.out_channels,
-                                                                child.kernel_size, stride=child.stride, padding=child.padding, output_padding=child.output_padding, dilation=child.dilation, groups=child.groups, bias=True, padding_mode=child.padding_mode, W=W)
+                                                                child.kernel_size, stride=child.stride, padding=child.padding, output_padding=child.output_padding, dilation=child.dilation, groups=child.groups, bias=True, padding_mode=child.padding_mode, W=W, quant_inference=quant_inference)
                     quant_conv_transpose.bias.data = child.bias
                 else:
                     quant_conv_transpose = QuantConvTranspose2d(child.in_channels, child.out_channels,
-                                                                child.kernel_size, stride=child.stride, padding=child.padding, output_padding=child.output_padding, dilation=child.dilation, groups=child.groups, bias=False, padding_mode=child.padding_mode, W=W)
+                                                                child.kernel_size, stride=child.stride, padding=child.padding, output_padding=child.output_padding, dilation=child.dilation, groups=child.groups, bias=False, padding_mode=child.padding_mode, W=W, quant_inference=quant_inference)
                 quant_conv_transpose.weight.data = child.weight
                 module._modules[name] = quant_conv_transpose
         elif isinstance(child, nn.ReLU):
@@ -209,9 +219,9 @@ def add_quant_op(module, layer_counter, layer_num, A=2, W=2):
                 quant_relu = ActivationQuantizer(A=A)
                 module._modules[name] = quant_relu
         else:
-            add_quant_op(child, layer_counter, layer_num, A=A, W=W)
+            add_quant_op(child, layer_counter, layer_num, A=A, W=W, quant_inference=quant_inference)
 
-def prepare(model, inplace=False, A=2, W=2):
+def prepare(model, inplace=False, A=2, W=2, quant_inference=False):
     if not inplace:
         model = copy.deepcopy(model)
     layer_counter = [0]
@@ -221,6 +231,6 @@ def prepare(model, inplace=False, A=2, W=2):
             layer_num += 1
         elif isinstance(m, nn.ConvTranspose2d):
             layer_num += 1
-    add_quant_op(model, layer_counter, layer_num, A=A, W=W)
+    add_quant_op(model, layer_counter, layer_num, A=A, W=W, quant_inference=quant_inference)
     return model
         

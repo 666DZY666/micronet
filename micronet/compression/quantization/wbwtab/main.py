@@ -207,9 +207,6 @@ if __name__=='__main__':
             model = nin_gc.Net(cfg=checkpoint['cfg'])
         model.load_state_dict(checkpoint['state_dict'])
         best_acc = 0
-        print('***ori_model***\n', model)
-        quantize.prepare(model, inplace=True, A=args.A, W=args.W)
-        print('\n***quant_model***\n', model)
     elif args.refine:
         print('******Float Refine model******')
         #checkpoint = torch.load('models_save/nin.pth')
@@ -220,9 +217,6 @@ if __name__=='__main__':
             model = nin_gc.Net()
         model.load_state_dict(state_dict)
         best_acc = 0
-        print('***ori_model***\n', model)
-        quantize.prepare(model, inplace=True, A=args.A, W=args.W)
-        print('\n***quant_model***\n', model)
     elif args.resume:
         print('******Reume model******')
         #checkpoint = torch.load('models_save/nin.pth')
@@ -233,9 +227,6 @@ if __name__=='__main__':
             model = nin_gc.Net()
         model.load_state_dict(checkpoint['state_dict'])
         best_acc = checkpoint['best_acc']
-        print('***ori_model***\n', model)
-        quantize.prepare(model, inplace=True, A=args.A, W=args.W)
-        print('\n***quant_model***\n', model)
     else:
         print('******Initializing model******')
         if args.model_type == 0:
@@ -252,9 +243,9 @@ if __name__=='__main__':
                 init.normal_(m.weight, 0, 0.01)
                 if m.bias is not None:
                     init.zeros_(m.bias)
-        print('***ori_model***\n', model)
-        quantize.prepare(model, inplace=True, A=args.A, W=args.W)
-        print('\n***quant_model***\n', model)
+    print('***ori_model***\n', model)
+    quantize.prepare(model, inplace=True, A=args.A, W=args.W)
+    print('\n***quant_model***\n', model)
 
     # cpu、gpu
     if not args.cpu:

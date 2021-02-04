@@ -28,6 +28,7 @@
 - 针对三/二值的一些tricks：W二值/三值缩放因子，W/grad（ste、saturate_ste、soft_ste）截断，A二值时采用B-A-C-P可比C-B-A-P获得更高acc等
 - 多种剪枝方式：正常、规整（比如model可剪枝为每层剩余filter个数为N(8,16等)的倍数）、分组卷积结构（剪枝后仍保证分组卷积结构）的通道剪枝
 - batch normalization融合及融合前后model对比测试：非量化普通BN融合（训练后，BN层参数 —> conv的权重w和偏置b）、针对特征(A)二值量化的BN融合（训练量化后，BN层参数 —> conv的偏置b)、High-Bit量化的BN融合（训练量化中，先融合再量化）
+- 量化训练与量化推理仿真测试
 - tensorrt：fp32/fp16/int8(ptq-calibration)、op-adapt(upsample)、dynamic_shape等
 
 
@@ -135,9 +136,10 @@ micronet
 - **1.11**, fix bug in binary_a(1/0) and binary_w preprocessing
 - **1.12**, add "pip install"
 - **1.22**, add auto_insert_quant_op(this still needs to be improved)
-- **1.27**, improve auto_insert_quant_op(Now you can easily use quantization, as "quant_test_auto.py")
+- **1.27**, improve auto_insert_quant_op(now you can easily use quantization, as [quant_test_auto](#quant_test_auto.py))
 - 1.28, 1、fix prune-quantization pipeline and code; 2、improve code structure
 - **2.1**, improve wbwtab_bn_fuse
+- **2.4**, 1、add wqaq_bn_fuse; 2、add quant_model_inference_simulation
 
 
 ## 环境要求
@@ -252,7 +254,15 @@ cd micronet/compression/quantization/wqaq/iao
 
 *量化位数选择同dorefa*
 
---q_type, 量化类型(0-对称, 1-非对称); --q_level, 权重量化级别(0-通道级, 1-层级); --bn_fuse, 量化中bn融合标志(0-不融合, 1-融合); --weight_observer, weight_observer选择(0-MinMaxObserver, 1-MovingAverageMinMaxObserver)
+*单卡*
+
+--q_type, 量化类型(0-对称, 1-非对称)
+
+--q_level, 权重量化级别(0-通道级, 1-层级)
+
+--bn_fuse, 量化中bn融合标志(0-不融合, 1-融合)
+
+--weight_observer, weight_observer选择(0-MinMaxObserver, 1-MovingAverageMinMaxObserver)
 
 - (默认)对称、(权重)通道级量化, bn不融合, weight_observer-MinMaxObserver
 
@@ -319,7 +329,11 @@ cd micronet/compression/pruning
 
 ##### 稀疏训练
 
--sr 稀疏标志, --s 稀疏率(需根据dataset、model情况具体调整), --model_type 模型类型(0-nin, 1-nin_gc)
+-sr 稀疏标志
+
+--s 稀疏率(需根据dataset、model情况具体调整)
+
+--model_type 模型类型(0-nin, 1-nin_gc)
 
 - nin(正常卷积结构)
 
@@ -335,7 +349,13 @@ python main.py -sr --s 0.001 --model_type 1
 
 ##### 剪枝
 
---percent 剪枝率, --normal_regular 正常、规整剪枝标志及规整剪枝基数(如设置为N,则剪枝后模型每层filter个数即为N的倍数), --model 稀疏训练后的model路径, --save 剪枝后保存的model路径（路径默认已给出, 可据实际情况更改）
+--percent 剪枝率
+
+--normal_regular 正常、规整剪枝标志及规整剪枝基数(如设置为N,则剪枝后模型每层filter个数即为N的倍数)
+
+--model 稀疏训练后的model路径
+
+--save 剪枝后保存的model路径（路径默认已给出, 可据实际情况更改）
 
 - 正常剪枝(nin)
 
@@ -387,16 +407,21 @@ python main.py --model_type 1 --gc_prune_refine 154 162 144 304 320 320 608 584
 
 ##### 剪枝 —> 量化（高位）（剪枝率偏大、量化率偏小）
 
+- dorefa
+
 ```bash
 cd micronet/compression/quantization/wqaq/dorefa
 ```
 
 或 
 
+- iao
+
+*单卡*
+
 ```bash
 cd micronet/compression/quantization/wqaq/iao
 ```
-*--gpu_id 0*
 
 ###### w8a8
 
@@ -437,7 +462,7 @@ python main.py --W 2 --A 2 --model_type 1 --prune_refine ../../pruning/models_sa
 ###### 其他取值情况类比
 
 
-#### BN融合
+#### BN融合与量化推理仿真测试
 
 ##### wbwtab
 
@@ -445,35 +470,136 @@ python main.py --W 2 --A 2 --model_type 1 --prune_refine ../../pruning/models_sa
 cd micronet/compression/quantization/wbwtab/bn_fuse
 ```
 
-###### 融合并保存融合前后model(model和bn_fused_model)
+###### bn_fuse(得到quant_model_train和quant_bn_fused_model_inference的结构和参数)
 
-- quant_model
-```bash
-python bn_fuse.py 
-```
+*--model_type, 1 - nin_gc(含分组卷积结构); 0 - nin(正常卷积结构)*
 
-- prune_quant_model
+*--prune_quant, 剪枝_量化模型标志*
 
-```bash
-python bn_fuse.py --prune_quant
-```
+*--W, weight量化取值*
 
-###### 融合前后model对比测试(quant_model_train和quant_bn_fused_model_inference)
+*均需要与量化训练保持一致,可直接用默认*
 
---W 权重W量化取值(据量化训练时W量化取值(三值/二值)情况对应选择)
-
-- wb
+- nin_gc, quant_model, wb
 
 ```bash
-python bn_fused_model_test.py --W 2
+python bn_fuse.py --model_type 1 --W 2
 ```
 
-- wt
+- nin_gc, prune_quant_model, wb
 
 ```bash
-python bn_fused_model_test.py --W 3
+python bn_fuse.py --model_type 1 --prune_quant --W 2
 ```
 
+- nin_gc, quant_model, wt
+
+```bash
+python bn_fuse.py --model_type 1 --W 3
+```
+
+- nin, quant_model, wb
+
+```bash
+python bn_fuse.py --model_type 0 --W 2
+```
+
+###### bn_fused_model_test(对quant_model_train和quant_bn_fused_model_inference进行测试)
+
+```bash
+python bn_fused_model_test.py
+```
+
+##### dorefa
+
+```bash
+cd micronet/compression/quantization/wqaq/dorefa/quant_model_test
+```
+
+###### quant_model_para(得到quant_model_train和quant_model_inference的结构和参数)
+
+*--model_type, 1 - nin_gc(含分组卷积结构); 0 - nin(正常卷积结构)*
+
+*--prune_quant, 剪枝_量化模型标志*
+
+*--w_bits, weight量化位数; --a_bits, activation量化位数*
+
+*均需要与量化训练保持一致,可直接用默认*
+
+- nin_gc, quant_model, w8a8
+
+```bash
+python quant_model_para.py --model_type 1 --w_bits 8 --a_bits 8
+```
+
+- nin_gc, prune_quant_model, w8a8
+
+```bash
+python quant_model_para.py --model_type 1 --prune_quant --w_bits 8 --a_bits 8
+```
+
+- nin, quant_model, w8a8
+
+```bash
+python quant_model_para.py --model_type 0 --w_bits 8 --a_bits 8
+```
+
+###### quant_model_test(对quant_model_train和quant_model_inference进行测试)
+
+```bash
+python quant_model_test.py
+```
+
+##### iao
+
+***注意, 量化训练时 --bn_fuse 需要设置为1***
+```bash
+cd micronet/compression/quantization/wqaq/iao/bn_fuse
+```
+
+###### bn_fuse(得到quant_bn_fused_model_train和quant_bn_fused_model_inference的结构和参数)
+
+*--model_type, 1 - nin_gc(含分组卷积结构); 0 - nin(正常卷积结构)*
+
+*--prune_quant, 剪枝_量化模型标志*
+
+*--w_bits, weight量化位数; --a_bits, activation量化位数*
+
+*--q_type, 0 - 对称; 1 - 非对称*
+
+*--q_level, 0 - 通道级; 1 - 层级*
+
+*均需要与量化训练保持一致,可直接用默认*
+
+- nin_gc, quant_model, w8a8
+
+```bash
+python quant_model_para.py --model_type 1 --w_bits 8 --a_bits 8
+```
+
+- nin_gc, prune_quant_model, w8a8
+
+```bash
+python quant_model_para.py --model_type 1 --prune_quant --w_bits 8 --a_bits 8
+```
+
+- nin, quant_model, w8a8
+
+```bash
+python quant_model_para.py --model_type 0 --w_bits 8 --a_bits 8
+```
+
+- nin_gc, quant_model, w8a8, 非对称, 层级
+
+```bash
+python quant_model_para.py --model_type 0 --w_bits 8 --a_bits 8 --q_type 1 --q_level 1
+```
+
+###### bn_fused_model_test(对quant_bn_fused_model_train和quant_bn_fused_model_inference进行测试)
+
+```bash
+python bn_fused_model_test.py
+```
 
 #### 设备选取
 
@@ -526,7 +652,7 @@ python main.py --gpu_id 0,1,2
 
 ## 迁移
 
-### 量化
+### 量化训练
 
 #### LeNet example
 
@@ -696,6 +822,9 @@ python -c "import micronet; micronet.quant_test_auto()"
 
 *when outputting "quant_model is ready", micronet is ready.*
 
+### 量化推理
+
+***参考[BN融合与量化推理仿真测试](#bn融合与量化推理仿真测试)***
 
 ## 模型压缩数据对比（仅供参考）
 
