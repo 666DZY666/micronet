@@ -135,7 +135,13 @@ class QuantConvTranspose2d(nn.ConvTranspose2d):
 
 
 class QuantLinear(nn.Linear):
-    def __init__(self, in_features, out_features, bias=True, a_bits=8, w_bits=8, quant_inference=False):
+    def __init__(self,
+                 in_features,
+                 out_features,
+                 bias=True,
+                 a_bits=8,
+                 w_bits=8,
+                 quant_inference=False):
         super(QuantLinear, self).__init__(in_features, out_features, bias)
         self.quant_inference = quant_inference
         self.activation_quantizer = ActivationQuantizer(a_bits=a_bits)
@@ -151,7 +157,8 @@ class QuantLinear(nn.Linear):
         return output
 
 
-def add_quant_op(module, layer_counter, a_bits=8, w_bits=8, quant_inference=False):
+def add_quant_op(module, layer_counter, a_bits=8, w_bits=8,
+                 quant_inference=False):
     for name, child in module.named_children():
         if isinstance(child, nn.Conv2d):
             layer_counter[0] += 1

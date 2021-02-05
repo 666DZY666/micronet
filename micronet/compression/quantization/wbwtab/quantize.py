@@ -194,7 +194,8 @@ class QuantConvTranspose2d(nn.ConvTranspose2d):
         return output
 
 
-def add_quant_op(module, layer_counter, layer_num, A=2, W=2, quant_inference=False):
+def add_quant_op(module, layer_counter, layer_num, A=2, W=2,
+                 quant_inference=False):
     for name, child in module.named_children():
         if isinstance(child, nn.Conv2d):
             layer_counter[0] += 1

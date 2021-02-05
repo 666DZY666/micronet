@@ -427,7 +427,17 @@ class QuantBNFuseConv2d(QuantConv2d):
 
 
 class QuantLinear(nn.Linear):
-    def __init__(self, in_features, out_features, bias=True, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu', weight_observer=0, quant_inference=False):
+    def __init__(self,
+                 in_features,
+                 out_features,
+                 bias=True,
+                 a_bits=8,
+                 w_bits=8,
+                 q_type=0,
+                 q_level=0,
+                 device='cpu',
+                 weight_observer=0,
+                 quant_inference=False):
         super(QuantLinear, self).__init__(in_features, out_features, bias)
         self.quant_inference = quant_inference
         if q_type == 0:
@@ -561,7 +571,8 @@ class QuantAdaptiveAvgPool2d(nn.AdaptiveAvgPool2d):
         return output
 
 
-def add_quant_op(module, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu', weight_observer=0, bn_fuse=0, quant_inference=False):
+def add_quant_op(module, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu',
+                 weight_observer=0, bn_fuse=0, quant_inference=False):
     for name, child in module.named_children():
         if isinstance(child, nn.Conv2d):
             if bn_fuse:
@@ -724,8 +735,8 @@ def add_quant_op(module, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu', 
                          bn_fuse=bn_fuse, quant_inference=quant_inference)
 
 
-def prepare(model, inplace=False, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu',
-            weight_observer=0, bn_fuse=0, quant_inference=False):
+def prepare(model, inplace=False, a_bits=8, w_bits=8, q_type=0, q_level=0,
+            device='cpu', weight_observer=0, bn_fuse=0, quant_inference=False):
     if not inplace:
         model = copy.deepcopy(model)
     add_quant_op(model, a_bits=a_bits, w_bits=w_bits, q_type=q_type, q_level=q_level,
