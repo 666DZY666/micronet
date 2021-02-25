@@ -92,7 +92,6 @@ class QuantConv2d(nn.Conv2d):
 
     def forward(self, input):
         quant_input = self.activation_quantizer(input)
-        quant_input = input
         if not self.quant_inference:
             quant_weight = self.weight_quantizer(self.weight)
         else:
