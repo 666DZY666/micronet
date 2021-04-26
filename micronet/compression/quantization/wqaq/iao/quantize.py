@@ -259,9 +259,9 @@ class QuantConvTranspose2d(nn.ConvTranspose2d):
                  stride=1,
                  padding=0,
                  output_padding=0,
-                 dilation=1,
                  groups=1,
                  bias=True,
+                 dilation=1,
                  padding_mode='zeros',
                  a_bits=8,
                  w_bits=8,
@@ -270,7 +270,7 @@ class QuantConvTranspose2d(nn.ConvTranspose2d):
                  weight_observer=0,
                  quant_inference=False):
         super(QuantConvTranspose2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, output_padding,
-                                                   dilation, groups, bias, padding_mode)
+                                                   groups, bias, dilation, padding_mode)
         self.quant_inference = quant_inference
         if q_type == 0:
             self.activation_quantizer = SymmetricQuantizer(bits=a_bits, observer=MovingAverageMinMaxObserver(
@@ -653,9 +653,9 @@ def add_quant_op(module, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu',
                                                             stride=child.stride,
                                                             padding=child.padding,
                                                             output_padding=child.output_padding,
-                                                            dilation=child.dilation,
                                                             groups=child.groups,
                                                             bias=True,
+                                                            dilation=child.dilation,
                                                             padding_mode=child.padding_mode,
                                                             a_bits=a_bits,
                                                             w_bits=w_bits,
@@ -671,9 +671,9 @@ def add_quant_op(module, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu',
                                                             stride=child.stride,
                                                             padding=child.padding,
                                                             output_padding=child.output_padding,
-                                                            dilation=child.dilation,
                                                             groups=child.groups,
                                                             bias=False,
+                                                            dilation=child.dilation,
                                                             padding_mode=child.padding_mode,
                                                             a_bits=a_bits,
                                                             w_bits=w_bits,
