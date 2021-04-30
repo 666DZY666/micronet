@@ -1,4 +1,4 @@
-__version__ = "1.6.0"
+__version__ = "1.7.0"
 
 def quant_test_manual():
     import torch.nn as nn
@@ -129,9 +129,21 @@ def quant_test_auto():
             x = self.fc2(x)
             return F.log_softmax(x, dim=1)
 
+    '''
+    --w_bits --a_bits, 权重W和特征A量化位数
+    --q_type, 量化类型(0-对称, 1-非对称)
+    --q_level, 权重量化级别(0-通道级, 1-层级)
+    --bn_fuse, 量化中bn融合标志(0-不融合, 1-融合)
+    --weight_observer, weight_observer选择(0-MinMaxObserver, 1-MovingAverageMinMaxObserver)
+    --pretrained_model, 预训练浮点模型
+    '''
     lenet = LeNet()
-    quant_lenet_dorefa = quant_dorefa.prepare(lenet, inplace=False)
-    quant_lenet_iao = quant_iao.prepare(lenet, inplace=False)
+    quant_lenet_dorefa = quant_dorefa.prepare(lenet, inplace=False, a_bits=8, w_bits=8)
+    quant_lenet_iao = quant_iao.prepare(lenet, inplace=False, a_bits=8,
+                                        w_bits=8, q_type=0,
+                                        q_level=0, device='cpu',
+                                        weight_observer=0,
+                                        bn_fuse=0, pretrained_model=False)
 
     print('***ori_model***\n', lenet)
     print('\n***quant_model_dorefa***\n', quant_lenet_dorefa)

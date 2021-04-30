@@ -169,6 +169,9 @@ if __name__ == '__main__':
     # weight_observer选择
     parser.add_argument('--weight_observer', type=int, default=0,
                         help='quant_weight_observer:0-MinMaxObserver, 1-MovingAverageMinMaxObserver')
+    # pretrained_model标志位
+    parser.add_argument('--pretrained_model', action='store_true',
+                        help='pretrained_model')
     parser.add_argument('--model_type', type=int, default=1,
                         help='model type:0-nin,1-nin_gc')
     args = parser.parse_args()
@@ -222,7 +225,7 @@ if __name__ == '__main__':
                          w_bits=args.w_bits, q_type=args.q_type,
                          q_level=args.q_level, device=device,
                          weight_observer=args.weight_observer,
-                         bn_fuse=args.bn_fuse)
+                         bn_fuse=args.bn_fuse, pretrained_model=args.pretrained_model)
         print('\n***quant_model***\n', model)
     elif args.refine:
         print('******Float Refine model******')
@@ -239,7 +242,7 @@ if __name__ == '__main__':
                          w_bits=args.w_bits, q_type=args.q_type,
                          q_level=args.q_level, device=device,
                          weight_observer=args.weight_observer,
-                         bn_fuse=args.bn_fuse)
+                         bn_fuse=args.bn_fuse, pretrained_model=args.pretrained_model)
         print('\n***quant_model***\n', model)
     elif args.resume:
         print('******Reume model******')
@@ -254,7 +257,7 @@ if __name__ == '__main__':
                          w_bits=args.w_bits, q_type=args.q_type,
                          q_level=args.q_level, device=device,
                          weight_observer=args.weight_observer,
-                         bn_fuse=args.bn_fuse)
+                         bn_fuse=args.bn_fuse, pretrained_model=args.pretrained_model)
         print('\n***quant_model***\n', model)
         model.load_state_dict(checkpoint['state_dict'])
         best_acc = checkpoint['best_acc']
@@ -279,7 +282,7 @@ if __name__ == '__main__':
                          w_bits=args.w_bits, q_type=args.q_type,
                          q_level=args.q_level, device=device,
                          weight_observer=args.weight_observer,
-                         bn_fuse=args.bn_fuse)
+                         bn_fuse=args.bn_fuse, pretrained_model=args.pretrained_model)
         print('\n***quant_model***\n', model)
 
     if not args.cpu:
