@@ -335,10 +335,12 @@ class QuantBNFuseConv2d(QuantConv2d):
                  q_type=0,
                  q_level=0,
                  device='cpu',
-                 weight_observer=0):
+                 weight_observer=0,
+                 pretrained_model=False):
         super(QuantBNFuseConv2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups,
                                                 bias, padding_mode)
         self.num_flag = 0
+        self.pretrained_model = pretrained_model
         self.eps = eps
         self.momentum = momentum
         self.gamma = Parameter(torch.Tensor(out_channels))
@@ -394,15 +396,21 @@ class QuantBNFuseConv2d(QuantConv2d):
             batch_mean = torch.mean(output, dim=dims)
             batch_var = torch.var(output, dim=dims)
             with torch.no_grad():
-                if self.num_flag == 0:
-                    self.num_flag += 1
-                    running_mean = batch_mean
-                    running_var = batch_var
+                if not self.pretrained_model:
+                    if self.num_flag == 0:
+                        self.num_flag += 1
+                        running_mean = batch_mean
+                        running_var = batch_var
+                    else:
+                        running_mean = (1 - self.momentum) * self.running_mean + self.momentum * batch_mean
+                        running_var = (1 - self.momentum) * self.running_var + self.momentum * batch_var
+                    self.running_mean.copy_(running_mean)
+                    self.running_var.copy_(running_var)
                 else:
                     running_mean = (1 - self.momentum) * self.running_mean + self.momentum * batch_mean
                     running_var = (1 - self.momentum) * self.running_var + self.momentum * batch_var
-                self.running_mean.copy_(running_mean)
-                self.running_var.copy_(running_var)
+                    self.running_mean.copy_(running_mean)
+                    self.running_var.copy_(running_var)
             # BN融合
             if self.bias is not None:
                 bias_fused = reshape_to_bias(self.beta + (self.bias - batch_mean) * (self.gamma / torch.sqrt(batch_var + self.eps)))
@@ -580,7 +588,7 @@ class QuantAdaptiveAvgPool2d(nn.AdaptiveAvgPool2d):
 
 
 def add_quant_op(module, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu',
-                 weight_observer=0, bn_fuse=0, quant_inference=False):
+                 weight_observer=0, bn_fuse=0, quant_inference=False, pretrained_model=False):
     for name, child in module.named_children():
         if isinstance(child, nn.Conv2d):
             if bn_fuse:
@@ -625,7 +633,8 @@ def add_quant_op(module, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu',
                                                            q_type=q_type,
                                                            q_level=q_level,
                                                            device=device,
-                                                           weight_observer=weight_observer)
+                                                           weight_observer=weight_observer,
+                                                           pretrained_model=pretrained_model)
                     quant_bn_fuse_conv.bias.data = conv_child_temp.bias
                 else:
                     quant_bn_fuse_conv = QuantBNFuseConv2d(conv_child_temp.in_channels,
@@ -644,7 +653,8 @@ def add_quant_op(module, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu',
                                                            q_type=q_type,
                                                            q_level=q_level,
                                                            device=device,
-                                                           weight_observer=weight_observer)
+                                                           weight_observer=weight_observer,
+                                                           pretrained_model=pretrained_model)
                 quant_bn_fuse_conv.weight.data = conv_child_temp.weight
                 quant_bn_fuse_conv.gamma.data = child.weight
                 quant_bn_fuse_conv.beta.data = child.bias
@@ -738,18 +748,18 @@ def add_quant_op(module, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu',
                                                              device=device)
             module._modules[name] = quant_adaptive_avg_pool
         else:
-            add_quant_op(child, a_bits=a_bits, w_bits=w_bits, q_type=q_type,
-                         q_level=q_level, device=device, weight_observer=weight_observer,
-                         bn_fuse=bn_fuse, quant_inference=quant_inference)
+            add_quant_op(child, a_bits=a_bits, w_bits=w_bits, q_type=q_type, q_level=q_level,
+                         device=device, weight_observer=weight_observer, bn_fuse=bn_fuse,
+                         quant_inference=quant_inference, pretrained_model=pretrained_model)
 
 
 def prepare(model, inplace=False, a_bits=8, w_bits=8, q_type=0, q_level=0,
-            device='cpu', weight_observer=0, bn_fuse=0, quant_inference=False):
+            device='cpu', weight_observer=0, bn_fuse=0, quant_inference=False, pretrained_model=False):
     if not inplace:
         model = copy.deepcopy(model)
     add_quant_op(model, a_bits=a_bits, w_bits=w_bits, q_type=q_type, q_level=q_level,
                  device=device, weight_observer=weight_observer, bn_fuse=bn_fuse,
-                 quant_inference=quant_inference)
+                 quant_inference=quant_inference, pretrained_model=pretrained_model)
     return model
 
 
