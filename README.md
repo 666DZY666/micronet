@@ -136,7 +136,7 @@ micronet
 - 1.28, 1、fix prune-quantization pipeline and code; 2、improve code structure
 - **2.1**, improve wbwtab_bn_fuse
 - **2.4**, 1、add wqaq_bn_fuse; 2、add quant_model_inference_simulation; 3、improve code format
-- 4.30, 1、update code_structure img; 2、fix iao's quant_weight_rage, quant_contrans and quant_bn_fuse_conv pretrained_model bn_para load bug
+- 4.30, 1、update code_structure img; 2、fix iao's quant_weight_range, quant_contrans and quant_bn_fuse_conv pretrained_model bn_para load bug
 - **5.4**, add **qaft**, it's beneficial to improve the quantization accuracy
 
 
@@ -439,13 +439,13 @@ cd micronet/compression/quantization/wqaq/dorefa
 - nin(正常卷积结构)
 
 ```bash
-python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_refine ../../../pruning/models_save/nin_finetune.pth
+python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_qat ../../../pruning/models_save/nin_finetune.pth
 ```
 
 - nin_gc(含分组卷积结构)
 
 ```bash
-python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_refine ../../../pruning/models_save/nin_gc_retrain.pth
+python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_qat ../../../pruning/models_save/nin_gc_retrain.pth
 ```
 
 ###### w8a8(iao)
@@ -533,13 +533,13 @@ cd micronet/compression/quantization/wbwtab
 - nin(正常卷积结构)
 
 ```bash
-python main.py --W 2 --A 2 --model_type 0 --prune_refine ../../pruning/models_save/nin_finetune.pth
+python main.py --W 2 --A 2 --model_type 0 --prune_qat ../../pruning/models_save/nin_finetune.pth
 ```
 
 - nin_gc(含分组卷积结构)
 
 ```bash
-python main.py --W 2 --A 2 --model_type 1 --prune_refine ../../pruning/models_save/nin_gc_retrain.pth
+python main.py --W 2 --A 2 --model_type 1 --prune_qat ../../pruning/models_save/nin_gc_retrain.pth
 ```
 
 ###### 其他取值情况类比
