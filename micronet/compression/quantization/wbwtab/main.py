@@ -40,13 +40,13 @@ def save_state(model, best_acc):
             state['state_dict'][key.replace('module.', '')] = \
                 state['state_dict'].pop(key)
     if args.model_type == 0:
-        if args.prune_refine:
+        if args.prune_qat:
             torch.save({'cfg': cfg, 'best_acc': best_acc,
                         'state_dict': state['state_dict']}, 'models_save/nin.pth')
         else:
             torch.save(state, 'models_save/nin.pth')
     else:
-        if args.prune_refine:
+        if args.prune_qat:
             torch.save({'cfg': cfg, 'best_acc': best_acc,
                         'state_dict': state['state_dict']}, 'models_save/nin_gc.pth')
         else:
@@ -137,9 +137,9 @@ if __name__ == '__main__':
     # weight_dacay
     parser.add_argument('--wd', action='store', default=0,
                         help='nin_gc:0, nin:1e-5')
-    # prune_refine
-    parser.add_argument('--prune_refine', default='', type=str, metavar='PATH',
-                        help='the path to the prune_refine model')
+    # prune_qat
+    parser.add_argument('--prune_qat', default='', type=str, metavar='PATH',
+                        help='the path to the prune_qat model')
     # refine
     parser.add_argument('--refine', default='', type=str, metavar='PATH',
                         help='the path to the float_refine model')
@@ -200,10 +200,10 @@ if __name__ == '__main__':
                'dog', 'frog', 'horse', 'ship', 'truck')
 
     # model
-    if args.prune_refine:
+    if args.prune_qat:
         print('******Prune Refine model******')
         #checkpoint = torch.load('../prune/models_save/nin_refine.pth')
-        checkpoint = torch.load(args.prune_refine)
+        checkpoint = torch.load(args.prune_qat)
         cfg = checkpoint['cfg']
         if args.model_type == 0:
             model = nin.Net(cfg=checkpoint['cfg'])
