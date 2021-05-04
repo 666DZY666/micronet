@@ -137,7 +137,7 @@ micronet
 - **2.1**, improve wbwtab_bn_fuse
 - **2.4**, 1、add wqaq_bn_fuse; 2、add quant_model_inference_simulation; 3、improve code format
 - 4.30, 1、update code_structure img; 2、fix iao's quant_weight_rage, quant_contrans and quant_bn_fuse_conv pretrained_model bn_para load bug
-- **5.4**, add **qaft**, it is beneficial to improve the quantization accuracy
+- **5.4**, add **qaft**, it's beneficial to improve the quantization accuracy
 
 
 ## 环境要求
