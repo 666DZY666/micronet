@@ -272,7 +272,9 @@ cd micronet/compression/quantization/wqaq/iao
 
 --weight_observer, weight_observer选择(0-MinMaxObserver, 1-MovingAverageMinMaxObserver)
 
-- (默认)对称、(权重)通道级量化, bn不融合, weight_observer-MinMaxObserver
+--pretrained_model, 预训练浮点模型
+
+- 默认: 对称、(权重)通道级量化, bn不融合, weight_observer-MinMaxObserver, 不加载预训练浮点模型
 
 ```bash
 python main.py --q_type 0 --q_level 0 --bn_fuse 0 --weight_observer 0 --gpu_id 0
@@ -415,23 +417,11 @@ python main.py --model_type 1 --gc_prune_refine 154 162 144 304 320 320 608 584
 
 ##### 剪枝 —> 量化（高位）（剪枝率偏大、量化率偏小）
 
-- dorefa
+###### w8a8(dorefa)
 
 ```bash
 cd micronet/compression/quantization/wqaq/dorefa
 ```
-
-或 
-
-- iao
-
-*单卡*
-
-```bash
-cd micronet/compression/quantization/wqaq/iao
-```
-
-###### w8a8
 
 - nin(正常卷积结构)
 
@@ -443,6 +433,24 @@ python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_refine ../../../prun
 
 ```bash
 python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_refine ../../../pruning/models_save/nin_gc_retrain.pth
+```
+
+###### w8a8(iao)
+
+```bash
+cd micronet/compression/quantization/wqaq/iao
+```
+
+- nin(正常卷积结构)
+
+```bash
+python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_refine ../../../pruning/models_save/nin_finetune.pth --pretrained_model --gpu_id 0
+```
+
+- nin_gc(含分组卷积结构)
+
+```bash
+python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_refine ../../../pruning/models_save/nin_gc_retrain.pth --pretrained_model --gpu_id 0
 ```
 
 ###### 其他可选量化配置类比
