@@ -41,26 +41,26 @@ def save_state(model, best_acc):
                 state['state_dict'].pop(key)
     if args.model_type == 0:
         if args.bn_fuse == 1:
-            if args.prune_refine:
+            if args.prune_qat or args.qaft:
                 torch.save({'cfg': cfg, 'best_acc': best_acc,
                             'state_dict': state['state_dict']}, 'models_save/nin_bn_fused.pth')
             else:
                 torch.save(state, 'models_save/nin_bn_fused.pth')
         else:
-            if args.prune_refine:
+            if args.prune_qat or args.qaft:
                 torch.save({'cfg': cfg, 'best_acc': best_acc,
                             'state_dict': state['state_dict']}, 'models_save/nin.pth')
             else:
                 torch.save(state, 'models_save/nin.pth')
     else:
         if args.bn_fuse == 1:
-            if args.prune_refine:
+            if args.prune_qat or args.qaft:
                 torch.save({'cfg': cfg, 'best_acc': best_acc,
                             'state_dict': state['state_dict']}, 'models_save/nin_gc_bn_fused.pth')
             else:
                 torch.save(state, 'models_save/nin_gc_bn_fused.pth')
         else:
-            if args.prune_refine:
+            if args.prune_qat or args.qaft:
                 torch.save({'cfg': cfg, 'best_acc': best_acc,
                             'state_dict': state['state_dict']}, 'models_save/nin_gc.pth')
             else:
@@ -138,9 +138,9 @@ if __name__ == '__main__':
                         help='the intial learning rate')
     parser.add_argument('--wd', action='store', default=1e-5,
                         help='the intial learning rate')
-    # prune_refine
-    parser.add_argument('--prune_refine', default='', type=str, metavar='PATH',
-                        help='the path to the prune_refine model')
+    # prune_qat
+    parser.add_argument('--prune_qat', default='', type=str, metavar='PATH',
+                        help='the path to the prune_qat model')
     # refine
     parser.add_argument('--refine', default='', type=str, metavar='PATH',
                         help='the path to the float_refine model')
@@ -172,6 +172,12 @@ if __name__ == '__main__':
     # pretrained_model标志位
     parser.add_argument('--pretrained_model', action='store_true',
                         help='pretrained_model')
+    # qaft标志位
+    parser.add_argument('--qaft', action='store_true',
+                        help='quantization-aware-finetune')   
+    # prune_qaft
+    parser.add_argument('--prune_qaft', default='', type=str, metavar='PATH',
+                        help='the path to the prune_qaft model')             
     parser.add_argument('--model_type', type=int, default=1,
                         help='model type:0-nin,1-nin_gc')
     args = parser.parse_args()
@@ -209,10 +215,10 @@ if __name__ == '__main__':
     classes = ('plane', 'car', 'bird', 'cat', 'deer',
                'dog', 'frog', 'horse', 'ship', 'truck')
 
-    if args.prune_refine:
-        print('******Prune Refine model******')
+    if args.prune_qat:
+        print('******Prune QAT model******')
         #checkpoint = torch.load('../prune/models_save/nin_refine.pth')
-        checkpoint = torch.load(args.prune_refine)
+        checkpoint = torch.load(args.prune_qat)
         cfg = checkpoint['cfg']
         if args.model_type == 0:
             model = nin.Net(cfg=checkpoint['cfg'])
@@ -225,8 +231,30 @@ if __name__ == '__main__':
                          w_bits=args.w_bits, q_type=args.q_type,
                          q_level=args.q_level, device=device,
                          weight_observer=args.weight_observer,
-                         bn_fuse=args.bn_fuse, pretrained_model=args.pretrained_model)
+                         bn_fuse=args.bn_fuse,
+                         pretrained_model=args.pretrained_model,
+                         qaft=args.qaft)
         print('\n***quant_model***\n', model)
+    elif args.prune_qaft:
+        print('******Prune QAFT model******')
+        #checkpoint = torch.load('models_save/nin_bn_fused.pth')
+        checkpoint = torch.load(args.prune_qaft)
+        cfg = checkpoint['cfg']
+        if args.model_type == 0:
+            model = nin.Net(cfg=checkpoint['cfg'])
+        else:
+            model = nin_gc.Net(cfg=checkpoint['cfg'])
+        print('***ori_model***\n', model)
+        quantize.prepare(model, inplace=True, a_bits=args.a_bits,
+                         w_bits=args.w_bits, q_type=args.q_type,
+                         q_level=args.q_level, device=device,
+                         weight_observer=args.weight_observer,
+                         bn_fuse=args.bn_fuse,
+                         pretrained_model=args.pretrained_model,
+                         qaft=args.qaft)
+        print('\n***quant_model***\n', model)
+        model.load_state_dict(checkpoint['state_dict'])
+        best_acc = checkpoint['best_acc']
     elif args.refine:
         print('******Float Refine model******')
         #checkpoint = torch.load('models_save/nin.pth')
@@ -242,7 +270,9 @@ if __name__ == '__main__':
                          w_bits=args.w_bits, q_type=args.q_type,
                          q_level=args.q_level, device=device,
                          weight_observer=args.weight_observer,
-                         bn_fuse=args.bn_fuse, pretrained_model=args.pretrained_model)
+                         bn_fuse=args.bn_fuse,
+                         pretrained_model=args.pretrained_model,
+                         qaft=args.qaft)
         print('\n***quant_model***\n', model)
     elif args.resume:
         print('******Reume model******')
@@ -257,7 +287,9 @@ if __name__ == '__main__':
                          w_bits=args.w_bits, q_type=args.q_type,
                          q_level=args.q_level, device=device,
                          weight_observer=args.weight_observer,
-                         bn_fuse=args.bn_fuse, pretrained_model=args.pretrained_model)
+                         bn_fuse=args.bn_fuse,
+                         pretrained_model=args.pretrained_model,
+                         qaft=args.qaft)
         print('\n***quant_model***\n', model)
         model.load_state_dict(checkpoint['state_dict'])
         best_acc = checkpoint['best_acc']
@@ -282,7 +314,9 @@ if __name__ == '__main__':
                          w_bits=args.w_bits, q_type=args.q_type,
                          q_level=args.q_level, device=device,
                          weight_observer=args.weight_observer,
-                         bn_fuse=args.bn_fuse, pretrained_model=args.pretrained_model)
+                         bn_fuse=args.bn_fuse,
+                         pretrained_model=args.pretrained_model,
+                         qaft=args.qaft)
         print('\n***quant_model***\n', model)
 
     if not args.cpu:

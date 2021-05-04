@@ -10,26 +10,14 @@
 
 ### 压缩
 
-- 量化：QAT, High-Bit(>2b)、Low-Bit(≤2b)/Ternary and Binary; PTQ, 8-bit(tensorrt)
+- 量化：High-Bit(>2b): QAT, PTQ, QAFT; Low-Bit(≤2b)/Ternary and Binary: QAT
 - 剪枝：正常、规整、分组卷积结构剪枝
-- 针对特征(A)二值量化的BN融合
-- High-Bit量化的BN融合
+- 针对特征(A)二值量化的BN融合(训练量化后，BN参数 —> conv的偏置b)
+- High-Bit量化的BN融合(训练量化中，先融合再量化，融合：BN参数 —> conv的权重w和偏置b)
 
 ### 部署
 
-- TensorRT
-
-
-## 目前提供
-
-- 普通卷积和分组卷积结构
-- 权重W和特征A的训练中/后量化。训练中量化，W(32/16/8/4/2-bit, 三/二值) 和 A(32/16/8/4/2-bit, 二值)任意组合；训练后量化，采用tensorrt，支持8-bit
-- 对称/非对称、per-layer/per-channel量化，MinMaxObserver/MovingAverageMinMaxObserver/HistogramObserver(calibration)
-- 针对三/二值的一些tricks：W二值/三值缩放因子，W/grad（ste、saturate_ste、soft_ste）截断，A二值时采用B-A-C-P可比C-B-A-P获得更高acc等
-- 多种剪枝方式：正常、规整（比如model可剪枝为每层剩余filter个数为N(8,16等)的倍数）、分组卷积结构（剪枝后仍保证分组卷积结构）的通道剪枝
-- batch normalization融合及融合前后model对比测试：非量化普通BN融合（训练后，BN层参数 —> conv的权重w和偏置b）、针对特征(A)二值量化的BN融合（训练量化后，BN层参数 —> conv的偏置b)、High-Bit量化的BN融合（训练量化中，先融合再量化）
-- 量化训练与量化推理仿真测试
-- tensorrt：fp32/fp16/int8(ptq-calibration)、op-adapt(upsample)、dynamic_shape等
+- TensorRT(fp32/fp16/int8(ptq-calibration)、op-adapt(upsample)、dynamic_shape等)
 
 
 ## 代码结构
@@ -148,6 +136,8 @@ micronet
 - 1.28, 1、fix prune-quantization pipeline and code; 2、improve code structure
 - **2.1**, improve wbwtab_bn_fuse
 - **2.4**, 1、add wqaq_bn_fuse; 2、add quant_model_inference_simulation; 3、improve code format
+- 4.30, 1、update code_structure img; 2、fix iao's quant_weight_rage, quant_contrans and quant_bn_fuse_conv pretrained_model bn_para load bug
+- **5.4**, add **qaft**, it is beneficial to improve the quantization accuracy
 
 
 ## 环境要求
@@ -264,6 +254,10 @@ cd micronet/compression/quantization/wqaq/iao
 
 *单卡*
 
+**QAT  —>  QAFT**
+
+**! 注意，需要在QAT之后再做QAFT !**
+
 --q_type, 量化类型(0-对称, 1-非对称)
 
 --q_level, 权重量化级别(0-通道级, 1-层级)
@@ -274,7 +268,11 @@ cd micronet/compression/quantization/wqaq/iao
 
 --pretrained_model, 预训练浮点模型
 
-- 默认: 对称、(权重)通道级量化, bn不融合, weight_observer-MinMaxObserver, 不加载预训练浮点模型
+--qaft, qaft标志
+
+**QAT**
+
+- 默认: 对称、(权重)通道级量化, bn不融合, weight_observer-MinMaxObserver, 不加载预训练浮点模型, 进行qat
 
 ```bash
 python main.py --q_type 0 --q_level 0 --bn_fuse 0 --weight_observer 0 --gpu_id 0
@@ -328,6 +326,21 @@ python main.py --q_type 1 --q_level 0 --bn_fuse 1 --gpu_id 0
 python main.py --q_type 1 --q_level 1 --bn_fuse 1 --gpu_id 0
 ```
 
+**QAFT**
+
+**! 注意，需要在QAT之后再做QAFT !**
+
+- 对称、(权重)通道级量化, bn融合
+
+```bash
+python main.py --q_type 0 --q_level 0 --bn_fuse 1 --gpu_id 0
+```
+
+```bash
+python main.py --resume models_save/nin_gc_bn_fused.pth --q_type 0 --q_level 0 --bn_fuse 1 --gpu_id 0 --qaft
+```
+
+- 其他情况类比
 
 #### 剪枝
 
@@ -441,16 +454,70 @@ python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_refine ../../../prun
 cd micronet/compression/quantization/wqaq/iao
 ```
 
+**QAT  —>  QAFT**
+
+**! 注意，需要在QAT之后再做QAFT !**
+
+**QAT**
+
+*bn不融合*
+
 - nin(正常卷积结构)
 
 ```bash
-python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_refine ../../../pruning/models_save/nin_finetune.pth --pretrained_model --gpu_id 0
+python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_qat ../../../pruning/models_save/nin_finetune.pth --gpu_id 0 --lr 0.001
 ```
 
 - nin_gc(含分组卷积结构)
 
 ```bash
-python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_refine ../../../pruning/models_save/nin_gc_retrain.pth --pretrained_model --gpu_id 0
+python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_qat ../../../pruning/models_save/nin_gc_retrain.pth --gpu_id 0 --lr 0.001
+```
+
+*bn融合*
+
+- nin(正常卷积结构)
+
+```bash
+python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_qat ../../../pruning/models_save/nin_finetune.pth --gpu_id 0 --bn_fuse 1 --pretrained_model --lr 0.001
+```
+
+- nin_gc(含分组卷积结构)
+
+```bash
+python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_qat ../../../pruning/models_save/nin_gc_retrain.pth --gpu_id 0 --bn_fuse 1 --pretrained_model --lr 0.001
+```
+
+**QAFT**
+
+**! 注意，需要在QAT之后再做QAFT !**
+
+*bn不融合*
+
+- nin(正常卷积结构)
+
+```bash
+python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_qaft models_save/nin.pth --gpu_id 0 --qaft --lr 0.001
+```
+
+- nin_gc(含分组卷积结构)
+
+```bash
+python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_qaft models_save/nin_gc.pth --gpu_id 0 --qaft --lr 0.001
+```
+
+*bn融合*
+
+- nin(正常卷积结构)
+
+```bash
+python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_qaft models_save/nin_bn_fused.pth --gpu_id 0 --bn_fuse 1 --qaft --lr 0.001
+```
+
+- nin_gc(含分组卷积结构)
+
+```bash
+python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_qaft models_save/nin_gc_bn_fused.pth --gpu_id 0 --bn_fuse 1 --qaft --lr 0.001
 ```
 
 ###### 其他可选量化配置类比
@@ -817,6 +884,7 @@ class LeNet(nn.Module):
 --bn_fuse, 量化中bn融合标志(0-不融合, 1-融合)
 --weight_observer, weight_observer选择(0-MinMaxObserver, 1-MovingAverageMinMaxObserver)
 --pretrained_model, 预训练浮点模型
+--qaft, qaft标志
 '''
 lenet = LeNet()
 quant_lenet_dorefa = quant_dorefa.prepare(lenet, inplace=False, a_bits=8, w_bits=8)
@@ -824,7 +892,8 @@ quant_lenet_iao = quant_iao.prepare(lenet, inplace=False, a_bits=8,
                                     w_bits=8, q_type=0,
                                     q_level=0, device='cpu',
                                     weight_observer=0,
-                                    bn_fuse=0, pretrained_model=False)
+                                    bn_fuse=0, pretrained_model=False,
+                                    qaft=False)
 
 print('***ori_model***\n', lenet)
 print('\n***quant_model_dorefa***\n', quant_lenet_dorefa)
