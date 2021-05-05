@@ -768,6 +768,10 @@ def add_quant_op(module, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu',
             quant_relu = QuantReLU(inplace=child.inplace, a_bits=a_bits,
                                    q_type=q_type, device=device, qaft=qaft)
             module._modules[name] = quant_relu
+        elif isinstance(child, nn.ReLU6):
+            quant_relu = QuantReLU6(inplace=child.inplace, a_bits=a_bits,
+                                   q_type=q_type, device=device, qaft=qaft)
+            module._modules[name] = quant_relu6
         elif isinstance(child, nn.Sigmoid):
             quant_sigmoid = QuantSigmoid(a_bits=a_bits, q_type=q_type,
                                          device=device, qaft=qaft)
