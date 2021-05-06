@@ -41,26 +41,26 @@ def save_state(model, best_acc):
                 state['state_dict'].pop(key)
     if args.model_type == 0:
         if args.bn_fuse == 1:
-            if args.prune_qat or args.qaft:
+            if args.prune_quant or args.prune_qaft:
                 torch.save({'cfg': cfg, 'best_acc': best_acc,
                             'state_dict': state['state_dict']}, 'models_save/nin_bn_fused.pth')
             else:
                 torch.save(state, 'models_save/nin_bn_fused.pth')
         else:
-            if args.prune_qat or args.qaft:
+            if args.prune_quant or args.prune_qaft:
                 torch.save({'cfg': cfg, 'best_acc': best_acc,
                             'state_dict': state['state_dict']}, 'models_save/nin.pth')
             else:
                 torch.save(state, 'models_save/nin.pth')
     else:
         if args.bn_fuse == 1:
-            if args.prune_qat or args.qaft:
+            if args.prune_quant or args.prune_qaft:
                 torch.save({'cfg': cfg, 'best_acc': best_acc,
                             'state_dict': state['state_dict']}, 'models_save/nin_gc_bn_fused.pth')
             else:
                 torch.save(state, 'models_save/nin_gc_bn_fused.pth')
         else:
-            if args.prune_qat or args.qaft:
+            if args.prune_quant or args.prune_qaft:
                 torch.save({'cfg': cfg, 'best_acc': best_acc,
                             'state_dict': state['state_dict']}, 'models_save/nin_gc.pth')
             else:
@@ -78,6 +78,7 @@ def adjust_learning_rate(optimizer, epoch):
 def train(epoch):
     model.train()
 
+    batch_num = 0
     for batch_idx, (data, target) in enumerate(trainloader):
         if not args.cpu:
             data, target = data.cuda(), target.cuda()
@@ -85,15 +86,22 @@ def train(epoch):
         output = model(data)
         loss = criterion(output, target)
 
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+        # PTQ doesn't need backward
+        if not args.ptq:
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
-        if batch_idx % 100 == 0:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tLR: {}'.format(
-                epoch, batch_idx * len(data), len(trainloader.dataset),
-                100. * batch_idx / len(trainloader), loss.data.item(),
-                optimizer.param_groups[0]['lr']))
+            if batch_idx % 100 == 0:
+                print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}\tLR: {}'.format(
+                      epoch, batch_idx * len(data), len(trainloader.dataset),
+                      100. * batch_idx / len(trainloader), loss.data.item(),
+                      optimizer.param_groups[0]['lr']))
+        else:
+            batch_num += 1
+            if batch_num > args.ptq_batch:
+                break
+            print('Batch:', batch_num)
     return
 
 
@@ -119,8 +127,8 @@ def test():
     average_test_loss = test_loss / (len(testloader.dataset) / args.eval_batch_size)
 
     print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)'.format(
-        average_test_loss, correct, len(testloader.dataset),
-        100. * float(correct) / len(testloader.dataset)))
+          average_test_loss, correct, len(testloader.dataset),
+          100. * float(correct) / len(testloader.dataset)))
 
     print('Best Accuracy: {:.2f}%\n'.format(best_acc))
     return
@@ -138,17 +146,17 @@ if __name__ == '__main__':
                         help='the intial learning rate')
     parser.add_argument('--wd', action='store', default=1e-5,
                         help='the intial learning rate')
-    # prune_qat
-    parser.add_argument('--prune_qat', default='', type=str, metavar='PATH',
-                        help='the path to the prune_qat model')
+    # prune_quant
+    parser.add_argument('--prune_quant', default='', type=str, metavar='PATH',
+                        help='the path to the prune_quant model')
     # refine
     parser.add_argument('--refine', default='', type=str, metavar='PATH',
                         help='the path to the float_refine model')
     # resume
     parser.add_argument('--resume', default='', type=str, metavar='PATH',
                         help='the path to the resume model')
-    parser.add_argument('--train_batch_size', type=int, default=64)
-    parser.add_argument('--eval_batch_size', type=int, default=64)
+    parser.add_argument('--batch_size', type=int, default=32)
+    parser.add_argument('--eval_batch_size', type=int, default=32)
     parser.add_argument('--num_workers', type=int, default=2)
     parser.add_argument('--start_epochs', type=int, default=1, metavar='N',
                         help='number of epochs to train_start')
@@ -174,10 +182,19 @@ if __name__ == '__main__':
                         help='pretrained_model')
     # qaft标志位
     parser.add_argument('--qaft', action='store_true',
-                        help='quantization-aware-finetune')   
+                        help='quantization-aware-finetune')
     # prune_qaft
     parser.add_argument('--prune_qaft', default='', type=str, metavar='PATH',
-                        help='the path to the prune_qaft model')             
+                        help='the path to the prune_qaft model')
+    # ptq标志位
+    parser.add_argument('--ptq', action='store_true',
+                        help='post-training-quantization')
+    # ptq_percentile
+    parser.add_argument('--percentile', type=float, default=0.999999,
+                        help='the percentile of ptq')
+    # ptq_batch
+    parser.add_argument('--ptq_batch', type=int, default=200,
+                        help='the batch of ptq')
     parser.add_argument('--model_type', type=int, default=1,
                         help='model type:0-nin,1-nin_gc')
     args = parser.parse_args()
@@ -204,7 +221,7 @@ if __name__ == '__main__':
 
     trainset = torchvision.datasets.CIFAR10(root=args.data, train=True, download=True,
                                             transform=transform_train)
-    trainloader = torch.utils.data.DataLoader(trainset, batch_size=args.train_batch_size,
+    trainloader = torch.utils.data.DataLoader(trainset, batch_size=args.batch_size,
                                               shuffle=True, num_workers=args.num_workers)
 
     testset = torchvision.datasets.CIFAR10(root=args.data, train=False, download=True,
@@ -215,10 +232,10 @@ if __name__ == '__main__':
     classes = ('plane', 'car', 'bird', 'cat', 'deer',
                'dog', 'frog', 'horse', 'ship', 'truck')
 
-    if args.prune_qat:
-        print('******Prune QAT model******')
+    if args.prune_quant:
+        print('******Prune Quant model******')
         #checkpoint = torch.load('../prune/models_save/nin_refine.pth')
-        checkpoint = torch.load(args.prune_qat)
+        checkpoint = torch.load(args.prune_quant)
         cfg = checkpoint['cfg']
         if args.model_type == 0:
             model = nin.Net(cfg=checkpoint['cfg'])
@@ -233,7 +250,9 @@ if __name__ == '__main__':
                          weight_observer=args.weight_observer,
                          bn_fuse=args.bn_fuse,
                          pretrained_model=args.pretrained_model,
-                         qaft=args.qaft)
+                         qaft=args.qaft,
+                         ptq=args.ptq,
+                         percentile=args.percentile)
         print('\n***quant_model***\n', model)
     elif args.prune_qaft:
         print('******Prune QAFT model******')
@@ -251,19 +270,21 @@ if __name__ == '__main__':
                          weight_observer=args.weight_observer,
                          bn_fuse=args.bn_fuse,
                          pretrained_model=args.pretrained_model,
-                         qaft=args.qaft)
+                         qaft=args.qaft,
+                         ptq=args.ptq,
+                         percentile=args.percentile)
         print('\n***quant_model***\n', model)
         model.load_state_dict(checkpoint['state_dict'])
         best_acc = checkpoint['best_acc']
     elif args.refine:
         print('******Float Refine model******')
         #checkpoint = torch.load('models_save/nin.pth')
-        state_dict = torch.load(args.refine)
+        checkpoint = torch.load(args.refine)
         if args.model_type == 0:
             model = nin.Net()
         else:
             model = nin_gc.Net()
-        model.load_state_dict(state_dict)
+        model.load_state_dict(checkpoint['state_dict'])
         best_acc = 0
         print('***ori_model***\n', model)
         quantize.prepare(model, inplace=True, a_bits=args.a_bits,
@@ -272,7 +293,9 @@ if __name__ == '__main__':
                          weight_observer=args.weight_observer,
                          bn_fuse=args.bn_fuse,
                          pretrained_model=args.pretrained_model,
-                         qaft=args.qaft)
+                         qaft=args.qaft,
+                         ptq=args.ptq,
+                         percentile=args.percentile)
         print('\n***quant_model***\n', model)
     elif args.resume:
         print('******Reume model******')
@@ -289,7 +312,9 @@ if __name__ == '__main__':
                          weight_observer=args.weight_observer,
                          bn_fuse=args.bn_fuse,
                          pretrained_model=args.pretrained_model,
-                         qaft=args.qaft)
+                         qaft=args.qaft,
+                         ptq=args.ptq,
+                         percentile=args.percentile)
         print('\n***quant_model***\n', model)
         model.load_state_dict(checkpoint['state_dict'])
         best_acc = checkpoint['best_acc']
@@ -316,7 +341,9 @@ if __name__ == '__main__':
                          weight_observer=args.weight_observer,
                          bn_fuse=args.bn_fuse,
                          pretrained_model=args.pretrained_model,
-                         qaft=args.qaft)
+                         qaft=args.qaft,
+                         ptq=args.ptq,
+                         percentile=args.percentile)
         print('\n***quant_model***\n', model)
 
     if not args.cpu:
@@ -332,7 +359,12 @@ if __name__ == '__main__':
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(params, lr=base_lr, weight_decay=args.wd)
 
+    if args.ptq:
+        args.end_epochs = 2
+        print('ptq is doing...')
     for epoch in range(args.start_epochs, args.end_epochs):
         adjust_learning_rate(optimizer, epoch)
         train(epoch)
         test()
+    if args.ptq:
+        print('ptq is done')

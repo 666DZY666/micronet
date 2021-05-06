@@ -150,7 +150,7 @@ if __name__ == '__main__':
     # gc_prune_refine的cfg
     parser.add_argument('--gc_prune_refine', nargs='+', type=int,
                         help='gc_prune_refine-cfg')
-    parser.add_argument('--train_batch_size', type=int, default=50)
+    parser.add_argument('--train_batch_size', type=int, default=128)
     parser.add_argument('--eval_batch_size', type=int, default=256)
     parser.add_argument('--num_workers', type=int, default=2)
     parser.add_argument('--epochs', type=int, default=300, metavar='N',

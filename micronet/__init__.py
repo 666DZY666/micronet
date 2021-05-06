@@ -1,4 +1,4 @@
-__version__ = "1.8.0"
+__version__ = "1.9.0"
 
 def quant_test_manual():
     import torch.nn as nn
@@ -136,7 +136,9 @@ def quant_test_auto():
                                         q_level=0, device='cpu',
                                         weight_observer=0,
                                         bn_fuse=0, pretrained_model=False,
-                                        qaft=False)
+                                        qaft=False,
+                                        ptq=False,
+                                        percentile=0.9999)
 
     print('***ori_model***\n', lenet)
     print('\n***quant_model_dorefa***\n', quant_lenet_dorefa)
