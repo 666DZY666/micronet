@@ -1,4 +1,4 @@
-__version__ = "1.9.0"
+__version__ = "1.9.1"
 
 def quant_test_manual():
     import torch.nn as nn
@@ -135,7 +135,9 @@ def quant_test_auto():
                                         w_bits=8, q_type=0,
                                         q_level=0, device='cpu',
                                         weight_observer=0,
-                                        bn_fuse=0, pretrained_model=False,
+                                        bn_fuse=False,
+                                        bn_fuse_cali=False,
+                                        pretrained_model=False,
                                         qaft=False,
                                         ptq=False,
                                         percentile=0.9999)

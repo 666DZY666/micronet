@@ -400,12 +400,14 @@ class QuantBNFuseConv2d(QuantConv2d):
                  pretrained_model=False,
                  qaft=False,
                  ptq=False,
-                 percentile=0.9999):
+                 percentile=0.9999,
+                 bn_fuse_cali=False):
         super(QuantBNFuseConv2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups,
                                                 bias, padding_mode)
         self.num_flag = 0
         self.pretrained_model = pretrained_model
         self.qaft = qaft
+        self.bn_fuse_cali = bn_fuse_cali
         self.eps = eps
         self.momentum = momentum
         self.gamma = Parameter(torch.Tensor(out_channels))
@@ -495,15 +497,19 @@ class QuantBNFuseConv2d(QuantConv2d):
                         running_var = (1 - self.momentum) * self.running_var + self.momentum * batch_var
                         self.running_mean.copy_(running_mean)
                         self.running_var.copy_(running_var)
-                # BN融合
+                # bn融合
                 if self.bias is not None:
                     bias_fused = reshape_to_bias(self.beta + (self.bias - batch_mean) * (self.gamma / torch.sqrt(batch_var + self.eps)))
                 else:
                     bias_fused = reshape_to_bias(self.beta - batch_mean * (self.gamma / torch.sqrt(batch_var + self.eps)))  # b融batch
-                weight_fused = self.weight * reshape_to_weight(self.gamma / torch.sqrt(self.running_var + self.eps))        # w融running
+                  # bn融合不校准
+                if not self.bn_fuse_cali:    
+                    weight_fused = self.weight * reshape_to_weight(self.gamma / torch.sqrt(batch_var + self.eps))           # w融batch
+                  # bn融合校准
+                else:
+                    weight_fused = self.weight * reshape_to_weight(self.gamma / torch.sqrt(self.running_var + self.eps))    # w融running
             # 测试态
             else:
-                # BN融合
                 if self.bias is not None:
                     bias_fused = reshape_to_bias(self.beta + (self.bias - self.running_mean) * (self.gamma / torch.sqrt(self.running_var + self.eps)))
                 else:
@@ -511,7 +517,6 @@ class QuantBNFuseConv2d(QuantConv2d):
                 weight_fused = self.weight * reshape_to_weight(self.gamma / torch.sqrt(self.running_var + self.eps))                      # w融running
         else:
             #qaft, freeze bn_statis_para
-            # BN融合
             if self.bias is not None:
                 bias_fused = reshape_to_bias(self.beta + (self.bias - self.running_mean) * (self.gamma / torch.sqrt(self.running_var + self.eps)))
             else:
@@ -526,18 +531,24 @@ class QuantBNFuseConv2d(QuantConv2d):
             #qat, quant_bn_fuse_conv
             # 量化卷积
             if self.training:  # 训练态
-                output = F.conv2d(quant_input, quant_weight, None, self.stride, self.padding, self.dilation,
-                                self.groups)  # 注意，这里不加bias（self.bias为None）
-                # （这里将训练态下，卷积中w融合running参数的效果转为融合batch参数的效果）running ——> batch
-                output *= reshape_to_activation(torch.sqrt(self.running_var + self.eps) / torch.sqrt(batch_var + self.eps))
-                output += reshape_to_activation(bias_fused)
+                # bn融合不校准
+                if not self.bn_fuse_cali:
+                    output = F.conv2d(quant_input, quant_weight, bias_fused, self.stride, self.padding, self.dilation,
+                                      self.groups)
+                # bn融合校准
+                else:
+                    output = F.conv2d(quant_input, quant_weight, None, self.stride, self.padding, self.dilation,
+                                      self.groups)  # 注意，这里不加bias（self.bias为None）
+                    # （这里将训练态下，卷积中w融合running参数的效果转为融合batch参数的效果）running ——> batch
+                    output *= reshape_to_activation(torch.sqrt(self.running_var + self.eps) / torch.sqrt(batch_var + self.eps))
+                    output += reshape_to_activation(bias_fused)
             else:  # 测试态
                 output = F.conv2d(quant_input, quant_weight, bias_fused, self.stride, self.padding, self.dilation,
-                                self.groups)  # 注意，这里加bias，做完整的conv+bn
+                                  self.groups)  # 注意，这里加bias，做完整的conv+bn
         else:
             #qaft, quant_bn_fuse_conv
             output = F.conv2d(quant_input, quant_weight, bias_fused, self.stride, self.padding, self.dilation,
-                          self.groups)
+                              self.groups)
         return output
 
 
@@ -728,8 +739,8 @@ class QuantAdaptiveAvgPool2d(nn.AdaptiveAvgPool2d):
 
 
 def add_quant_op(module, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu',
-                 weight_observer=0, bn_fuse=0, quant_inference=False, pretrained_model=False,
-                 qaft=False, ptq=False, percentile=0.9999):
+                 weight_observer=0, bn_fuse=False, bn_fuse_cali=False, quant_inference=False,
+                 pretrained_model=False, qaft=False, ptq=False, percentile=0.9999):
     for name, child in module.named_children():
         if isinstance(child, nn.Conv2d):
             if bn_fuse:
@@ -778,7 +789,8 @@ def add_quant_op(module, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu',
                                                            pretrained_model=pretrained_model,
                                                            qaft=qaft,
                                                            ptq=ptq,
-                                                           percentile=percentile)
+                                                           percentile=percentile,
+                                                           bn_fuse_cali=bn_fuse_cali)
                     quant_bn_fuse_conv.bias.data = conv_child_temp.bias
                 else:
                     quant_bn_fuse_conv = QuantBNFuseConv2d(conv_child_temp.in_channels,
@@ -801,7 +813,8 @@ def add_quant_op(module, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu',
                                                            pretrained_model=pretrained_model,
                                                            qaft=qaft,
                                                            ptq=ptq,
-                                                           percentile=percentile)
+                                                           percentile=percentile,
+                                                           bn_fuse_cali=bn_fuse_cali)
                 quant_bn_fuse_conv.weight.data = conv_child_temp.weight
                 quant_bn_fuse_conv.gamma.data = child.weight
                 quant_bn_fuse_conv.beta.data = child.bias
@@ -917,18 +930,21 @@ def add_quant_op(module, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu',
         else:
             add_quant_op(child, a_bits=a_bits, w_bits=w_bits, q_type=q_type, q_level=q_level,
                          device=device, weight_observer=weight_observer, bn_fuse=bn_fuse,
-                         quant_inference=quant_inference, pretrained_model=pretrained_model,
+                         bn_fuse_cali=bn_fuse_cali, quant_inference=quant_inference,
+                         pretrained_model=pretrained_model,
                          qaft=qaft, ptq=ptq, percentile=percentile)
 
 
 def prepare(model, inplace=False, a_bits=8, w_bits=8, q_type=0, q_level=0,
-            device='cpu', weight_observer=0, bn_fuse=0, quant_inference=False,
-            pretrained_model=False, qaft=False, ptq=False, percentile=0.9999):
+            device='cpu', weight_observer=0, bn_fuse=False, bn_fuse_cali=False,
+            quant_inference=False, pretrained_model=False, qaft=False,
+            ptq=False, percentile=0.9999):
     if not inplace:
         model = copy.deepcopy(model)
     add_quant_op(model, a_bits=a_bits, w_bits=w_bits, q_type=q_type, q_level=q_level,
                  device=device, weight_observer=weight_observer, bn_fuse=bn_fuse,
-                 quant_inference=quant_inference, pretrained_model=pretrained_model,
+                 bn_fuse_cali=bn_fuse_cali, quant_inference=quant_inference,
+                 pretrained_model=pretrained_model,
                  qaft=qaft, ptq=ptq, percentile=percentile)
     return model
 

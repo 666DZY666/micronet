@@ -139,6 +139,7 @@ micronet
 - 4.30, 1、update code_structure img; 2、fix iao's quant_weight_range, quant_contrans and quant_bn_fuse_conv pretrained_model bn_para load bug
 - **5.4**, add **qaft**, it's beneficial to improve the quantization accuracy
 - **5.6**, add **ptq**, its quantization accuracy is also good
+- 5.11, add bn_fuse_cali flag
 
 
 ## 环境要求
@@ -263,9 +264,11 @@ cd micronet/compression/quantization/wqaq/iao
 
 --q_level, 权重量化级别(0-通道级, 1-层级)
 
---bn_fuse, 量化中bn融合标志(0-不融合, 1-融合)
-
 --weight_observer, weight_observer选择(0-MinMaxObserver, 1-MovingAverageMinMaxObserver)
+
+--bn_fuse, 量化中bn融合标志
+
+--bn_fuse_cali, 量化中bn融合校准标志
 
 --pretrained_model, 预训练浮点模型
 
@@ -282,55 +285,61 @@ cd micronet/compression/quantization/wqaq/iao
 - 默认: 对称、(权重)通道级量化, bn不融合, weight_observer-MinMaxObserver, 不加载预训练浮点模型, 进行qat
 
 ```bash
-python main.py --q_type 0 --q_level 0 --bn_fuse 0 --weight_observer 0 --gpu_id 0
+python main.py --q_type 0 --q_level 0 --weight_observer 0 --gpu_id 0
 ```
 
 - 对称、(权重)通道级量化, bn不融合, weight_observer-MovingAverageMinMaxObserver
 
 ```bash
-python main.py --q_type 0 --q_level 0 --bn_fuse 0 --weight_observer 1 --gpu_id 0
+python main.py --q_type 0 --q_level 0 --weight_observer 1 --gpu_id 0
 ```
 
 - 对称、(权重)层级量化, bn不融合
 
 ```bash
-python main.py --q_type 0 --q_level 1 --bn_fuse 0 --gpu_id 0
+python main.py --q_type 0 --q_level 1 --gpu_id 0
 ```
 
 - 非对称、(权重)通道级量化, bn不融合
 
 ```bash
-python main.py --q_type 1 --q_level 0 --bn_fuse 0 --gpu_id 0
+python main.py --q_type 1 --q_level 0 --gpu_id 0
 ```
 
 - 非对称、(权重)层级量化, bn不融合
 
 ```bash
-python main.py --q_type 1 --q_level 1 --bn_fuse 0 --gpu_id 0
+python main.py --q_type 1 --q_level 1 --gpu_id 0
 ```
 
 - 对称、(权重)通道级量化, bn融合
 
 ```bash
-python main.py --q_type 0 --q_level 0 --bn_fuse 1 --gpu_id 0
+python main.py --q_type 0 --q_level 0 --bn_fuse --gpu_id 0
 ```
 
 - 对称、(权重)层级量化, bn融合
 
 ```bash
-python main.py --q_type 0 --q_level 1 --bn_fuse 1 --gpu_id 0
+python main.py --q_type 0 --q_level 1 --bn_fuse --gpu_id 0
 ```
 
 - 非对称、(权重)通道级量化, bn融合
 
 ```bash
-python main.py --q_type 1 --q_level 0 --bn_fuse 1 --gpu_id 0
+python main.py --q_type 1 --q_level 0 --bn_fuse --gpu_id 0
 ```
 
 - 非对称、(权重)层级量化, bn融合
 
 ```bash
-python main.py --q_type 1 --q_level 1 --bn_fuse 1 --gpu_id 0
+python main.py --q_type 1 --q_level 1 --bn_fuse --gpu_id 0
+```
+
+- 对称、(权重)通道级量化, bn融合校准
+
+```bash
+python main.py --q_type 0 --q_level 0 --bn_fuse --bn_fuse_cali --gpu_id 0
 ```
 
 **PTQ**
@@ -340,7 +349,7 @@ python main.py --q_type 1 --q_level 1 --bn_fuse 1 --gpu_id 0
 - 对称、(权重)通道级量化, bn融合
 
 ```bash
-python main.py --refine ../../../pruning/models_save/nin_gc.pth --q_level 0 --bn_fuse 1 --gpu_id 0 --pretrained_model --ptq --batch_size 32 --ptq_batch 200 --percentile 0.999999
+python main.py --refine ../../../pruning/models_save/nin_gc.pth --q_level 0 --bn_fuse --gpu_id 0 --pretrained_model --ptq --batch_size 32 --ptq_batch 200 --percentile 0.999999
 ```
 
 - 其他情况类比
@@ -352,7 +361,7 @@ python main.py --refine ../../../pruning/models_save/nin_gc.pth --q_level 0 --bn
 - 对称、(权重)通道级量化, bn融合
 
 ```bash
-python main.py --resume models_save/nin_gc_bn_fused.pth --q_type 0 --q_level 0 --bn_fuse 1 --gpu_id 0 --qaft --lr 0.00001
+python main.py --resume models_save/nin_gc_bn_fused.pth --q_type 0 --q_level 0 --bn_fuse --gpu_id 0 --qaft --lr 0.00001
 ```
 
 - 其他情况类比
@@ -494,13 +503,13 @@ python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_quant ../../../pruni
 - nin(正常卷积结构)
 
 ```bash
-python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_quant ../../../pruning/models_save/nin_finetune.pth --gpu_id 0 --bn_fuse 1 --pretrained_model --lr 0.001
+python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_quant ../../../pruning/models_save/nin_finetune.pth --gpu_id 0 --bn_fuse --pretrained_model --lr 0.001
 ```
 
 - nin_gc(含分组卷积结构)
 
 ```bash
-python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_quant ../../../pruning/models_save/nin_gc_retrain.pth --gpu_id 0 --bn_fuse 1 --pretrained_model --lr 0.001
+python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_quant ../../../pruning/models_save/nin_gc_retrain.pth --gpu_id 0 --bn_fuse --pretrained_model --lr 0.001
 ```
 
 **PTQ**
@@ -508,7 +517,7 @@ python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_quant ../../../pruni
 - nin(正常卷积结构)
 
 ```bash
-python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_quant ../../../pruning/models_save/nin_finetune.pth --gpu_id 0 --bn_fuse 1 --pretrained_model --ptq --batch_size 32 --ptq_batch 200 --percentile 0.999999
+python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_quant ../../../pruning/models_save/nin_finetune.pth --gpu_id 0 --bn_fuse --pretrained_model --ptq --batch_size 32 --ptq_batch 200 --percentile 0.999999
 ```
 
 - 其他情况类比
@@ -536,13 +545,13 @@ python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_qaft models_save/nin
 - nin(正常卷积结构)
 
 ```bash
-python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_qaft models_save/nin_bn_fused.pth --gpu_id 0 --bn_fuse 1 --qaft --lr 0.00001
+python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_qaft models_save/nin_bn_fused.pth --gpu_id 0 --bn_fuse --qaft --lr 0.00001
 ```
 
 - nin_gc(含分组卷积结构)
 
 ```bash
-python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_qaft models_save/nin_gc_bn_fused.pth --gpu_id 0 --bn_fuse 1 --qaft --lr 0.00001
+python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_qaft models_save/nin_gc_bn_fused.pth --gpu_id 0 --bn_fuse --qaft --lr 0.00001
 ```
 
 ###### 其他可选量化配置类比
@@ -660,7 +669,7 @@ python quant_model_test.py
 
 ##### iao
 
-***注意, 量化训练时 --bn_fuse 需要设置为1***
+***注意,量化训练时 --bn_fuse 需要设置为 True***
 ```bash
 cd micronet/compression/quantization/wqaq/iao/bn_fuse
 ```
@@ -906,8 +915,9 @@ class LeNet(nn.Module):
 --w_bits --a_bits, 权重W和特征A量化位数
 --q_type, 量化类型(0-对称, 1-非对称)
 --q_level, 权重量化级别(0-通道级, 1-层级)
---bn_fuse, 量化中bn融合标志(0-不融合, 1-融合)
 --weight_observer, weight_observer选择(0-MinMaxObserver, 1-MovingAverageMinMaxObserver)
+--bn_fuse, 量化中bn融合标志
+--bn_fuse_cali, 量化中bn融合校准标志
 --pretrained_model, 预训练浮点模型
 --qaft, qaft标志
 --ptq, ptq标志
@@ -919,7 +929,9 @@ quant_lenet_iao = quant_iao.prepare(lenet, inplace=False, a_bits=8,
                                     w_bits=8, q_type=0,
                                     q_level=0, device='cpu',
                                     weight_observer=0,
-                                    bn_fuse=0, pretrained_model=False,
+                                    bn_fuse=False,
+                                    bn_fuse_cali=False,
+                                    pretrained_model=False,
                                     qaft=False,
                                     ptq=False,
                                     percentile=0.9999)
