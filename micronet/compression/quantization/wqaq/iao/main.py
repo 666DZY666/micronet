@@ -169,8 +169,8 @@ if __name__ == '__main__':
     parser.add_argument('--bn_fuse', action='store_true',
                         help='batch-normalization fuse')
     # bn融合校准标志位
-    parser.add_argument('--bn_fuse_cali', action='store_true',
-                        help='batch-normalization fuse calibration')                    
+    parser.add_argument('--bn_fuse_calib', action='store_true',
+                        help='batch-normalization fuse calibration')
     # 量化方法选择
     parser.add_argument('--q_type', type=int, default=0,
                         help='quant_type:0-symmetric, 1-asymmetric')
@@ -252,7 +252,7 @@ if __name__ == '__main__':
                          q_level=args.q_level, device=device,
                          weight_observer=args.weight_observer,
                          bn_fuse=args.bn_fuse,
-                         bn_fuse_cali=args.bn_fuse_cali,
+                         bn_fuse_calib=args.bn_fuse_calib,
                          pretrained_model=args.pretrained_model,
                          qaft=args.qaft,
                          ptq=args.ptq,
@@ -273,7 +273,7 @@ if __name__ == '__main__':
                          q_level=args.q_level, device=device,
                          weight_observer=args.weight_observer,
                          bn_fuse=args.bn_fuse,
-                         bn_fuse_cali=args.bn_fuse_cali,
+                         bn_fuse_calib=args.bn_fuse_calib,
                          pretrained_model=args.pretrained_model,
                          qaft=args.qaft,
                          ptq=args.ptq,
@@ -297,7 +297,7 @@ if __name__ == '__main__':
                          q_level=args.q_level, device=device,
                          weight_observer=args.weight_observer,
                          bn_fuse=args.bn_fuse,
-                         bn_fuse_cali=args.bn_fuse_cali,
+                         bn_fuse_calib=args.bn_fuse_calib,
                          pretrained_model=args.pretrained_model,
                          qaft=args.qaft,
                          ptq=args.ptq,
@@ -317,7 +317,7 @@ if __name__ == '__main__':
                          q_level=args.q_level, device=device,
                          weight_observer=args.weight_observer,
                          bn_fuse=args.bn_fuse,
-                         bn_fuse_cali=args.bn_fuse_cali,
+                         bn_fuse_calib=args.bn_fuse_calib,
                          pretrained_model=args.pretrained_model,
                          qaft=args.qaft,
                          ptq=args.ptq,
@@ -347,7 +347,7 @@ if __name__ == '__main__':
                          q_level=args.q_level, device=device,
                          weight_observer=args.weight_observer,
                          bn_fuse=args.bn_fuse,
-                         bn_fuse_cali=args.bn_fuse_cali,
+                         bn_fuse_calib=args.bn_fuse_calib,
                          pretrained_model=args.pretrained_model,
                          qaft=args.qaft,
                          ptq=args.ptq,

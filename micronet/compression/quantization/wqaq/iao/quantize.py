@@ -401,13 +401,13 @@ class QuantBNFuseConv2d(QuantConv2d):
                  qaft=False,
                  ptq=False,
                  percentile=0.9999,
-                 bn_fuse_cali=False):
+                 bn_fuse_calib=False):
         super(QuantBNFuseConv2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups,
                                                 bias, padding_mode)
         self.num_flag = 0
         self.pretrained_model = pretrained_model
         self.qaft = qaft
-        self.bn_fuse_cali = bn_fuse_cali
+        self.bn_fuse_calib = bn_fuse_calib
         self.eps = eps
         self.momentum = momentum
         self.gamma = Parameter(torch.Tensor(out_channels))
@@ -503,7 +503,7 @@ class QuantBNFuseConv2d(QuantConv2d):
                 else:
                     bias_fused = reshape_to_bias(self.beta - batch_mean * (self.gamma / torch.sqrt(batch_var + self.eps)))  # b融batch
                   # bn融合不校准
-                if not self.bn_fuse_cali:    
+                if not self.bn_fuse_calib:    
                     weight_fused = self.weight * reshape_to_weight(self.gamma / torch.sqrt(batch_var + self.eps))           # w融batch
                   # bn融合校准
                 else:
@@ -532,7 +532,7 @@ class QuantBNFuseConv2d(QuantConv2d):
             # 量化卷积
             if self.training:  # 训练态
                 # bn融合不校准
-                if not self.bn_fuse_cali:
+                if not self.bn_fuse_calib:
                     output = F.conv2d(quant_input, quant_weight, bias_fused, self.stride, self.padding, self.dilation,
                                       self.groups)
                 # bn融合校准
@@ -739,7 +739,7 @@ class QuantAdaptiveAvgPool2d(nn.AdaptiveAvgPool2d):
 
 
 def add_quant_op(module, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu',
-                 weight_observer=0, bn_fuse=False, bn_fuse_cali=False, quant_inference=False,
+                 weight_observer=0, bn_fuse=False, bn_fuse_calib=False, quant_inference=False,
                  pretrained_model=False, qaft=False, ptq=False, percentile=0.9999):
     for name, child in module.named_children():
         if isinstance(child, nn.Conv2d):
@@ -790,7 +790,7 @@ def add_quant_op(module, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu',
                                                            qaft=qaft,
                                                            ptq=ptq,
                                                            percentile=percentile,
-                                                           bn_fuse_cali=bn_fuse_cali)
+                                                           bn_fuse_calib=bn_fuse_calib)
                     quant_bn_fuse_conv.bias.data = conv_child_temp.bias
                 else:
                     quant_bn_fuse_conv = QuantBNFuseConv2d(conv_child_temp.in_channels,
@@ -814,7 +814,7 @@ def add_quant_op(module, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu',
                                                            qaft=qaft,
                                                            ptq=ptq,
                                                            percentile=percentile,
-                                                           bn_fuse_cali=bn_fuse_cali)
+                                                           bn_fuse_calib=bn_fuse_calib)
                 quant_bn_fuse_conv.weight.data = conv_child_temp.weight
                 quant_bn_fuse_conv.gamma.data = child.weight
                 quant_bn_fuse_conv.beta.data = child.bias
@@ -930,20 +930,20 @@ def add_quant_op(module, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu',
         else:
             add_quant_op(child, a_bits=a_bits, w_bits=w_bits, q_type=q_type, q_level=q_level,
                          device=device, weight_observer=weight_observer, bn_fuse=bn_fuse,
-                         bn_fuse_cali=bn_fuse_cali, quant_inference=quant_inference,
+                         bn_fuse_calib=bn_fuse_calib, quant_inference=quant_inference,
                          pretrained_model=pretrained_model,
                          qaft=qaft, ptq=ptq, percentile=percentile)
 
 
 def prepare(model, inplace=False, a_bits=8, w_bits=8, q_type=0, q_level=0,
-            device='cpu', weight_observer=0, bn_fuse=False, bn_fuse_cali=False,
+            device='cpu', weight_observer=0, bn_fuse=False, bn_fuse_calib=False,
             quant_inference=False, pretrained_model=False, qaft=False,
             ptq=False, percentile=0.9999):
     if not inplace:
         model = copy.deepcopy(model)
     add_quant_op(model, a_bits=a_bits, w_bits=w_bits, q_type=q_type, q_level=q_level,
                  device=device, weight_observer=weight_observer, bn_fuse=bn_fuse,
-                 bn_fuse_cali=bn_fuse_cali, quant_inference=quant_inference,
+                 bn_fuse_calib=bn_fuse_calib, quant_inference=quant_inference,
                  pretrained_model=pretrained_model,
                  qaft=qaft, ptq=ptq, percentile=percentile)
     return model

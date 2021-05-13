@@ -139,7 +139,7 @@ micronet
 - 4.30, 1、update code_structure img; 2、fix iao's quant_weight_range, quant_contrans and quant_bn_fuse_conv pretrained_model bn_para load bug
 - **5.4**, add **qaft**, it's beneficial to improve the quantization accuracy
 - **5.6**, add **ptq**, its quantization accuracy is also good
-- 5.11, add bn_fuse_cali flag
+- 5.11, add bn_fuse_calib flag
 
 
 ## 环境要求
@@ -268,7 +268,7 @@ cd micronet/compression/quantization/wqaq/iao
 
 --bn_fuse, 量化中bn融合标志
 
---bn_fuse_cali, 量化中bn融合校准标志
+--bn_fuse_calib, 量化中bn融合校准标志
 
 --pretrained_model, 预训练浮点模型
 
@@ -339,7 +339,7 @@ python main.py --q_type 1 --q_level 1 --bn_fuse --gpu_id 0
 - 对称、(权重)通道级量化, bn融合校准
 
 ```bash
-python main.py --q_type 0 --q_level 0 --bn_fuse --bn_fuse_cali --gpu_id 0
+python main.py --q_type 0 --q_level 0 --bn_fuse --bn_fuse_calib --gpu_id 0
 ```
 
 **PTQ**
@@ -917,7 +917,7 @@ class LeNet(nn.Module):
 --q_level, 权重量化级别(0-通道级, 1-层级)
 --weight_observer, weight_observer选择(0-MinMaxObserver, 1-MovingAverageMinMaxObserver)
 --bn_fuse, 量化中bn融合标志
---bn_fuse_cali, 量化中bn融合校准标志
+--bn_fuse_calib, 量化中bn融合校准标志
 --pretrained_model, 预训练浮点模型
 --qaft, qaft标志
 --ptq, ptq标志
@@ -930,7 +930,7 @@ quant_lenet_iao = quant_iao.prepare(lenet, inplace=False, a_bits=8,
                                     q_level=0, device='cpu',
                                     weight_observer=0,
                                     bn_fuse=False,
-                                    bn_fuse_cali=False,
+                                    bn_fuse_calib=False,
                                     pretrained_model=False,
                                     qaft=False,
                                     ptq=False,
