@@ -140,6 +140,7 @@ micronet
 - **5.4**, add **qaft**, it's beneficial to improve the quantization accuracy
 - **5.6**, add **ptq**, its quantization accuracy is also good
 - 5.11, add bn_fuse_calib flag
+- **5.14**, fix ste to clip_ste, it's beneficial to improve the quant_train
 
 
 ## 环境要求
@@ -274,7 +275,9 @@ cd micronet/compression/quantization/wqaq/iao
 
 --qaft, qaft标志
 
---ptq, ptq标志
+--ptq, ptq_observer
+
+--ptq_control, ptq_control
 
 --ptq_batch, ptq的batch数量
 
@@ -349,7 +352,7 @@ python main.py --q_type 0 --q_level 0 --bn_fuse --bn_fuse_calib --gpu_id 0
 - 对称、(权重)通道级量化, bn融合
 
 ```bash
-python main.py --refine ../../../pruning/models_save/nin_gc.pth --q_level 0 --bn_fuse --gpu_id 0 --pretrained_model --ptq --batch_size 32 --ptq_batch 200 --percentile 0.999999
+python main.py --refine ../../../pruning/models_save/nin_gc.pth --q_level 0 --bn_fuse --gpu_id 0 --pretrained_model --ptq_control --ptq --batch_size 32 --ptq_batch 200 --percentile 0.999999
 ```
 
 - 其他情况类比
@@ -358,10 +361,22 @@ python main.py --refine ../../../pruning/models_save/nin_gc.pth --q_level 0 --bn
 
 **! 注意，需要在QAT/PTQ之后再做QAFT !**
 
+**QAT  —>  QAFT**
+
 - 对称、(权重)通道级量化, bn融合
 
 ```bash
 python main.py --resume models_save/nin_gc_bn_fused.pth --q_type 0 --q_level 0 --bn_fuse --gpu_id 0 --qaft --lr 0.00001
+```
+
+- 其他情况类比
+
+**PTQ  —>  QAFT**
+
+- 对称、(权重)通道级量化, bn融合
+
+```bash
+python main.py --resume models_save/nin_gc_bn_fused.pth --q_level 0 --bn_fuse --gpu_id 0 --qaft --lr 0.00001 --ptq
 ```
 
 - 其他情况类比
@@ -517,7 +532,7 @@ python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_quant ../../../pruni
 - nin(正常卷积结构)
 
 ```bash
-python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_quant ../../../pruning/models_save/nin_finetune.pth --gpu_id 0 --bn_fuse --pretrained_model --ptq --batch_size 32 --ptq_batch 200 --percentile 0.999999
+python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_quant ../../../pruning/models_save/nin_finetune.pth --gpu_id 0 --bn_fuse --pretrained_model --ptq_control --ptq --batch_size 32 --ptq_batch 200 --percentile 0.999999
 ```
 
 - 其他情况类比
@@ -525,6 +540,8 @@ python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_quant ../../../pruni
 **QAFT**
 
 **! 注意，需要在QAT/PTQ之后再做QAFT !**
+
+**QAT  —>  QAFT**
 
 *bn不融合*
 
@@ -552,6 +569,36 @@ python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_qaft models_save/nin
 
 ```bash
 python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_qaft models_save/nin_gc_bn_fused.pth --gpu_id 0 --bn_fuse --qaft --lr 0.00001
+```
+
+**PTQ  —>  QAFT**
+
+*bn不融合*
+
+- nin(正常卷积结构)
+
+```bash
+python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_qaft models_save/nin.pth --gpu_id 0 --qaft --lr 0.00001 --ptq
+```
+
+- nin_gc(含分组卷积结构)
+
+```bash
+python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_qaft models_save/nin_gc.pth --gpu_id 0 --qaft --lr 0.00001 --ptq
+```
+
+*bn融合*
+
+- nin(正常卷积结构)
+
+```bash
+python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_qaft models_save/nin_bn_fused.pth --gpu_id 0 --bn_fuse --qaft --lr 0.00001 --ptq
+```
+
+- nin_gc(含分组卷积结构)
+
+```bash
+python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_qaft models_save/nin_gc_bn_fused.pth --gpu_id 0 --bn_fuse --qaft --lr 0.00001 --ptq
 ```
 
 ###### 其他可选量化配置类比

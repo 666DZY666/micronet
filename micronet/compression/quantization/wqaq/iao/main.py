@@ -87,7 +87,7 @@ def train(epoch):
         loss = criterion(output, target)
 
         # PTQ doesn't need backward
-        if not args.ptq:
+        if not args.ptq_control:
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -189,9 +189,12 @@ if __name__ == '__main__':
     # prune_qaft
     parser.add_argument('--prune_qaft', default='', type=str, metavar='PATH',
                         help='the path to the prune_qaft model')
-    # ptq标志位
+    # ptq_observer
     parser.add_argument('--ptq', action='store_true',
                         help='post-training-quantization')
+    # ptq_control
+    parser.add_argument('--ptq_control', action='store_true',
+                        help='ptq control flag')
     # ptq_percentile
     parser.add_argument('--percentile', type=float, default=0.999999,
                         help='the percentile of ptq')
@@ -367,12 +370,12 @@ if __name__ == '__main__':
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(params, lr=base_lr, weight_decay=args.wd)
 
-    if args.ptq:
+    if args.ptq_control:
         args.end_epochs = 2
         print('ptq is doing...')
     for epoch in range(args.start_epochs, args.end_epochs):
         adjust_learning_rate(optimizer, epoch)
         train(epoch)
         test()
-    if args.ptq:
+    if args.ptq_control:
         print('ptq is done')

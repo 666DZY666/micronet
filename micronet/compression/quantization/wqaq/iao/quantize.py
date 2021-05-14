@@ -40,14 +40,14 @@ class MinMaxObserver(ObserverBase):
         self.num_flag = 0
         self.out_channels = out_channels
         if self.q_level == 'L':
-            self.min_val = torch.zeros((1), dtype=torch.float32, device=self.device)
-            self.max_val = torch.zeros((1), dtype=torch.float32, device=self.device)
+            self.register_buffer('min_val', torch.zeros((1), dtype=torch.float32))
+            self.register_buffer('max_val', torch.zeros((1), dtype=torch.float32))
         elif self.q_level == 'C':
-            self.min_val = torch.zeros((out_channels, 1, 1, 1), dtype=torch.float32, device=self.device)
-            self.max_val = torch.zeros((out_channels, 1, 1, 1), dtype=torch.float32, device=self.device)
+            self.register_buffer('min_val', torch.zeros((out_channels, 1, 1, 1), dtype=torch.float32))
+            self.register_buffer('max_val', torch.zeros((out_channels, 1, 1, 1), dtype=torch.float32))
         elif self.q_level == 'FC':
-            self.min_val = torch.zeros((out_channels, 1), dtype=torch.float32, device=self.device)
-            self.max_val = torch.zeros((out_channels, 1), dtype=torch.float32, device=self.device)
+            self.register_buffer('min_val', torch.zeros((out_channels, 1), dtype=torch.float32))
+            self.register_buffer('max_val', torch.zeros((out_channels, 1), dtype=torch.float32))
 
     def update_range(self, min_val_cur, max_val_cur):
         if self.q_level == 'C':
@@ -70,14 +70,14 @@ class MovingAverageMinMaxObserver(ObserverBase):
         self.num_flag = 0
         self.out_channels = out_channels
         if self.q_level == 'L':
-            self.min_val = torch.zeros((1), dtype=torch.float32, device=self.device)
-            self.max_val = torch.zeros((1), dtype=torch.float32, device=self.device)
+            self.register_buffer('min_val', torch.zeros((1), dtype=torch.float32))
+            self.register_buffer('max_val', torch.zeros((1), dtype=torch.float32))
         elif self.q_level == 'C':
-            self.min_val = torch.zeros((out_channels, 1, 1, 1), dtype=torch.float32, device=self.device)
-            self.max_val = torch.zeros((out_channels, 1, 1, 1), dtype=torch.float32, device=self.device)
+            self.register_buffer('min_val', torch.zeros((out_channels, 1, 1, 1), dtype=torch.float32))
+            self.register_buffer('max_val', torch.zeros((out_channels, 1, 1, 1), dtype=torch.float32))
         elif self.q_level == 'FC':
-            self.min_val = torch.zeros((out_channels, 1), dtype=torch.float32, device=self.device)
-            self.max_val = torch.zeros((out_channels, 1), dtype=torch.float32, device=self.device)
+            self.register_buffer('min_val', torch.zeros((out_channels, 1), dtype=torch.float32))
+            self.register_buffer('max_val', torch.zeros((out_channels, 1), dtype=torch.float32))
 
     def update_range(self, min_val_cur, max_val_cur):
         if self.q_level == 'C':
@@ -101,8 +101,8 @@ class HistogramObserver(nn.Module):
         self.momentum = momentum
         self.percentile = percentile
         self.num_flag = 0
-        self.min_val = torch.zeros((1), dtype=torch.float32, device=self.device)
-        self.max_val = torch.zeros((1), dtype=torch.float32, device=self.device)
+        self.register_buffer('min_val', torch.zeros((1), dtype=torch.float32))
+        self.register_buffer('max_val', torch.zeros((1), dtype=torch.float32))
 
     @torch.no_grad()
     def forward(self, input):
@@ -119,17 +119,29 @@ class HistogramObserver(nn.Module):
 
 
 # ********************* quantizers（量化器，量化） *********************
-# 取整(ste)
+# 取整(饱和/截断ste)
 class Round(Function):
     @staticmethod
-    def forward(self, input):
+    def forward(self, input, observer_min_val, observer_max_val, q_type):
+        # 对称
+        if q_type == 0:
+            max_val = torch.max(torch.abs(observer_min_val), torch.abs(observer_max_val))
+            min_val = -max_val
+        # 非对称
+        else:
+            max_val = observer_max_val
+            min_val = observer_min_val
+        self.save_for_backward(input, min_val, max_val)
         output = torch.round(input)
         return output
 
     @staticmethod
     def backward(self, grad_output):
+        input, min_val, max_val= self.saved_tensors
         grad_input = grad_output.clone()
-        return grad_input
+        grad_input[input.gt(max_val)] = 0
+        grad_input[input.lt(min_val)] = 0
+        return grad_input, None, None, None
 
 class Quantizer(nn.Module):
     def __init__(self, bits, observer, activation_weight_flag, qaft=False):
@@ -138,6 +150,7 @@ class Quantizer(nn.Module):
         self.observer = observer
         self.activation_weight_flag = activation_weight_flag
         self.qaft = qaft
+        self.q_type = 0
         # scale/zero_point/eps
         if self.observer.q_level == 'L':
             self.register_buffer('scale', torch.ones((1), dtype=torch.float32))
@@ -152,12 +165,12 @@ class Quantizer(nn.Module):
 
     def update_qparams(self):
         raise NotImplementedError
-
+    
     # 取整(ste)
-    def round(self, input):
-        output = Round.apply(input)
+    def round(self, input, observer_min_val, observer_max_val, q_type):
+        output = Round.apply(input, observer_min_val, observer_max_val, q_type)
         return output
-
+    
     def forward(self, input):
         if self.bits == 32:
             output = input
@@ -168,11 +181,12 @@ class Quantizer(nn.Module):
             if not self.qaft:
                 #qat, update quant_para
                 if self.training:
-                    self.observer(input)
+                    self.observer(input)   # update observer_min and observer_max
                     self.update_qparams()  # update scale and zero_point
-            # 量化/反量化
-            output = (torch.clamp(self.round(input / self.scale - self.zero_point),
-                                  self.quant_min_val, self.quant_max_val) + self.zero_point) * self.scale
+            output = (torch.clamp(self.round(input / self.scale - self.zero_point,
+                      self.observer.min_val / self.scale - self.zero_point,
+                      self.observer.max_val / self.scale - self.zero_point, self.q_type),
+                      self.quant_min_val, self.quant_max_val) + self.zero_point) * self.scale
         return output
 
 class SignedQuantizer(Quantizer):
@@ -202,6 +216,7 @@ class UnsignedQuantizer(Quantizer):
 # 对称量化
 class SymmetricQuantizer(SignedQuantizer):
     def update_qparams(self):
+        self.q_type = 0
         quant_range = float(self.quant_max_val - self.quant_min_val) / 2                                # quantized_range
         float_range = torch.max(torch.abs(self.observer.min_val), torch.abs(self.observer.max_val))     # float_range
         self.scale = float_range / quant_range                                                          # scale
@@ -211,6 +226,7 @@ class SymmetricQuantizer(SignedQuantizer):
 # 非对称量化
 class AsymmetricQuantizer(UnsignedQuantizer):
     def update_qparams(self):
+        self.q_type = 1
         quant_range = float(self.quant_max_val - self.quant_min_val)           # quantized_range
         float_range = self.observer.max_val - self.observer.min_val            # float_range
         self.scale = float_range / quant_range                                 # scale
