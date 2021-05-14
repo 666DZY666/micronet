@@ -1,4 +1,4 @@
-__version__ = "1.9.3"
+__version__ = "1.9.5"
 
 def quant_test_manual():
     import torch.nn as nn
@@ -79,7 +79,7 @@ def quant_test_manual():
             self.fc1 = quant_linear_iao(320, 50)
             self.fc2 = quant_linear_iao(50, 10)
             self.max_pool = quant_max_pool_iao(kernel_size=2)
-            self.relu = quant_relu_iao(inplace=True)
+            self.relu = nn.ReLU(inplace=True)
 
         def forward(self, x):
             x = self.relu(self.max_pool(self.conv1(x)))
