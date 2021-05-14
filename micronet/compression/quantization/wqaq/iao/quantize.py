@@ -668,6 +668,27 @@ class QuantReLU(nn.ReLU):
         return output
 
 
+class QuantLeakyReLU(nn.LeakyReLU):
+    def __init__(self, negative_slope=0.01, inplace=False, a_bits=8, q_type=0, device='cpu', qaft=False,
+                 ptq=False, percentile=0.9999):
+        super(QuantLeakyReLU, self).__init__(negative_slope, inplace)
+        if not ptq:
+            if q_type == 0:
+                self.activation_quantizer = SymmetricQuantizer(bits=a_bits, observer=MovingAverageMinMaxObserver(
+                                                               q_level='L', out_channels=None, device=device), activation_weight_flag=1, qaft=qaft)
+            else:
+                self.activation_quantizer = AsymmetricQuantizer(bits=a_bits, observer=MovingAverageMinMaxObserver(
+                                                                q_level='L', out_channels=None, device=device), activation_weight_flag=1, qaft=qaft)
+        else:
+            self.activation_quantizer = SymmetricQuantizer(bits=a_bits, observer=HistogramObserver(
+                                                           q_level='L', device=device, percentile=percentile), activation_weight_flag=1, qaft=qaft)
+
+    def forward(self, input):
+        quant_input = self.activation_quantizer(input)
+        output = F.leaky_relu(quant_input, self.negative_slope, self.inplace)
+        return output
+
+
 class QuantSigmoid(nn.Sigmoid):
     def __init__(self, a_bits=8, q_type=0, device='cpu', qaft=False, ptq=False, percentile=0.9999):
         super(QuantSigmoid, self).__init__()
@@ -909,6 +930,11 @@ def add_quant_op(module, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu',
         #    quant_relu = QuantReLU(inplace=child.inplace, a_bits=a_bits,
         #                           q_type=q_type, device=device, qaft=qaft, ptq=ptq, percentile=percentile)
         #    module._modules[name] = quant_relu
+        elif isinstance(child, nn.LeakyReLU):
+            quant_leaky_relu = QuantLeakyReLU(negative_slope=child.negative_slope, inplace=child.inplace,
+                                              a_bits=a_bits, q_type=q_type, device=device, qaft=qaft,
+                                              ptq=ptq, percentile=percentile)
+            module._modules[name] = quant_leaky_relu
         elif isinstance(child, nn.Sigmoid):
             quant_sigmoid = QuantSigmoid(a_bits=a_bits, q_type=q_type,
                                          device=device, qaft=qaft, ptq=ptq, percentile=percentile)
