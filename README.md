@@ -140,7 +140,7 @@ micronet
 - **5.4**, add **qaft**, it's beneficial to improve the quantization accuracy
 - **5.6**, add **ptq**, its quantization accuracy is also good
 - 5.11, add bn_fuse_calib flag
-- **5.14**, fix ste to clip_ste, it's beneficial to improve the quant_train
+- **5.14**, change **ste** to **clip_ste**, it's beneficial to improve the quant_train
 
 
 ## 环境要求
