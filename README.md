@@ -11,7 +11,7 @@
 ### 压缩
 
 - 量化：High-Bit(>2b): QAT, PTQ, QAFT; Low-Bit(≤2b)/Ternary and Binary: QAT
-- 剪枝：正常、规整、分组卷积结构剪枝
+- 剪枝：正常、规整和分组卷积结构剪枝
 - 针对特征(A)二值量化的BN融合(训练量化后，BN参数 —> conv的偏置b)
 - High-Bit量化的BN融合(训练量化中，先融合再量化，融合：BN参数 —> conv的权重w和偏置b)
 
