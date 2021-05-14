@@ -904,10 +904,11 @@ def add_quant_op(module, a_bits=8, w_bits=8, q_type=0, q_level=0, device='cpu',
                                            percentile=percentile)
             quant_linear.weight.data = child.weight
             module._modules[name] = quant_linear
-        elif isinstance(child, nn.ReLU):
-            quant_relu = QuantReLU(inplace=child.inplace, a_bits=a_bits,
-                                   q_type=q_type, device=device, qaft=qaft, ptq=ptq, percentile=percentile)
-            module._modules[name] = quant_relu
+        # relu needn’t quantize, it will be fused in quant_inference
+        #elif isinstance(child, nn.ReLU):
+        #    quant_relu = QuantReLU(inplace=child.inplace, a_bits=a_bits,
+        #                           q_type=q_type, device=device, qaft=qaft, ptq=ptq, percentile=percentile)
+        #    module._modules[name] = quant_relu
         elif isinstance(child, nn.Sigmoid):
             quant_sigmoid = QuantSigmoid(a_bits=a_bits, q_type=q_type,
                                          device=device, qaft=qaft, ptq=ptq, percentile=percentile)
