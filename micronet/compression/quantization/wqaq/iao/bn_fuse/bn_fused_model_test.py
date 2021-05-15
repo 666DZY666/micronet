@@ -90,14 +90,19 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--cpu', action='store_true',
                         help='set if only CPU is available')
+    parser.add_argument('--gpu_id', action='store', default='',
+                        help='gpu_id')
     parser.add_argument('--data', action='store', default='../../../../../data',
                         help='dataset path')
     parser.add_argument('--eval_batch_size', type=int, default=64)
     parser.add_argument('--num_workers', type=int, default=2)
-    parser.add_argument('--epochs', type=int, default=300, metavar='N',
+    parser.add_argument('--epochs', type=int, default=3, metavar='N',
                         help='number of epochs to train (default: 160)')
     args = parser.parse_args()
     print('==> Options:', args)
+
+    if args.gpu_id:
+        os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
 
     print('==> Preparing data..')
     transform_train = transforms.Compose([

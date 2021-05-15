@@ -141,6 +141,7 @@ micronet
 - **5.6**, add **ptq**, its quantization accuracy is also good
 - 5.11, add bn_fuse_calib flag
 - **5.14**, 1、change **ste** to **clip_ste**, it's beneficial to improve the quant_train；2、remove quant_relu and add quant_leaky_relu
+- 5.15, fix bug in quant_model_para post-processing
 
 
 ## 环境要求
@@ -647,31 +648,31 @@ cd micronet/compression/quantization/wbwtab/bn_fuse
 - nin_gc, quant_model, wb
 
 ```bash
-python bn_fuse.py --model_type 1 --W 2
+python bn_fuse.py --model_type 1 --W 2 --gpu_id 0
 ```
 
 - nin_gc, prune_quant_model, wb
 
 ```bash
-python bn_fuse.py --model_type 1 --prune_quant --W 2
+python bn_fuse.py --model_type 1 --prune_quant --W 2 --gpu_id 0
 ```
 
 - nin_gc, quant_model, wt
 
 ```bash
-python bn_fuse.py --model_type 1 --W 3
+python bn_fuse.py --model_type 1 --W 3 --gpu_id 0
 ```
 
 - nin, quant_model, wb
 
 ```bash
-python bn_fuse.py --model_type 0 --W 2
+python bn_fuse.py --model_type 0 --W 2 --gpu_id 0
 ```
 
 ###### bn_fused_model_test(对quant_model_train和quant_bn_fused_model_inference进行测试)
 
 ```bash
-python bn_fused_model_test.py
+python bn_fused_model_test.py --gpu_id 0
 ```
 
 ##### dorefa
@@ -693,25 +694,25 @@ cd micronet/compression/quantization/wqaq/dorefa/quant_model_test
 - nin_gc, quant_model, w8a8
 
 ```bash
-python quant_model_para.py --model_type 1 --w_bits 8 --a_bits 8
+python quant_model_para.py --model_type 1 --w_bits 8 --a_bits 8 --gpu_id 0
 ```
 
 - nin_gc, prune_quant_model, w8a8
 
 ```bash
-python quant_model_para.py --model_type 1 --prune_quant --w_bits 8 --a_bits 8
+python quant_model_para.py --model_type 1 --prune_quant --w_bits 8 --a_bits 8 --gpu_id 0
 ```
 
 - nin, quant_model, w8a8
 
 ```bash
-python quant_model_para.py --model_type 0 --w_bits 8 --a_bits 8
+python quant_model_para.py --model_type 0 --w_bits 8 --a_bits 8 --gpu_id 0
 ```
 
 ###### quant_model_test(对quant_model_train和quant_model_inference进行测试)
 
 ```bash
-python quant_model_test.py
+python quant_model_test.py --gpu_id 0
 ```
 
 ##### iao
@@ -738,31 +739,31 @@ cd micronet/compression/quantization/wqaq/iao/bn_fuse
 - nin_gc, quant_model, w8a8
 
 ```bash
-python quant_model_para.py --model_type 1 --w_bits 8 --a_bits 8
+python bn_fuse.py --model_type 1 --w_bits 8 --a_bits 8 --gpu_id 0
 ```
 
 - nin_gc, prune_quant_model, w8a8
 
 ```bash
-python quant_model_para.py --model_type 1 --prune_quant --w_bits 8 --a_bits 8
+python bn_fuse.py --model_type 1 --prune_quant --w_bits 8 --a_bits 8 --gpu_id 0
 ```
 
 - nin, quant_model, w8a8
 
 ```bash
-python quant_model_para.py --model_type 0 --w_bits 8 --a_bits 8
+python bn_fuse.py --model_type 0 --w_bits 8 --a_bits 8 --gpu_id 0
 ```
 
 - nin_gc, quant_model, w8a8, 非对称, 层级
 
 ```bash
-python quant_model_para.py --model_type 0 --w_bits 8 --a_bits 8 --q_type 1 --q_level 1
+python bn_fuse.py --model_type 0 --w_bits 8 --a_bits 8 --q_type 1 --q_level 1 --gpu_id 0
 ```
 
 ###### bn_fused_model_test(对quant_bn_fused_model_train和quant_bn_fused_model_inference进行测试)
 
 ```bash
-python bn_fused_model_test.py
+python bn_fused_model_test.py --gpu_id 0
 ```
 
 #### 设备选取

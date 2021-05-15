@@ -2,8 +2,9 @@ import copy
 import sys
 sys.path.append("..")
 sys.path.append("../../../../..")
-import numpy as np
+import os
 import argparse
+import numpy as np
 import torch
 import torch.nn as nn
 from models import nin_gc, nin
@@ -16,6 +17,8 @@ import quantize
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('--gpu_id', action='store', default='',
+                        help='gpu_id')
     parser.add_argument('--prune_quant', action='store_true',
                         help='this is prune_quant model')
     parser.add_argument('--model_type', type=int, default=1,
@@ -25,6 +28,9 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     print('==> Options:', args)
+
+    if args.gpu_id:
+        os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
 
     if args.prune_quant:
         print('******Prune Quant model******')
@@ -66,5 +72,4 @@ if __name__ == '__main__':
     model_para_array = np.array(quant_model_inference.state_dict())
     np.savetxt('models_save/quant_model_inference.txt', [model_array], fmt='%s', delimiter=',')
     np.savetxt('models_save/quant_model_inference_para.txt', [model_para_array], fmt='%s', delimiter=',')
-    print("************* bn_fuse 完成 **************")
-    print("************* bn_fused_model 已保存 **************")
+    print("************* quant_model_para 已保存 **************")

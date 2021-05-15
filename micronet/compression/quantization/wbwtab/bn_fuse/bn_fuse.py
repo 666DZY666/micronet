@@ -2,8 +2,9 @@ import copy
 import sys
 sys.path.append("..")
 sys.path.append("../../../..")
-import numpy as np
+import os
 import argparse
+import numpy as np
 import torch
 import torch.nn as nn
 from models import nin_gc, nin
@@ -96,6 +97,8 @@ def model_bn_fuse(model, inplace=False):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
+    parser.add_argument('--gpu_id', action='store', default='',
+                        help='gpu_id')
     parser.add_argument('--prune_quant', action='store_true',
                         help='this is prune_quant model')
     parser.add_argument('--model_type', type=int, default=1,
@@ -107,6 +110,9 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     print('==> Options:', args)
+
+    if args.gpu_id:
+        os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
 
     if args.prune_quant:
         print('******Prune Quant model******')

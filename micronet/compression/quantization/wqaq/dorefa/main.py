@@ -4,8 +4,8 @@ from __future__ import print_function
 
 import sys
 sys.path.append("../../../..")
-import math
 import os
+import math
 import argparse
 import numpy as np
 import torch
