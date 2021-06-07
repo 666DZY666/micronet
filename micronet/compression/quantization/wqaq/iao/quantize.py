@@ -8,8 +8,7 @@ from torch.nn import init
 from torch.nn.parameter import Parameter
 from torch.autograd import Function
 
-from base_module.op import *
-#from micronet.base_module.op import *
+from micronet.base_module.op import *
 
 
 # ********************* observers(统计min/max) *********************

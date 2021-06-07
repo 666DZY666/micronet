@@ -1,10 +1,11 @@
-__version__ = "1.10.2"
+__version__ = "1.10.6"
+
+from micronet.base_module.op import *
+
 
 def quant_test_manual():
     import torch.nn as nn
     import torch.nn.functional as F
-
-    from micronet.base_module.op import *
 
     # ``quantize`` is quant_module, ``QuantConv2d``, ``QuantLinear``, ``QuantMaxPool2d``, ``QuantReLU`` are quant_op
     from micronet.compression.quantization.wbwtab.quantize import QuantConv2d as quant_conv_wbwtab
@@ -109,8 +110,6 @@ def quant_test_manual():
 def quant_test_auto():
     import torch.nn as nn
     import torch.nn.functional as F
-
-    from micronet.base_module.op import *
 
     import micronet.compression.quantization.wqaq.dorefa.quantize as quant_dorefa
     import micronet.compression.quantization.wqaq.iao.quantize as quant_iao

@@ -1,8 +1,7 @@
 import torch
 import torch.nn as nn
 
-from base_module.op import *
-#from micronet.base_module.op import *
+from micronet.base_module.op import *
 
 
 class BasicBlock(nn.Module):
