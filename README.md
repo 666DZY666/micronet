@@ -142,7 +142,7 @@ micronet
 - 5.11, add bn_fuse_calib flag
 - **5.14**, 1、change **ste** to **clip_ste**, it's beneficial to improve the quant_train；2、remove quant_relu and add quant_leaky_relu
 - 5.15, fix bug in quant_model_para post-processing
-- **6.7**, add quant_add and quant_resnet demo
+- **6.7**, add quant_add(need use base_module's op) and quant_resnet demo
 
 
 ## 环境要求
@@ -830,6 +830,7 @@ python main.py --gpu_id 0,1,2
 import torch.nn as nn
 import torch.nn.functional as F
 
+# some base_op, such as ``Add``、``Concat``
 from micronet.base_module.op import *
 
 # ``quantize`` is quant_module, ``QuantConv2d``, ``QuantLinear``, ``QuantMaxPool2d``, ``QuantReLU`` are quant_op
@@ -941,6 +942,7 @@ print('micronet is ready')
 import torch.nn as nn
 import torch.nn.functional as F
 
+# some base_op, such as ``Add``、``Concat``
 from micronet.base_module.op import *
 
 import micronet.compression.quantization.wqaq.dorefa.quantize as quant_dorefa
