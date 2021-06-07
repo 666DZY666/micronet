@@ -15,7 +15,7 @@ import torchvision
 import torchvision.transforms as transforms
 from torch.autograd import Variable
 from torch.nn import init
-from models import nin_gc, nin
+from models import nin_gc, nin, resnet
 
 import quantize
 
@@ -52,7 +52,7 @@ def save_state(model, best_acc):
                             'state_dict': state['state_dict']}, 'models_save/nin.pth')
             else:
                 torch.save(state, 'models_save/nin.pth')
-    else:
+    elif args.model_type == 1:
         if args.bn_fuse:
             if args.prune_quant or args.prune_qaft:
                 torch.save({'cfg': cfg, 'best_acc': best_acc,
@@ -65,6 +65,11 @@ def save_state(model, best_acc):
                             'state_dict': state['state_dict']}, 'models_save/nin_gc.pth')
             else:
                 torch.save(state, 'models_save/nin_gc.pth')
+    else:
+        if args.bn_fuse:
+            torch.save(state, 'models_save/resnet_bn_fused.pth')
+        else:
+            torch.save(state, 'models_save/resnet.pth')
 
 
 def adjust_learning_rate(optimizer, epoch):
@@ -202,7 +207,7 @@ if __name__ == '__main__':
     parser.add_argument('--ptq_batch', type=int, default=200,
                         help='the batch of ptq')
     parser.add_argument('--model_type', type=int, default=1,
-                        help='model type:0-nin,1-nin_gc')
+                        help='model type:0-nin,1-nin_gc,2-resnet')
     args = parser.parse_args()
     print('==> Options:', args)
 
@@ -290,8 +295,10 @@ if __name__ == '__main__':
         checkpoint = torch.load(args.refine)
         if args.model_type == 0:
             model = nin.Net()
-        else:
+        elif args.model_type == 1:
             model = nin_gc.Net()
+        else:
+            model = resnet.resnet18()
         model.load_state_dict(checkpoint['state_dict'])
         best_acc = 0
         print('***ori_model***\n', model)
@@ -312,8 +319,10 @@ if __name__ == '__main__':
         checkpoint = torch.load(args.resume)
         if args.model_type == 0:
             model = nin.Net()
-        else:
+        elif args.model_type == 1:
             model = nin_gc.Net()
+        else:
+            model = resnet.resnet18()
         print('***ori_model***\n', model)
         quantize.prepare(model, inplace=True, a_bits=args.a_bits,
                          w_bits=args.w_bits, q_type=args.q_type,
@@ -332,8 +341,10 @@ if __name__ == '__main__':
         print('******Initializing model******')
         if args.model_type == 0:
             model = nin.Net()
-        else:
+        elif args.model_type == 1:
             model = nin_gc.Net()
+        else:
+            model = resnet.resnet18()
         best_acc = 0
         for m in model.modules():
             if isinstance(m, nn.Conv2d):
