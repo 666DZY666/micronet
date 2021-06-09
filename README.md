@@ -143,6 +143,7 @@ micronet
 - **5.14**, 1、change **ste** to **clip_ste**, it's beneficial to improve the quant_train；2、remove quant_relu and add quant_leaky_relu
 - 5.15, fix bug in quant_model_para post-processing
 - **6.7**, add quant_add(need use base_module's op) and quant_resnet demo
+- **6.9**, iao_quant supports multi gpus
 
 
 ## 环境要求
@@ -290,61 +291,61 @@ cd micronet/compression/quantization/wqaq/iao
 - 默认: 对称、(权重)通道级量化, bn不融合, weight_observer-MinMaxObserver, 不加载预训练浮点模型, 进行qat
 
 ```bash
-python main.py --q_type 0 --q_level 0 --weight_observer 0 --gpu_id 0
+python main.py --q_type 0 --q_level 0 --weight_observer 0
 ```
 
 - 对称、(权重)通道级量化, bn不融合, weight_observer-MovingAverageMinMaxObserver
 
 ```bash
-python main.py --q_type 0 --q_level 0 --weight_observer 1 --gpu_id 0
+python main.py --q_type 0 --q_level 0 --weight_observer 1
 ```
 
 - 对称、(权重)层级量化, bn不融合
 
 ```bash
-python main.py --q_type 0 --q_level 1 --gpu_id 0
+python main.py --q_type 0 --q_level 1
 ```
 
 - 非对称、(权重)通道级量化, bn不融合
 
 ```bash
-python main.py --q_type 1 --q_level 0 --gpu_id 0
+python main.py --q_type 1 --q_level 0
 ```
 
 - 非对称、(权重)层级量化, bn不融合
 
 ```bash
-python main.py --q_type 1 --q_level 1 --gpu_id 0
+python main.py --q_type 1 --q_level 1
 ```
 
 - 对称、(权重)通道级量化, bn融合
 
 ```bash
-python main.py --q_type 0 --q_level 0 --bn_fuse --gpu_id 0
+python main.py --q_type 0 --q_level 0 --bn_fuse
 ```
 
 - 对称、(权重)层级量化, bn融合
 
 ```bash
-python main.py --q_type 0 --q_level 1 --bn_fuse --gpu_id 0
+python main.py --q_type 0 --q_level 1 --bn_fuse
 ```
 
 - 非对称、(权重)通道级量化, bn融合
 
 ```bash
-python main.py --q_type 1 --q_level 0 --bn_fuse --gpu_id 0
+python main.py --q_type 1 --q_level 0 --bn_fuse
 ```
 
 - 非对称、(权重)层级量化, bn融合
 
 ```bash
-python main.py --q_type 1 --q_level 1 --bn_fuse --gpu_id 0
+python main.py --q_type 1 --q_level 1 --bn_fuse
 ```
 
 - 对称、(权重)通道级量化, bn融合校准
 
 ```bash
-python main.py --q_type 0 --q_level 0 --bn_fuse --bn_fuse_calib --gpu_id 0
+python main.py --q_type 0 --q_level 0 --bn_fuse --bn_fuse_calib
 ```
 
 **PTQ**
@@ -354,7 +355,7 @@ python main.py --q_type 0 --q_level 0 --bn_fuse --bn_fuse_calib --gpu_id 0
 - 对称、(权重)通道级量化, bn融合
 
 ```bash
-python main.py --refine ../../../pruning/models_save/nin_gc.pth --q_level 0 --bn_fuse --gpu_id 0 --pretrained_model --ptq_control --ptq --batch_size 32 --ptq_batch 200 --percentile 0.999999
+python main.py --refine ../../../pruning/models_save/nin_gc.pth --q_level 0 --bn_fuse --pretrained_model --ptq_control --ptq --batch_size 32 --ptq_batch 200 --percentile 0.999999
 ```
 
 - 其他情况类比
@@ -368,7 +369,7 @@ python main.py --refine ../../../pruning/models_save/nin_gc.pth --q_level 0 --bn
 - 对称、(权重)通道级量化, bn融合
 
 ```bash
-python main.py --resume models_save/nin_gc_bn_fused.pth --q_type 0 --q_level 0 --bn_fuse --gpu_id 0 --qaft --lr 0.00001
+python main.py --resume models_save/nin_gc_bn_fused.pth --q_type 0 --q_level 0 --bn_fuse --qaft --lr 0.00001
 ```
 
 - 其他情况类比
@@ -378,7 +379,7 @@ python main.py --resume models_save/nin_gc_bn_fused.pth --q_type 0 --q_level 0 -
 - 对称、(权重)通道级量化, bn融合
 
 ```bash
-python main.py --resume models_save/nin_gc_bn_fused.pth --q_level 0 --bn_fuse --gpu_id 0 --qaft --lr 0.00001 --ptq
+python main.py --resume models_save/nin_gc_bn_fused.pth --q_level 0 --bn_fuse --qaft --lr 0.00001 --ptq
 ```
 
 - 其他情况类比
@@ -506,13 +507,13 @@ cd micronet/compression/quantization/wqaq/iao
 - nin(正常卷积结构)
 
 ```bash
-python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_quant ../../../pruning/models_save/nin_finetune.pth --gpu_id 0 --lr 0.001
+python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_quant ../../../pruning/models_save/nin_finetune.pth --lr 0.001
 ```
 
 - nin_gc(含分组卷积结构)
 
 ```bash
-python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_quant ../../../pruning/models_save/nin_gc_retrain.pth --gpu_id 0 --lr 0.001
+python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_quant ../../../pruning/models_save/nin_gc_retrain.pth --lr 0.001
 ```
 
 *bn融合*
@@ -520,13 +521,13 @@ python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_quant ../../../pruni
 - nin(正常卷积结构)
 
 ```bash
-python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_quant ../../../pruning/models_save/nin_finetune.pth --gpu_id 0 --bn_fuse --pretrained_model --lr 0.001
+python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_quant ../../../pruning/models_save/nin_finetune.pth --bn_fuse --pretrained_model --lr 0.001
 ```
 
 - nin_gc(含分组卷积结构)
 
 ```bash
-python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_quant ../../../pruning/models_save/nin_gc_retrain.pth --gpu_id 0 --bn_fuse --pretrained_model --lr 0.001
+python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_quant ../../../pruning/models_save/nin_gc_retrain.pth --bn_fuse --pretrained_model --lr 0.001
 ```
 
 **PTQ**
@@ -534,7 +535,7 @@ python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_quant ../../../pruni
 - nin(正常卷积结构)
 
 ```bash
-python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_quant ../../../pruning/models_save/nin_finetune.pth --gpu_id 0 --bn_fuse --pretrained_model --ptq_control --ptq --batch_size 32 --ptq_batch 200 --percentile 0.999999
+python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_quant ../../../pruning/models_save/nin_finetune.pth --bn_fuse --pretrained_model --ptq_control --ptq --batch_size 32 --ptq_batch 200 --percentile 0.999999
 ```
 
 - 其他情况类比
@@ -550,13 +551,13 @@ python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_quant ../../../pruni
 - nin(正常卷积结构)
 
 ```bash
-python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_qaft models_save/nin.pth --gpu_id 0 --qaft --lr 0.00001
+python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_qaft models_save/nin.pth --qaft --lr 0.00001
 ```
 
 - nin_gc(含分组卷积结构)
 
 ```bash
-python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_qaft models_save/nin_gc.pth --gpu_id 0 --qaft --lr 0.00001
+python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_qaft models_save/nin_gc.pth --qaft --lr 0.00001
 ```
 
 *bn融合*
@@ -564,13 +565,13 @@ python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_qaft models_save/nin
 - nin(正常卷积结构)
 
 ```bash
-python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_qaft models_save/nin_bn_fused.pth --gpu_id 0 --bn_fuse --qaft --lr 0.00001
+python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_qaft models_save/nin_bn_fused.pth --bn_fuse --qaft --lr 0.00001
 ```
 
 - nin_gc(含分组卷积结构)
 
 ```bash
-python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_qaft models_save/nin_gc_bn_fused.pth --gpu_id 0 --bn_fuse --qaft --lr 0.00001
+python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_qaft models_save/nin_gc_bn_fused.pth --bn_fuse --qaft --lr 0.00001
 ```
 
 **PTQ  —>  QAFT**
@@ -580,13 +581,13 @@ python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_qaft models_save/nin
 - nin(正常卷积结构)
 
 ```bash
-python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_qaft models_save/nin.pth --gpu_id 0 --qaft --lr 0.00001 --ptq
+python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_qaft models_save/nin.pth --qaft --lr 0.00001 --ptq
 ```
 
 - nin_gc(含分组卷积结构)
 
 ```bash
-python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_qaft models_save/nin_gc.pth --gpu_id 0 --qaft --lr 0.00001 --ptq
+python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_qaft models_save/nin_gc.pth --qaft --lr 0.00001 --ptq
 ```
 
 *bn融合*
@@ -594,13 +595,13 @@ python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_qaft models_save/nin
 - nin(正常卷积结构)
 
 ```bash
-python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_qaft models_save/nin_bn_fused.pth --gpu_id 0 --bn_fuse --qaft --lr 0.00001 --ptq
+python main.py --w_bits 8 --a_bits 8 --model_type 0 --prune_qaft models_save/nin_bn_fused.pth --bn_fuse --qaft --lr 0.00001 --ptq
 ```
 
 - nin_gc(含分组卷积结构)
 
 ```bash
-python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_qaft models_save/nin_gc_bn_fused.pth --gpu_id 0 --bn_fuse --qaft --lr 0.00001 --ptq
+python main.py --w_bits 8 --a_bits 8 --model_type 1 --prune_qaft models_save/nin_gc_bn_fused.pth --bn_fuse --qaft --lr 0.00001 --ptq
 ```
 
 ###### 其他可选量化配置类比
@@ -649,31 +650,31 @@ cd micronet/compression/quantization/wbwtab/bn_fuse
 - nin_gc, quant_model, wb
 
 ```bash
-python bn_fuse.py --model_type 1 --W 2 --gpu_id 0
+python bn_fuse.py --model_type 1 --W 2
 ```
 
 - nin_gc, prune_quant_model, wb
 
 ```bash
-python bn_fuse.py --model_type 1 --prune_quant --W 2 --gpu_id 0
+python bn_fuse.py --model_type 1 --prune_quant --W 2
 ```
 
 - nin_gc, quant_model, wt
 
 ```bash
-python bn_fuse.py --model_type 1 --W 3 --gpu_id 0
+python bn_fuse.py --model_type 1 --W 3
 ```
 
 - nin, quant_model, wb
 
 ```bash
-python bn_fuse.py --model_type 0 --W 2 --gpu_id 0
+python bn_fuse.py --model_type 0 --W 2
 ```
 
 ###### bn_fused_model_test(对quant_model_train和quant_bn_fused_model_inference进行测试)
 
 ```bash
-python bn_fused_model_test.py --gpu_id 0
+python bn_fused_model_test.py
 ```
 
 ##### dorefa
@@ -695,25 +696,25 @@ cd micronet/compression/quantization/wqaq/dorefa/quant_model_test
 - nin_gc, quant_model, w8a8
 
 ```bash
-python quant_model_para.py --model_type 1 --w_bits 8 --a_bits 8 --gpu_id 0
+python quant_model_para.py --model_type 1 --w_bits 8 --a_bits 8
 ```
 
 - nin_gc, prune_quant_model, w8a8
 
 ```bash
-python quant_model_para.py --model_type 1 --prune_quant --w_bits 8 --a_bits 8 --gpu_id 0
+python quant_model_para.py --model_type 1 --prune_quant --w_bits 8 --a_bits 8
 ```
 
 - nin, quant_model, w8a8
 
 ```bash
-python quant_model_para.py --model_type 0 --w_bits 8 --a_bits 8 --gpu_id 0
+python quant_model_para.py --model_type 0 --w_bits 8 --a_bits 8
 ```
 
 ###### quant_model_test(对quant_model_train和quant_model_inference进行测试)
 
 ```bash
-python quant_model_test.py --gpu_id 0
+python quant_model_test.py
 ```
 
 ##### iao
@@ -740,31 +741,31 @@ cd micronet/compression/quantization/wqaq/iao/bn_fuse
 - nin_gc, quant_model, w8a8
 
 ```bash
-python bn_fuse.py --model_type 1 --w_bits 8 --a_bits 8 --gpu_id 0
+python bn_fuse.py --model_type 1 --w_bits 8 --a_bits 8
 ```
 
 - nin_gc, prune_quant_model, w8a8
 
 ```bash
-python bn_fuse.py --model_type 1 --prune_quant --w_bits 8 --a_bits 8 --gpu_id 0
+python bn_fuse.py --model_type 1 --prune_quant --w_bits 8 --a_bits 8
 ```
 
 - nin, quant_model, w8a8
 
 ```bash
-python bn_fuse.py --model_type 0 --w_bits 8 --a_bits 8 --gpu_id 0
+python bn_fuse.py --model_type 0 --w_bits 8 --a_bits 8
 ```
 
 - nin_gc, quant_model, w8a8, 非对称, 层级
 
 ```bash
-python bn_fuse.py --model_type 0 --w_bits 8 --a_bits 8 --q_type 1 --q_level 1 --gpu_id 0
+python bn_fuse.py --model_type 0 --w_bits 8 --a_bits 8 --q_type 1 --q_level 1
 ```
 
 ###### bn_fused_model_test(对quant_bn_fused_model_train和quant_bn_fused_model_inference进行测试)
 
 ```bash
-python bn_fused_model_test.py --gpu_id 0
+python bn_fused_model_test.py
 ```
 
 #### 设备选取
@@ -982,9 +983,9 @@ class LeNet(nn.Module):
 '''
 lenet = LeNet()
 quant_lenet_dorefa = quant_dorefa.prepare(lenet, inplace=False, a_bits=8, w_bits=8)
-quant_lenet_iao = quant_iao.prepare(lenet, inplace=False, a_bits=8,
-                                    w_bits=8, q_type=0,
-                                    q_level=0, device='cpu',
+quant_lenet_iao = quant_iao.prepare(lenet, inplace=False,
+                                    a_bits=8, w_bits=8,
+                                    q_type=0, q_level=0,
                                     weight_observer=0,
                                     bn_fuse=False,
                                     bn_fuse_calib=False,

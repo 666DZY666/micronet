@@ -1,4 +1,4 @@
-__version__ = "1.10.6"
+__version__ = "1.11.0"
 
 from micronet.base_module.op import *
 
@@ -136,9 +136,9 @@ def quant_test_auto():
 
     lenet = LeNet()
     quant_lenet_dorefa = quant_dorefa.prepare(lenet, inplace=False, a_bits=8, w_bits=8)
-    quant_lenet_iao = quant_iao.prepare(lenet, inplace=False, a_bits=8,
-                                        w_bits=8, q_type=0,
-                                        q_level=0, device='cpu',
+    quant_lenet_iao = quant_iao.prepare(lenet, inplace=False,
+                                        a_bits=8, w_bits=8,
+                                        q_type=0, q_level=0,
                                         weight_observer=0,
                                         bn_fuse=False,
                                         bn_fuse_calib=False,

@@ -213,10 +213,6 @@ if __name__ == '__main__':
 
     if args.gpu_id:
         os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
-    if not args.cpu:
-        device = 'cuda'
-    else:
-        device = 'cpu'
 
     setup_seed(1)
 
@@ -257,7 +253,7 @@ if __name__ == '__main__':
         print('***ori_model***\n', model)
         quantize.prepare(model, inplace=True, a_bits=args.a_bits,
                          w_bits=args.w_bits, q_type=args.q_type,
-                         q_level=args.q_level, device=device,
+                         q_level=args.q_level,
                          weight_observer=args.weight_observer,
                          bn_fuse=args.bn_fuse,
                          bn_fuse_calib=args.bn_fuse_calib,
@@ -278,7 +274,7 @@ if __name__ == '__main__':
         print('***ori_model***\n', model)
         quantize.prepare(model, inplace=True, a_bits=args.a_bits,
                          w_bits=args.w_bits, q_type=args.q_type,
-                         q_level=args.q_level, device=device,
+                         q_level=args.q_level,
                          weight_observer=args.weight_observer,
                          bn_fuse=args.bn_fuse,
                          bn_fuse_calib=args.bn_fuse_calib,
@@ -304,7 +300,7 @@ if __name__ == '__main__':
         print('***ori_model***\n', model)
         quantize.prepare(model, inplace=True, a_bits=args.a_bits,
                          w_bits=args.w_bits, q_type=args.q_type,
-                         q_level=args.q_level, device=device,
+                         q_level=args.q_level,
                          weight_observer=args.weight_observer,
                          bn_fuse=args.bn_fuse,
                          bn_fuse_calib=args.bn_fuse_calib,
@@ -326,7 +322,7 @@ if __name__ == '__main__':
         print('***ori_model***\n', model)
         quantize.prepare(model, inplace=True, a_bits=args.a_bits,
                          w_bits=args.w_bits, q_type=args.q_type,
-                         q_level=args.q_level, device=device,
+                         q_level=args.q_level,
                          weight_observer=args.weight_observer,
                          bn_fuse=args.bn_fuse,
                          bn_fuse_calib=args.bn_fuse_calib,
@@ -358,7 +354,7 @@ if __name__ == '__main__':
         print('***ori_model***\n', model)
         quantize.prepare(model, inplace=True, a_bits=args.a_bits,
                          w_bits=args.w_bits, q_type=args.q_type,
-                         q_level=args.q_level, device=device,
+                         q_level=args.q_level,
                          weight_observer=args.weight_observer,
                          bn_fuse=args.bn_fuse,
                          bn_fuse_calib=args.bn_fuse_calib,
