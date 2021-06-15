@@ -1,4 +1,4 @@
-__version__ = "1.11.0"
+__version__ = "1.11.1"
 
 from micronet.base_module.op import *
 
