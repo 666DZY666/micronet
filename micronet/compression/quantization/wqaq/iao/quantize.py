@@ -132,7 +132,8 @@ class Round(Function):
             max_val = observer_max_val
             min_val = observer_min_val
         self.save_for_backward(input, min_val, max_val)
-        output = torch.floor(input + 0.5)
+        sign = torch.sign(input)
+        output = sign * torch.floor(torch.abs(input) + 0.5)
         return output
 
     @staticmethod
@@ -231,11 +232,12 @@ class SymmetricQuantizer(SignedQuantizer):
 class AsymmetricQuantizer(UnsignedQuantizer):
     def update_qparams(self):
         self.q_type = 1
-        quant_range = float(self.quant_max_val - self.quant_min_val)           # quantized_range
-        float_range = self.observer.max_val - self.observer.min_val            # float_range
-        scale = float_range / quant_range                                      # scale
-        scale = torch.max(scale, self.eps)                                     # processing for very small scale
-        zero_point = torch.floor(self.observer.min_val / scale + 0.5)          # zero_point
+        quant_range = float(self.quant_max_val - self.quant_min_val)                     # quantized_range
+        float_range = self.observer.max_val - self.observer.min_val                      # float_range
+        scale = float_range / quant_range                                                # scale
+        scale = torch.max(scale, self.eps)                                               # processing for very small scale
+        sign = torch.sign(self.observer.min_val)
+        zero_point = sign * torch.floor(torch.abs(self.observer.min_val / scale) + 0.5)  # zero_point
         self.scale.copy_(scale)
         self.zero_point.copy_(zero_point)
 

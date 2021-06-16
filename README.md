@@ -144,8 +144,7 @@ micronet
 - 5.15, fix bug in quant_model_para post-processing
 - **6.7**, add quant_add(need use base_module's op) and quant_resnet demo
 - **6.9**, iao_quant supports multi gpus
-- 6.15, fix quant_round()
-- 6.16, fix binary_quant
+- 6.16, fix quant_round() and quant_binary()
 
 
 ## 环境要求

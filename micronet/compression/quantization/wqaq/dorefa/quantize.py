@@ -11,7 +11,8 @@ from torch.autograd import Function
 class Round(Function):
     @staticmethod
     def forward(self, input):
-        output = torch.floor(input + 0.5)
+        sign = torch.sign(input)
+        output = sign * torch.floor(torch.abs(input) + 0.5)
         return output
 
     @staticmethod
