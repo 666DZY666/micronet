@@ -27,6 +27,9 @@
 ```
 micronet
 ├── __init__.py
+├── base_module
+│   ├── __init__.py
+│   └── op.py
 ├── compression
 │   ├── README.md
 │   ├── __init__.py
@@ -96,7 +99,8 @@ micronet
 ├── models
 │   ├── __init__.py
 │   ├── nin.py
-│   └── nin_gc.py
+│   ├── nin_gc.py
+│   └── resnet.py
 └── readme_imgs
     ├── code_structure.jpg
     └── micronet.xmind
