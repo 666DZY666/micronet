@@ -13,6 +13,7 @@ class BinaryActivation(Function):
     def forward(self, input):
         self.save_for_backward(input)
         output = torch.sign(input)
+        output[output == 0] = 1
         # ******************** A —— 1、0 *********************
         #output = torch.clamp(output, min=0)
         return output
@@ -30,7 +31,6 @@ class BinaryActivation(Function):
         size = input.size()
         zeros = torch.zeros(size).cuda()
         grad = torch.max(zeros, 1 - torch.abs(input))
-        #print(grad)
         grad_input = grad_output * grad
         '''
         return grad_input
@@ -40,6 +40,7 @@ class BinaryWeight(Function):
     @staticmethod
     def forward(self, input):
         output = torch.sign(input)
+        output[output == 0] = 1
         return output
 
     @staticmethod

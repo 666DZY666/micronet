@@ -145,6 +145,7 @@ micronet
 - **6.7**, add quant_add(need use base_module's op) and quant_resnet demo
 - **6.9**, iao_quant supports multi gpus
 - 6.15, fix quant_round()
+- 6.16, fix binary_quant
 
 
 ## 环境要求
