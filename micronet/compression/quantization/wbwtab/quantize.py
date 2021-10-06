@@ -15,25 +15,26 @@ class BinaryActivation(Function):
         output = torch.sign(input)
         output[output == 0] = 1
         # ******************** A —— 1、0 *********************
-        #output = torch.clamp(output, min=0)
+        # output = torch.clamp(output, min=0)
         return output
 
     @staticmethod
     def backward(self, grad_output):
-        input, = self.saved_tensors
+        (input,) = self.saved_tensors
         # *******************ste*********************
         grad_input = grad_output.clone()
         # ****************saturate_ste***************
         grad_input[input.ge(1.0)] = 0
         grad_input[input.le(-1.0)] = 0
-        '''
+        """
         #******************soft_ste*****************
         size = input.size()
         zeros = torch.zeros(size).cuda()
         grad = torch.max(zeros, 1 - torch.abs(input))
         grad_input = grad_output * grad
-        '''
+        """
         return grad_input
+
 
 # weight
 class BinaryWeight(Function):
@@ -49,6 +50,7 @@ class BinaryWeight(Function):
         grad_input = grad_output.clone()
         return grad_input
 
+
 # ********************* 三值(+-1、0) ***********************
 class Ternary(Function):
     @staticmethod
@@ -58,7 +60,12 @@ class Ternary(Function):
         # **************** 阈值 ****************
         threshold = E * 0.7
         # ************** W —— +-1、0 **************
-        output = torch.sign(torch.add(torch.sign(torch.add(input, threshold)), torch.sign(torch.add(input, -threshold))))
+        output = torch.sign(
+            torch.add(
+                torch.sign(torch.add(input, threshold)),
+                torch.sign(torch.add(input, -threshold)),
+            )
+        )
         return output, threshold
 
     @staticmethod
@@ -66,6 +73,7 @@ class Ternary(Function):
         # *******************ste*********************
         grad_input = grad_output.clone()
         return grad_input
+
 
 # ********************* A(特征)量化(二值) ***********************
 class ActivationQuantizer(nn.Module):
@@ -85,12 +93,15 @@ class ActivationQuantizer(nn.Module):
             output = self.relu(input)
         return output
 
+
 # ********************* W(模型参数)量化(三/二值) ***********************
 def meancenter_clamp_convparams(w):
     mean = w.data.mean(1, keepdim=True)
-    w.data.sub_(mean)        # W中心化(C方向)
+    w.data.sub_(mean)  # W中心化(C方向)
     w.data.clamp_(-1.0, 1.0)  # W截断
     return w
+
+
 class WeightQuantizer(nn.Module):
     def __init__(self, W=2):
         super(WeightQuantizer, self).__init__()
@@ -139,20 +150,31 @@ class WeightQuantizer(nn.Module):
 
 
 class QuantConv2d(nn.Conv2d):
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 kernel_size,
-                 stride=1,
-                 padding=0,
-                 dilation=1,
-                 groups=1,
-                 bias=True,
-                 padding_mode='zeros',
-                 W=2,
-                 quant_inference=False):
-        super(QuantConv2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, dilation, groups,
-                                          bias, padding_mode)
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        kernel_size,
+        stride=1,
+        padding=0,
+        dilation=1,
+        groups=1,
+        bias=True,
+        padding_mode="zeros",
+        W=2,
+        quant_inference=False,
+    ):
+        super(QuantConv2d, self).__init__(
+            in_channels,
+            out_channels,
+            kernel_size,
+            stride,
+            padding,
+            dilation,
+            groups,
+            bias,
+            padding_mode,
+        )
         self.quant_inference = quant_inference
         self.weight_quantizer = WeightQuantizer(W=W)
 
@@ -161,27 +183,46 @@ class QuantConv2d(nn.Conv2d):
             tnn_bin_weight = self.weight_quantizer(self.weight)
         else:
             tnn_bin_weight = self.weight
-        output = F.conv2d(input, tnn_bin_weight, self.bias, self.stride, self.padding, self.dilation,
-                          self.groups)
+        output = F.conv2d(
+            input,
+            tnn_bin_weight,
+            self.bias,
+            self.stride,
+            self.padding,
+            self.dilation,
+            self.groups,
+        )
         return output
 
 
 class QuantConvTranspose2d(nn.ConvTranspose2d):
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 kernel_size,
-                 stride=1,
-                 padding=0,
-                 output_padding=0,
-                 dilation=1,
-                 groups=1,
-                 bias=True,
-                 padding_mode='zeros',
-                 W=2,
-                 quant_inference=False):
-        super(QuantConvTranspose2d, self).__init__(in_channels, out_channels, kernel_size, stride, padding, output_padding,
-                                                   dilation, groups, bias, padding_mode)
+    def __init__(
+        self,
+        in_channels,
+        out_channels,
+        kernel_size,
+        stride=1,
+        padding=0,
+        output_padding=0,
+        dilation=1,
+        groups=1,
+        bias=True,
+        padding_mode="zeros",
+        W=2,
+        quant_inference=False,
+    ):
+        super(QuantConvTranspose2d, self).__init__(
+            in_channels,
+            out_channels,
+            kernel_size,
+            stride,
+            padding,
+            output_padding,
+            dilation,
+            groups,
+            bias,
+            padding_mode,
+        )
         self.quant_inference = quant_inference
         self.weight_quantizer = WeightQuantizer(W=W)
 
@@ -190,62 +231,89 @@ class QuantConvTranspose2d(nn.ConvTranspose2d):
             tnn_bin_weight = self.weight_quantizer(self.weight)
         else:
             tnn_bin_weight = self.weight
-        output = F.conv_transpose2d(input, tnn_bin_weight, self.bias, self.stride, self.padding, self.output_padding,
-                                    self.groups, self.dilation)
+        output = F.conv_transpose2d(
+            input,
+            tnn_bin_weight,
+            self.bias,
+            self.stride,
+            self.padding,
+            self.output_padding,
+            self.groups,
+            self.dilation,
+        )
         return output
 
 
-def add_quant_op(module, layer_counter, layer_num, A=2, W=2,
-                 quant_inference=False):
+def add_quant_op(module, layer_counter, layer_num, A=2, W=2, quant_inference=False):
     for name, child in module.named_children():
         if isinstance(child, nn.Conv2d):
             layer_counter[0] += 1
             if layer_counter[0] > 1 and layer_counter[0] < layer_num:
                 if child.bias is not None:
-                    quant_conv = QuantConv2d(child.in_channels, child.out_channels,
-                                             child.kernel_size, stride=child.stride,
-                                             padding=child.padding, dilation=child.dilation,
-                                             groups=child.groups, bias=True, padding_mode=child.padding_mode,
-                                             W=W, quant_inference=quant_inference)
+                    quant_conv = QuantConv2d(
+                        child.in_channels,
+                        child.out_channels,
+                        child.kernel_size,
+                        stride=child.stride,
+                        padding=child.padding,
+                        dilation=child.dilation,
+                        groups=child.groups,
+                        bias=True,
+                        padding_mode=child.padding_mode,
+                        W=W,
+                        quant_inference=quant_inference,
+                    )
                     quant_conv.bias.data = child.bias
                 else:
-                    quant_conv = QuantConv2d(child.in_channels, child.out_channels,
-                                             child.kernel_size, stride=child.stride,
-                                             padding=child.padding, dilation=child.dilation,
-                                             groups=child.groups, bias=False, padding_mode=child.padding_mode,
-                                             W=W, quant_inference=quant_inference)
+                    quant_conv = QuantConv2d(
+                        child.in_channels,
+                        child.out_channels,
+                        child.kernel_size,
+                        stride=child.stride,
+                        padding=child.padding,
+                        dilation=child.dilation,
+                        groups=child.groups,
+                        bias=False,
+                        padding_mode=child.padding_mode,
+                        W=W,
+                        quant_inference=quant_inference,
+                    )
                 quant_conv.weight.data = child.weight
                 module._modules[name] = quant_conv
         elif isinstance(child, nn.ConvTranspose2d):
             layer_counter[0] += 1
             if layer_counter[0] > 1 and layer_counter[0] < layer_num:
                 if child.bias is not None:
-                    quant_conv_transpose = QuantConvTranspose2d(child.in_channels,
-                                                                child.out_channels,
-                                                                child.kernel_size,
-                                                                stride=child.stride,
-                                                                padding=child.padding,
-                                                                output_padding=child.output_padding,
-                                                                dilation=child.dilation,
-                                                                groups=child.groups,
-                                                                bias=True,
-                                                                padding_mode=child.padding_mode,
-                                                                W=W,
-                                                                quant_inference=quant_inference)
+                    quant_conv_transpose = QuantConvTranspose2d(
+                        child.in_channels,
+                        child.out_channels,
+                        child.kernel_size,
+                        stride=child.stride,
+                        padding=child.padding,
+                        output_padding=child.output_padding,
+                        dilation=child.dilation,
+                        groups=child.groups,
+                        bias=True,
+                        padding_mode=child.padding_mode,
+                        W=W,
+                        quant_inference=quant_inference,
+                    )
                     quant_conv_transpose.bias.data = child.bias
                 else:
-                    quant_conv_transpose = QuantConvTranspose2d(child.in_channels,
-                                                                child.out_channels,
-                                                                child.kernel_size,
-                                                                stride=child.stride,
-                                                                padding=child.padding,
-                                                                output_padding=child.output_padding,
-                                                                dilation=child.dilation,
-                                                                groups=child.groups,
-                                                                bias=False,
-                                                                padding_mode=child.padding_mode,
-                                                                W=W,
-                                                                quant_inference=quant_inference)
+                    quant_conv_transpose = QuantConvTranspose2d(
+                        child.in_channels,
+                        child.out_channels,
+                        child.kernel_size,
+                        stride=child.stride,
+                        padding=child.padding,
+                        output_padding=child.output_padding,
+                        dilation=child.dilation,
+                        groups=child.groups,
+                        bias=False,
+                        padding_mode=child.padding_mode,
+                        W=W,
+                        quant_inference=quant_inference,
+                    )
                 quant_conv_transpose.weight.data = child.weight
                 module._modules[name] = quant_conv_transpose
         elif isinstance(child, nn.ReLU):
@@ -253,8 +321,14 @@ def add_quant_op(module, layer_counter, layer_num, A=2, W=2,
                 quant_relu = ActivationQuantizer(A=A)
                 module._modules[name] = quant_relu
         else:
-            add_quant_op(child, layer_counter, layer_num, A=A, W=W,
-                         quant_inference=quant_inference)
+            add_quant_op(
+                child,
+                layer_counter,
+                layer_num,
+                A=A,
+                W=W,
+                quant_inference=quant_inference,
+            )
 
 
 def prepare(model, inplace=False, A=2, W=2, quant_inference=False):
@@ -267,6 +341,7 @@ def prepare(model, inplace=False, A=2, W=2, quant_inference=False):
             layer_num += 1
         elif isinstance(m, nn.ConvTranspose2d):
             layer_num += 1
-    add_quant_op(model, layer_counter, layer_num, A=A, W=W,
-                 quant_inference=quant_inference)
+    add_quant_op(
+        model, layer_counter, layer_num, A=A, W=W, quant_inference=quant_inference
+    )
     return model

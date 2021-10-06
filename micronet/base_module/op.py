@@ -12,7 +12,7 @@ class Add(nn.Module):
 
 
 # *** temp_dev ***
-'''
+"""
 class Concat(nn.Module):
     def __init__(self, dim=1):
         super(Concat, self).__init__()
@@ -21,4 +21,4 @@ class Concat(nn.Module):
     def forward(self, res, shortcut):
         output = torch.cat([shortcut, res], dim=self.dim)
         return output
-'''
+"""

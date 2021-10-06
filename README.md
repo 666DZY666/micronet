@@ -840,14 +840,30 @@ import torch.nn.functional as F
 from micronet.base_module.op import *
 
 # ``quantize`` is quant_module, ``QuantConv2d``, ``QuantLinear``, ``QuantMaxPool2d``, ``QuantReLU`` are quant_op
-from micronet.compression.quantization.wbwtab.quantize import QuantConv2d as quant_conv_wbwtab
-from micronet.compression.quantization.wbwtab.quantize import ActivationQuantizer as quant_relu_wbwtab
-from micronet.compression.quantization.wqaq.dorefa.quantize import QuantConv2d as quant_conv_dorefa
-from micronet.compression.quantization.wqaq.dorefa.quantize import QuantLinear as quant_linear_dorefa
-from micronet.compression.quantization.wqaq.iao.quantize import QuantConv2d as quant_conv_iao
-from micronet.compression.quantization.wqaq.iao.quantize import QuantLinear as quant_linear_iao
-from micronet.compression.quantization.wqaq.iao.quantize import QuantMaxPool2d as quant_max_pool_iao
-from micronet.compression.quantization.wqaq.iao.quantize import QuantReLU as quant_relu_iao
+from micronet.compression.quantization.wbwtab.quantize import (
+    QuantConv2d as quant_conv_wbwtab,
+)
+from micronet.compression.quantization.wbwtab.quantize import (
+    ActivationQuantizer as quant_relu_wbwtab,
+)
+from micronet.compression.quantization.wqaq.dorefa.quantize import (
+    QuantConv2d as quant_conv_dorefa,
+)
+from micronet.compression.quantization.wqaq.dorefa.quantize import (
+    QuantLinear as quant_linear_dorefa,
+)
+from micronet.compression.quantization.wqaq.iao.quantize import (
+    QuantConv2d as quant_conv_iao,
+)
+from micronet.compression.quantization.wqaq.iao.quantize import (
+    QuantLinear as quant_linear_iao,
+)
+from micronet.compression.quantization.wqaq.iao.quantize import (
+    QuantMaxPool2d as quant_max_pool_iao,
+)
+from micronet.compression.quantization.wqaq.iao.quantize import (
+    QuantReLU as quant_relu_iao,
+)
 
 
 class LeNet(nn.Module):
@@ -859,7 +875,7 @@ class LeNet(nn.Module):
         self.fc2 = nn.Linear(50, 10)
         self.max_pool = nn.MaxPool2d(kernel_size=2)
         self.relu = nn.ReLU(inplace=True)
-        
+
     def forward(self, x):
         x = self.relu(self.max_pool(self.conv1(x)))
         x = self.relu(self.max_pool(self.conv2(x)))
@@ -868,6 +884,7 @@ class LeNet(nn.Module):
         x = F.dropout(x, training=self.training)
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
+
 
 class QuantLeNetWbWtAb(nn.Module):
     def __init__(self):
@@ -888,6 +905,7 @@ class QuantLeNetWbWtAb(nn.Module):
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
 
+
 class QuantLeNetDoReFa(nn.Module):
     def __init__(self):
         super(QuantLeNetDoReFa, self).__init__()
@@ -906,6 +924,7 @@ class QuantLeNetDoReFa(nn.Module):
         x = F.dropout(x, training=self.training)
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
+
 
 class QuantLeNetIAO(nn.Module):
     def __init__(self):
@@ -926,18 +945,19 @@ class QuantLeNetIAO(nn.Module):
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
 
+
 lenet = LeNet()
 quant_lenet_wbwtab = QuantLeNetWbWtAb()
 quant_lenet_dorefa = QuantLeNetDoReFa()
 quant_lenet_iao = QuantLeNetIAO()
 
-print('***ori_model***\n', lenet)
-print('\n***quant_model_wbwtab***\n', quant_lenet_wbwtab)
-print('\n***quant_model_dorefa***\n', quant_lenet_dorefa)
-print('\n***quant_model_iao***\n', quant_lenet_iao)
+print("***ori_model***\n", lenet)
+print("\n***quant_model_wbwtab***\n", quant_lenet_wbwtab)
+print("\n***quant_model_dorefa***\n", quant_lenet_dorefa)
+print("\n***quant_model_iao***\n", quant_lenet_iao)
 
-print('\nquant_model is ready')
-print('micronet is ready')
+print("\nquant_model is ready")
+print("micronet is ready")
 ```
 
 ##### quant_test_auto.py
@@ -964,7 +984,7 @@ class LeNet(nn.Module):
         self.fc2 = nn.Linear(50, 10)
         self.max_pool = nn.MaxPool2d(kernel_size=2)
         self.relu = nn.ReLU(inplace=True)
-        
+
     def forward(self, x):
         x = self.relu(self.max_pool(self.conv1(x)))
         x = self.relu(self.max_pool(self.conv2(x)))
@@ -974,7 +994,8 @@ class LeNet(nn.Module):
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
 
-'''
+
+"""
 --w_bits --a_bits, 权重W和特征A量化位数
 --q_type, 量化类型(0-对称, 1-非对称)
 --q_level, 权重量化级别(0-通道级, 1-层级)
@@ -985,30 +1006,35 @@ class LeNet(nn.Module):
 --qaft, qaft标志
 --ptq, ptq标志
 --percentile, ptq校准的比例
-'''
+"""
 lenet = LeNet()
 quant_lenet_dorefa = quant_dorefa.prepare(lenet, inplace=False, a_bits=8, w_bits=8)
-quant_lenet_iao = quant_iao.prepare(lenet, inplace=False,
-                                    a_bits=8, w_bits=8,
-                                    q_type=0, q_level=0,
-                                    weight_observer=0,
-                                    bn_fuse=False,
-                                    bn_fuse_calib=False,
-                                    pretrained_model=False,
-                                    qaft=False,
-                                    ptq=False,
-                                    percentile=0.9999)
+quant_lenet_iao = quant_iao.prepare(
+    lenet,
+    inplace=False,
+    a_bits=8,
+    w_bits=8,
+    q_type=0,
+    q_level=0,
+    weight_observer=0,
+    bn_fuse=False,
+    bn_fuse_calib=False,
+    pretrained_model=False,
+    qaft=False,
+    ptq=False,
+    percentile=0.9999,
+)
 
 # if ptq == False, do qat/qaft, need train
 # if ptq == True, do ptq, don't need train
 # you can refer to micronet/compression/quantization/wqaq/iao/main.py
 
-print('***ori_model***\n', lenet)
-print('\n***quant_model_dorefa***\n', quant_lenet_dorefa)
-print('\n***quant_model_iao***\n', quant_lenet_iao)
+print("***ori_model***\n", lenet)
+print("\n***quant_model_dorefa***\n", quant_lenet_dorefa)
+print("\n***quant_model_iao***\n", quant_lenet_iao)
 
-print('\nquant_model is ready')
-print('micronet is ready')
+print("\nquant_model is ready")
+print("micronet is ready")
 ```
 
 #### test
